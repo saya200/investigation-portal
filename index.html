@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>منصة شعبة التحقيق - الدفاع المدني</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --primary:#0d4f3c; --primary-light:#1a6b52; --accent:#c9a227; --accent-dark:#a8861f;
+  --bg:#eef2f0; --card:#ffffff; --text:#1a2e28; --muted:#7a8a84; --border:#dde5e1;
+  --danger:#c0392b; --ok:#1e8449; --radius:14px;
+  --shadow:0 4px 18px rgba(13,79,60,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
+body{min-height:100vh;}
+img{max-width:100%;}
+button{font-family:inherit;cursor:pointer;border:none;}
+input,textarea{font-family:inherit;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:block;}
+
+/* ===== BUTTONS ===== */
+.btn{padding:13px 22px;border-radius:10px;font-size:15px;font-weight:700;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-light);}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:var(--accent-dark);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-ghost{background:transparent;color:var(--primary);border:1.5px solid var(--border);}
+.a-fbtn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn-sm{padding:9px 16px;font-size:13px;border-radius:8px;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+
+/* ===== LOGIN ===== */
+#login-screen{display:none;align-items:center;justify-content:center;padding:20px;min-height:100vh;
+  background:linear-gradient(135deg,var(--primary),#08382a);}
+#login-screen.active{display:flex;}
+.login-card{background:var(--card);border-radius:20px;padding:38px 30px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+.login-logo{text-align:center;margin-bottom:26px;}
+.login-logo img{width:84px;height:84px;object-fit:contain;margin:0 auto 10px;display:block;}
+.login-logo h1{font-size:21px;font-weight:800;color:var(--primary);line-height:1.4;}
+.login-logo p{font-size:13px;color:var(--muted);margin-top:6px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:var(--text);}
+.field input,.field select{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fafdfb;transition:.15s;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--primary);background:#fff;}
+.tabs{display:flex;gap:8px;margin-bottom:22px;background:var(--bg);padding:5px;border-radius:12px;}
+.tabs button{flex:1;padding:11px;border-radius:8px;font-size:14px;font-weight:700;background:transparent;color:var(--muted);}
+.tabs button.active{background:var(--card);color:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,.07);}
+.alert{padding:12px 14px;border-radius:9px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;}
+.alert.show{display:block;}
+.alert.error{background:#fdecea;color:var(--danger);}
+.alert.ok{background:#eafaf0;color:var(--ok);}
+
+/* ===== HEADER ===== */
+.app-header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:50;}
+#form-screen .app-header,#incident-screen .app-header{background:var(--primary);border:none;}
+#form-screen .app-header *,#incident-screen .app-header *{color:#fff;}
+.header-logo{display:flex;align-items:center;gap:9px;min-width:0;}
+.header-logo img{width:34px;height:34px;object-fit:contain;flex-shrink:0;}
+.header-logo h2{font-size:16px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-logo h2 span{font-size:11px;display:block;font-weight:400;opacity:.85;}
+.header-user{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.user-chip{background:var(--bg);padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;text-align:center;line-height:1.4;}
+#form-screen .user-chip,#incident-screen .user-chip{background:rgba(255,255,255,.15);}
+.user-chip span{display:block;font-size:10px;font-weight:400;opacity:.8;}
+
+/* ===== CONTAINER ===== */
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px;}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:22px 18px;text-align:center;box-shadow:var(--shadow);}
+.stat-card .num{font-size:32px;font-weight:800;color:var(--primary);}
+.stat-card .lbl{font-size:13px;color:var(--muted);margin-top:4px;}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.section-head h3{font-size:20px;font-weight:800;color:var(--primary);display:flex;align-items:center;gap:8px;}
+.search-box{position:relative;margin-bottom:18px;}
+.search-box input{width:100%;padding:14px 46px 14px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;background:var(--card);}
+.search-box input:focus{outline:none;border-color:var(--primary);}
+.search-box .ico{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.5;}
+
+/* ===== INCIDENT CARDS ===== */
+.inc-card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);
+  border-right:5px solid var(--accent);transition:.15s;}
+.inc-card.done{border-right-color:var(--ok);}
+.inc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.inc-serial{font-size:22px;font-weight:800;color:var(--primary);direction:ltr;letter-spacing:1px;}
+.inc-meta{font-size:13px;color:var(--muted);margin-top:5px;}
+.inc-officer{font-size:13px;margin-top:7px;font-weight:600;}
+.badge{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;}
+.badge.draft{background:#fdf3d8;color:var(--accent-dark);}
+.badge.done{background:#e3f5ea;color:var(--ok);}
+.inc-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+
+/* ===== FORM ITEMS ===== */
+.forms-list{margin-top:6px;}
+.form-item{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.form-item-info{display:flex;align-items:center;gap:13px;min-width:0;}
+.form-icon{width:46px;height:46px;border-radius:11px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.form-item-name{font-size:16px;font-weight:700;}
+.form-item-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.form-item-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+.empty-state{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-state .ico{font-size:54px;opacity:.4;display:block;margin-bottom:12px;}
+
+/* ===== MODAL ===== */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(8,30,22,.6);z-index:200;align-items:center;justify-content:center;padding:18px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card);border-radius:18px;padding:26px 22px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:19px;font-weight:800;color:var(--primary);margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;margin-top:22px;}
+.modal-actions .btn{flex:1;}
+.choose-grid{display:grid;gap:10px;}
+.choose-item{display:flex;align-items:center;gap:13px;padding:15px;border:1.5px solid var(--border);border-radius:12px;transition:.15s;background:var(--card);text-align:right;width:100%;}
+.choose-item:hover{border-color:var(--primary);background:#f7fbf9;}
+.choose-item .ico{font-size:24px;}
+.choose-item .nm{font-weight:700;font-size:15px;}
+
+/* ===== FORM RENDERER ===== */
+#form-screen{background:#54595d;}
+.form-toolbar{background:var(--primary);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  position:sticky;top:0;z-index:60;flex-wrap:wrap;}
+.form-toolbar .ttl{color:#fff;font-weight:800;font-size:15px;flex:1;min-width:120px;}
+.form-toolbar .ttl span{font-weight:400;font-size:12px;opacity:.85;}
+.zoom-ctrl{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:9px;padding:4px;}
+.zoom-ctrl button{width:34px;height:34px;border-radius:7px;background:rgba(255,255,255,.2);color:#fff;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.zoom-ctrl .zlbl{color:#fff;font-size:12px;min-width:42px;text-align:center;font-weight:700;}
+.tb-actions{display:flex;gap:7px;flex-wrap:wrap;}
+.form-scroll{overflow:auto;padding:18px;display:flex;justify-content:center;min-height:calc(100vh - 60px);}
+#form-container{position:relative;background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.4);flex-shrink:0;}
+#form-img{display:block;width:100%;height:auto;pointer-events:none;user-select:none;}
+#fields-layer{position:absolute;inset:0;}
+.field-overlay{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
+  color:#0a1f17;font-weight:700;padding:0 3px;outline:none;border-radius:2px;}
+.field-overlay:focus{background:rgba(255,255,255,.95);border:1.5px solid var(--primary);box-shadow:0 0 0 2px rgba(13,79,60,.2);}
+.field-overlay.rtl{text-align:right;direction:rtl;}
+.field-overlay.ltr{text-align:left;direction:ltr;}
+.field-overlay.export-empty{background:transparent !important;border:none !important;}
+.exporting .field-overlay{background:transparent !important;border:none !important;}
+.exporting .field-overlay::placeholder{color:transparent !important;}
+.exporting .chk-overlay{background:transparent !important;}
+.exporting .sig-clear{display:none !important;}
+.exporting .sig-overlay{background:transparent !important;border:none !important;}
+.chk-overlay{position:absolute;background:rgba(255,247,200,.4);border:1px dashed rgba(201,162,39,.55);
+  display:flex;align-items:center;justify-content:center;color:var(--ok);font-weight:900;border-radius:3px;line-height:1;}
+.chk-overlay.on{background:rgba(30,132,73,.12);border-color:var(--ok);}
+.sig-overlay{position:absolute;background:rgba(220,235,255,.35);border:1px dashed rgba(60,110,200,.5);border-radius:3px;overflow:hidden;}
+.sig-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;}
+.sig-clear{position:absolute;top:2px;left:2px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:5px;z-index:3;}
+
+/* ===== TOAST / LOADING ===== */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);
+  background:var(--text);color:#fff;padding:13px 24px;border-radius:11px;font-size:14px;font-weight:700;
+  z-index:500;transition:.3s;max-width:90vw;text-align:center;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+#toast.ok{background:var(--ok);} #toast.error{background:var(--danger);}
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:600;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+#loading.show{display:flex;}
+.spinner{width:48px;height:48px;border:5px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading p{font-weight:700;color:var(--primary);}
+
+.config-warn{background:#fdecea;color:var(--danger);padding:14px;text-align:center;font-size:14px;font-weight:700;display:none;}
+
+/* ===== TABLE (admin) ===== */
+.tbl-wrap{background:var(--card);border-radius:var(--radius);overflow:auto;box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;min-width:560px;}
+th,td{padding:13px 14px;text-align:right;font-size:14px;border-bottom:1px solid var(--border);}
+th{background:var(--primary);color:#fff;font-weight:700;font-size:13px;}
+tr:last-child td{border-bottom:none;}
+
+/* ===== RESPONSIVE / MOBILE ===== */
+@media(max-width:680px){
+  html,body{font-size:15px;}
+  .wrap{padding:14px 12px 50px;}
+  .header-logo h2{font-size:14px;}
+  .header-logo h2 span{font-size:10px;}
+  .header-logo img{width:30px;height:30px;}
+  .user-chip{font-size:11px;padding:6px 10px;}
+  .stats{gap:10px;}
+  .stat-card{padding:16px 12px;}
+  .stat-card .num{font-size:26px;}
+  .inc-serial{font-size:19px;}
+  .btn{padding:12px 16px;font-size:14px;}
+  .btn-sm{padding:9px 13px;font-size:12px;}
+  .login-card{padding:30px 20px;}
+  .form-toolbar{padding:8px 10px;}
+  .form-toolbar .ttl{font-size:13px;width:100%;}
+  .form-scroll{padding:8px;}
+  .section-head h3{font-size:17px;}
+  th,td{padding:10px 9px;font-size:12px;}
+}
+@media(max-width:420px){
+  .inc-actions .btn,.form-item-actions .btn{flex:1;}
+  .header-logo h2 span{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="https://i.ibb.co/LhqT0fqz/1200px-svg.png" alt="شعار الدفاع المدني">
+      <h1>شعبة التحقيق<br>الدفاع المدني</h1>
+      <p>منصة إدارة الحوادث والتحقيق</p>
+    </div>
+    <div class="tabs">
+      <button id="tab-login" class="active" onclick="switchTab('login')">دخول</button>
+      <button id="tab-reg" onclick="switchTab('reg')">حساب جديد</button>
+    </div>
+    <div id="alert-box" class="alert"></div>
+
+    <div id="login-form">
+      <div class="field"><label>الرقم العسكري</label>
+        <input id="lg-num" type="text" inputmode="numeric" placeholder="أدخل رقمك العسكري" autocomplete="username"></div>
+      <div class="field"><label>كلمة المرور</label>
+        <input id="lg-pass" type="password" placeholder="••••••" autocomplete="current-password"></div>
+      <button class="btn btn-primary btn-block" onclick="doLogin()">تسجيل الدخول</button>
+    </div>
+
+    <div id="reg-form" style="display:none">
+      <div class="field"><label>الاسم الكامل</label>
+        <input id="rg-name" type="text" placeholder="الاسم الثلاثي"></div>
+      <div class="field"><label>الرتبة</label>
+        <input id="rg-rank" type="text" placeholder="مثال: ملازم أول"></div>
+      <div class="field"><label>الرقم العسكري</label>
+        <input id="rg-num" type="text" inputmode="numeric" placeholder="رقمك العسكري"></div>
+      <div class="field"><label>كلمة المرور</label>
+        <input id="rg-pass" type="password" placeholder="6 أحرف على الأقل"></div>
+      <div class="field"><label>تأكيد كلمة المرور</label>
+        <input id="rg-pass2" type="password" placeholder="••••••"></div>
+      <button class="btn btn-accent btn-block" onclick="doRegister()">إنشاء الحساب</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div class="screen" id="dash-screen">
+  <div class="config-warn" id="config-warn">⚠️ إعدادات Firebase غير مكتملة</div>
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="https://i.ibb.co/LhqT0fqz/1200px-svg.png" alt="شعار">
+      <h2>شعبة التحقيق<span>الدفاع المدني</span></h2>
+    </div>
+    <div class="header-user">
+      <div class="user-chip" id="dash-user">—<span>—</span></div>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">خروج</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat-card"><div class="num" id="stat-total">0</div><div class="lbl">إجمالي الحوادث</div></div>
+      <div class="stat-card"><div class="num" id="stat-done">0</div><div class="lbl">الحوادث المكتملة</div></div>
+    </div>
+    <div class="section-head">
+      <h3>📋 الحوادث</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" id="btn-admin" style="display:none" onclick="openAdmin()">لوحة الإدارة</button>
+        <button class="btn btn-primary" onclick="openNewIncident()">+ حادثة جديدة</button>
+      </div>
+    </div>
+    <div class="search-box">
+      <span class="ico">🔍</span>
+      <input id="search-inc" type="text" placeholder="ابحث برقم الحادثة..." oninput="renderIncidents()">
+    </div>
+    <div id="inc-list"></div>
+  </div>
+</div>
+
+<!-- ============ INCIDENT ============ -->
+<div class="screen" id="incident-screen">
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="https://i.ibb.co/LhqT0fqz/1200px-svg.png" alt="شعار">
+      <h2>تفاصيل الحادثة<span id="inc-hd-status">—</span></h2>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="backToDash()">‹ القائمة</button>
+  </header>
+  <div class="wrap">
+    <div class="inc-card" style="cursor:default">
+      <div class="inc-card-top">
+        <div>
+          <div class="inc-serial" id="inc-serial">—</div>
+          <div class="inc-meta" id="inc-date">—</div>
+          <div class="inc-officer" id="inc-officer">—</div>
+        </div>
+        <span class="badge" id="inc-badge">—</span>
+      </div>
+      <div class="inc-actions">
+        <button class="btn btn-accent btn-sm" id="btn-status" onclick="toggleStatus()">إنهاء التحقيق</button>
+        <button class="btn btn-primary btn-sm" onclick="exportIncidentPDF()">📄 تصدير الحادثة كاملة</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteIncident()">حذف الحادثة</button>
+      </div>
+    </div>
+    <div class="section-head">
+      <h3>النماذج المضافة</h3>
+      <button class="btn btn-primary btn-sm" onclick="openAddForm()">+ إضافة نموذج</button>
+    </div>
+    <div id="forms-list" class="forms-list"></div>
+  </div>
+</div>
+
+<!-- ============ FORM RENDERER ============ -->
+<div class="screen" id="form-screen">
+  <div class="form-toolbar">
+    <div class="ttl" id="form-ttl">نموذج <span id="form-sub"></span></div>
+    <div class="zoom-ctrl">
+      <button onclick="zoomStep(-1)">−</button>
+      <span class="zlbl" id="zoom-lbl">100%</span>
+      <button onclick="zoomStep(1)">+</button>
+      <button onclick="zoomFit()" title="ملائمة">⛶</button>
+    </div>
+    <div class="tb-actions">
+      <button class="btn btn-accent btn-sm" onclick="saveForm()">💾 حفظ</button>
+      <button class="btn btn-primary btn-sm" onclick="exportFormPDF()">📄 PDF</button>
+      <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="closeForm()">رجوع</button>
+    </div>
+  </div>
+  <div class="form-scroll" id="form-scroll">
+    <div id="form-container">
+      <img id="form-img" alt="نموذج">
+      <div id="fields-layer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<div class="screen" id="admin-screen">
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="https://i.ibb.co/LhqT0fqz/1200px-svg.png" alt="شعار">
+      <h2>لوحة الإدارة<span>الدفاع المدني</span></h2>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="backToDash()">‹ القائمة</button>
+  </header>
+  <div class="wrap">
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card"><div class="num" id="a-total">0</div><div class="lbl">إجمالي الحوادث</div></div>
+      <div class="stat-card"><div class="num" id="a-done">0</div><div class="lbl">مكتملة</div></div>
+      <div class="stat-card"><div class="num" id="a-draft">0</div><div class="lbl">تحت التحرير</div></div>
+      <div class="stat-card"><div class="num" id="a-users">0</div><div class="lbl">المستخدمون</div></div>
+    </div>
+
+    <div class="section-head"><h3>📋 الأرشيف — كل الحوادث</h3></div>
+    <div class="search-box">
+      <span class="ico">🔍</span>
+      <input id="a-search" type="text" placeholder="ابحث في أي محتوى: اسم صاحب الموقع، الحي، وصف الحادث، التاريخ..." oninput="renderAdminIncs()">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm a-fbtn active" data-f="all" onclick="setAdminFilter('all')">الكل</button>
+      <button class="btn btn-ghost btn-sm a-fbtn" data-f="draft" onclick="setAdminFilter('draft')">🟡 تحت التحرير</button>
+      <button class="btn btn-ghost btn-sm a-fbtn" data-f="completed" onclick="setAdminFilter('completed')">🟢 مكتملة</button>
+      <button class="btn btn-ghost btn-sm a-fbtn" data-f="deleted" onclick="setAdminFilter('deleted')">🗑️ المحذوفات <span id="a-del-count" style="opacity:.7"></span></button>
+    </div>
+    <div class="tbl-wrap" style="margin-bottom:28px">
+      <table><thead><tr><th>الرقم</th><th>الضابط</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="admin-incs"></tbody></table>
+    </div>
+
+    <div class="section-head"><h3>👥 المستخدمون</h3></div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>الاسم</th><th>الرتبة</th><th>الرقم العسكري</th><th>الحوادث</th><th>صلاحية</th><th>إجراء</th></tr></thead>
+      <tbody id="admin-users"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-bg" id="modal-new">
+  <div class="modal">
+    <h3>حادثة جديدة</h3>
+    <div class="field"><label>تاريخ الحادث (هجري)</label>
+      <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:8px">
+        <input id="ni-d" type="number" min="1" max="30" placeholder="اليوم" inputmode="numeric">
+        <select id="ni-m"></select>
+        <input id="ni-y" type="number" min="1400" max="1500" placeholder="السنة" inputmode="numeric">
+      </div>
+      <div style="display:flex;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap">
+        <span>يوم/شهر/سنة هجري</span><span id="ni-greg-preview"></span>
+      </div>
+    </div>
+    <div class="field"><label>وقت الحادث (٢٤ ساعة)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <input id="ni-hh" type="number" min="0" max="23" placeholder="الساعة (٠-٢٣)" inputmode="numeric">
+        <input id="ni-mm" type="number" min="0" max="59" placeholder="الدقيقة (٠-٥٩)" inputmode="numeric">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new')">إلغاء</button>
+      <button class="btn btn-primary" onclick="createIncident()">إنشاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-addform">
+  <div class="modal">
+    <h3>اختر النموذج</h3>
+    <div class="choose-grid" id="choose-forms"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-addform')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loading"><div class="spinner"></div><p id="loading-txt">جارٍ التحميل...</p></div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const CONFIG = {
+  firebase: {
+    apiKey:            "AIzaSyDV5WFedlUUCazsTAL_XteCF0s8aVSCggs",
+    authDomain:        "archive-cced8.firebaseapp.com",
+    projectId:         "archive-cced8",
+    storageBucket:     "archive-cced8.firebasestorage.app",
+    messagingSenderId: "722795476771",
+    appId:             "1:722795476771:web:9872d90f3c68238d4f7e96"
+  },
+  adminMilitaryNum: "0000001",
+  formImages: {
+    sand_istilam:    "https://i.ibb.co/fz8jqYVy/image.jpg",
+    taqrir_hadith:   "https://i.ibb.co/MkNWs0cS/image.jpg",
+    taqrir_markabat: "https://i.ibb.co/HLyxzdWr/image.jpg",
+    iqrar_aradiya:   "https://i.ibb.co/DD8t128q/image.jpg",
+    mahdar_mushtarak:"https://i.ibb.co/qYLKwrBn/image.jpg"
+  }
+};
+
+/* FORM_CONFIGS injected below */
+const FORM_CONFIGS = {
+sand_istilam:{label:'سند استلام موقع حادث',icon:'📋',imageSize:{w:829,h:1182},fields:[
+{type:'text',key:'dd',label:'تاريخ اليوم',xPct:83.233,yPct:38.409,widthPct:3.619,heightPct:2.369,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'mm',label:'الشهر',xPct:78.77,yPct:38.325,widthPct:3.619,heightPct:2.453,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yy',label:'السنة',xPct:75.151,yPct:38.409,widthPct:3.619,heightPct:2.369,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'min',label:'الدقيقة',xPct:34.017,yPct:34.856,widthPct:3.619,heightPct:1.946,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'hour',label:'الساعة',xPct:28.951,yPct:34.856,widthPct:3.739,heightPct:1.946,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'day',label:'اليوم',xPct:7.841,yPct:34.349,widthPct:14.234,heightPct:2.623,fontSize:14,direction:'rtl',dataType:'day_name'},
+{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:40.531,yPct:25.719,widthPct:39.445,heightPct:3.215,fontSize:18,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality',label:'الجنسية',xPct:22.075,yPct:25.719,widthPct:16.405,heightPct:3.469,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'id_num',label:'رقم الهوية',xPct:36.791,yPct:30.711,widthPct:22.075,heightPct:2.707,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:3.981,yPct:69.289,widthPct:32.811,heightPct:3.553,fontSize:18,direction:'rtl',dataType:'text'},
+{type:'text',key:'min',label:'الدقيقة',xPct:31.484,yPct:73.942,widthPct:3.619,heightPct:1.946,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'hour',label:'الساعة',xPct:25.211,yPct:73.858,widthPct:3.739,heightPct:1.946,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'signature',key:'sig_1778279390487',label:'توقيع',xPct:1.327,yPct:76.058,widthPct:36.188,heightPct:6.007},
+{type:'text',key:'phone_num',label:'رقم الجوال',xPct:6.152,yPct:83.164,widthPct:31.604,heightPct:4.23,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'checkbox',key:'chk_1778286744716',label:'خيار',xPct:88.89,yPct:31.049,widthPct:2.895,heightPct:2.03},
+{type:'checkbox',key:'chk_1778286773019',label:'بطاقة مقيم',xPct:73.703,yPct:31.049,widthPct:2.895,heightPct:2.03},
+{type:'checkbox',key:'chk_1778286853375',label:'خيار',xPct:26.055,yPct:31.049,widthPct:3.619,heightPct:2.03},
+{type:'checkbox',key:'chk_1778286873339',label:'خيار',xPct:19.421,yPct:31.049,widthPct:4.422,heightPct:2.03},
+{type:'checkbox',key:'chk_1778286918489',label:'خيار',xPct:11.387,yPct:31.049,widthPct:2.895,heightPct:2.03}
+]},
+taqrir_hadith:{label:'تقرير حادث',icon:'📄',imageSize:{w:1000,h:1416},fields:[
+{type:'text',key:'dd',label:'تاريخ اليوم',xPct:28.3,yPct:16.094,widthPct:3.086,heightPct:1.917,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'mm',label:'الشهر',xPct:25.1,yPct:16.023,widthPct:3,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yy',label:'السنة',xPct:23.1,yPct:16.094,widthPct:3,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'min',label:'الدقيقة',xPct:7.556,yPct:16.301,widthPct:3.086,heightPct:1.746,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'hour',label:'الساعة',xPct:5.1,yPct:16.286,widthPct:3,heightPct:1.746,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'day',label:'اليوم',xPct:38.397,yPct:15.882,widthPct:4.062,heightPct:2.311,fontSize:8,direction:'rtl',dataType:'day_name'},
+{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:43.4,yPct:30.72,widthPct:32.7,heightPct:2.198,fontSize:18,direction:'rtl',dataType:'text'},
+{type:'text',key:'phone_num',label:'رقم الجوال',xPct:35.645,yPct:34.388,widthPct:39.096,heightPct:2.499,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'serial_num',label:'الرقم التسلسلي',xPct:50.094,yPct:15.913,widthPct:18.109,heightPct:2.28,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'reporter_name',label:'اسم المبلغ',xPct:57.614,yPct:18.032,widthPct:23.869,heightPct:2.037,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'reporter_phone',label:'رقم المبلغ',xPct:28.1,yPct:18.032,widthPct:20.172,heightPct:1.794,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'city_name',label:'المدينة',xPct:61.397,yPct:19.94,widthPct:11.66,heightPct:1.794,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'district',label:'الحي',xPct:41.066,yPct:19.819,widthPct:14.154,heightPct:2.037,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'street',label:'الشارع',xPct:15.645,yPct:19.637,widthPct:20.086,heightPct:2.219,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'operator_name',label:'مستلم البلاغ',xPct:55.22,yPct:21.856,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'operator_rank',label:'رتبة مستلم البلاغ',xPct:15.731,yPct:21.856,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'responding_units',label:'الفرقة أو الفرق المشاركة',xPct:24.446,yPct:24.257,widthPct:27.48,heightPct:2.28,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'distance_km',label:'المسافة بين الفرقة الأولى والموقع',xPct:26.1,yPct:26.537,widthPct:19.914,heightPct:1.915,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778288428245',label:'خيار',xPct:78.483,yPct:28.664,widthPct:3,heightPct:1.907},
+{type:'checkbox',key:'chk_1778288500138',label:'خيار',xPct:68.448,yPct:28.664,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288518352',label:'خيار',xPct:56.948,yPct:28.664,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288531552',label:'خيار',xPct:47.743,yPct:29.017,widthPct:2.4,heightPct:1.695},
+{type:'text',key:'site_other_text',label:'في حال اختيار (أخرى) – اذكر النوع',xPct:14.489,yPct:28.189,widthPct:27.222,heightPct:2.644,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778288611542',label:'خيار',xPct:38.028,yPct:30.833,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288621198',label:'خيار',xPct:29.843,yPct:30.833,widthPct:2.4,heightPct:1.695},
+{type:'text',key:'nationality',label:'الجنسية',xPct:0.5,yPct:30.632,widthPct:15.787,heightPct:1.976,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778288674175',label:'خيار',xPct:89.929,yPct:32.528,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288692558',label:'خيار',xPct:59.148,yPct:32.608,widthPct:3,heightPct:1.998},
+{type:'text',key:'id_num',label:'الهوية الوطنية',xPct:64.046,yPct:32.608,widthPct:14.928,heightPct:1.794,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_iqama_text',label:'هوية الاقامة',xPct:33.4,yPct:32.608,widthPct:14.24,heightPct:1.976,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'checkbox',key:'chk_1778288853174',label:'خيار',xPct:71.048,yPct:45.492,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288857958',label:'خيار',xPct:28.6,yPct:32.758,widthPct:3.197,heightPct:1.897},
+{type:'checkbox',key:'chk_1778288920966',label:'خيار',xPct:52.864,yPct:45.492,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288924667',label:'خيار',xPct:31.497,yPct:45.429,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778288927467',label:'خيار',xPct:16.431,yPct:45.429,widthPct:2.4,heightPct:1.695},
+{type:'text',key:'id_passport_text',label:'رقم جواز السفر',xPct:7.5,yPct:32.811,widthPct:9.932,heightPct:1.843,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'total_area',label:'مساحة الموقع الإجمالية م٢',xPct:58.192,yPct:36.886,widthPct:11.709,heightPct:2.61,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'damaged_area',label:'مساحة الجزء المتضرر م٢',xPct:12.344,yPct:37.026,widthPct:15.756,heightPct:2.471,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'accident_description',label:'وصف الحادث',xPct:1.81,yPct:40.054,widthPct:91.659,heightPct:1.913,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'accident_description2',label:'وصف الحادث',xPct:1.81,yPct:42.438,widthPct:91.659,heightPct:2.61,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'operations_description',label:'وصف سير العمليات',xPct:3.1,yPct:47.124,widthPct:91.066,heightPct:1.913,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'operations_description2',label:'وصف سير العمليات2',xPct:3.1,yPct:49.037,widthPct:91.066,heightPct:1.983,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_accidental_text',label:'سبب عرضي',xPct:58.192,yPct:68.508,widthPct:14.374,heightPct:2.331,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_criminal_text',label:'سبب جنائي',xPct:26.014,yPct:68.438,widthPct:14.176,heightPct:2.471,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_unknown_text',label:'سبب غير محدد',xPct:1.81,yPct:68.508,widthPct:12.696,heightPct:2.262,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778289405530',label:'خيار',xPct:54.664,yPct:69.032,widthPct:3,heightPct:1.625},
+{type:'checkbox',key:'chk_1778289407422',label:'خيار',xPct:60.048,yPct:72.81,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289407570',label:'خيار',xPct:77.379,yPct:68.823,widthPct:3.486,heightPct:1.834},
+{type:'checkbox',key:'chk_1778289436331',label:'خيار',xPct:22.914,yPct:69.033,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289446149',label:'خيار',xPct:63.148,yPct:74.92,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289447128',label:'خيار',xPct:73.248,yPct:74.92,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289458876',label:'خيار',xPct:66.248,yPct:78.352,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289463544',label:'خيار',xPct:66.048,yPct:80.495,widthPct:3,heightPct:1.765},
+{type:'checkbox',key:'chk_1778289468544',label:'خيار',xPct:87.629,yPct:78.352,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289490617',label:'خيار',xPct:87.629,yPct:80.541,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289497681',label:'خيار',xPct:66.248,yPct:82.586,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289503052',label:'خيار',xPct:87.629,yPct:82.586,widthPct:2.4,heightPct:1.695},
+{type:'text',key:'participants_other_text',label:'أخرى – اذكر الجهة',xPct:41.664,yPct:82.233,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778289538096',label:'خيار',xPct:94.266,yPct:84.705,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289543855',label:'خيار',xPct:94.266,yPct:86.612,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289549902',label:'خيار',xPct:94.266,yPct:88.65,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289555834',label:'خيار',xPct:71.648,yPct:84.917,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778289562415',label:'خيار',xPct:59.464,yPct:84.846,widthPct:2.4,heightPct:1.695},
+{type:'text',key:'handover_other',label:'في حال التسليم لجهة الاختصاص – اذكر الجهة',xPct:17.432,yPct:84.354,widthPct:23.849,heightPct:2.68,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_job',label:'الوظيفة',xPct:26.211,yPct:92.556,widthPct:19.803,heightPct:1.774,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_name',label:'اسم الضابط',xPct:26.211,yPct:94.33,widthPct:19.803,heightPct:1.704,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_rank',label:'الرتبة',xPct:26.211,yPct:96.034,widthPct:19.803,heightPct:1.565,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'signature',key:'sig_1778291243846',label:'توقيع',xPct:18.458,yPct:97.599,widthPct:27.969,heightPct:2.436},
+{type:'text',key:'name_1',label:'اسم الحالة1',xPct:61.272,yPct:54.01,widthPct:23.553,heightPct:2.053,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_1',label:'الجنسية1',xPct:53.806,yPct:53.942,widthPct:7.366,heightPct:2.262,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_1',label:'الجنس',xPct:47.724,yPct:53.945,widthPct:6.083,heightPct:2.262,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_1',label:'العمر',xPct:43.01,yPct:53.945,widthPct:3.813,heightPct:2.192,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_1',label:'رقم الهوية1',xPct:28.633,yPct:54.01,widthPct:14.473,heightPct:2.122,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'name_2',label:'اسم الحالة2',xPct:61.172,yPct:56.132,widthPct:23.948,heightPct:2.122,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_2',label:'الجنسية2',xPct:53.807,yPct:56.132,widthPct:7.366,heightPct:2.192,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_2',label:'الجنس2',xPct:47.728,yPct:56.062,widthPct:6.242,heightPct:2.24,fontSize:8,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_2',label:'العمر2',xPct:43.106,yPct:56.062,widthPct:3.714,heightPct:2.192,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_2',label:'رقم الهوية2',xPct:28.633,yPct:56.132,widthPct:14.571,heightPct:2.262,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination',label:'جهة التحويل',xPct:4.435,yPct:53.905,widthPct:13.37,heightPct:2.208,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'destination_2',label:'جهة التحويل2',xPct:4.5,yPct:56.113,widthPct:13.302,heightPct:2.208,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_3',label:'اسم الحالة3',xPct:60.973,yPct:58.321,widthPct:24.169,heightPct:2.112,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_3',label:'الجنسية3',xPct:53.807,yPct:58.321,widthPct:7.288,heightPct:2.208,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_3',label:'الجنس3',xPct:47.728,yPct:58.225,widthPct:6.194,heightPct:2.256,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_3',label:'العمر 3',xPct:43.038,yPct:58.243,widthPct:3.87,heightPct:2.112,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_3',label:'رقم الهوية3',xPct:28.633,yPct:58.321,widthPct:14.532,heightPct:2.112,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_3',label:'جهة التحويل3',xPct:4.5,yPct:58.321,widthPct:13.302,heightPct:2.208,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_4',label:'اسم الحالة4',xPct:61.095,yPct:60.529,widthPct:23.964,heightPct:2.063,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_4',label:'الجنسية4',xPct:53.822,yPct:60.355,widthPct:7.151,heightPct:2.256,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_4',label:'الجنس4',xPct:47.728,yPct:60.407,widthPct:6.194,heightPct:2.16,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_4',label:'العمر 4',xPct:42.966,yPct:60.355,widthPct:3.939,heightPct:2.16,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_4',label:'رقم الهوية4',xPct:28.633,yPct:60.355,widthPct:14.396,heightPct:2.16,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_4',label:'جهة التحويل4',xPct:4.5,yPct:60.355,widthPct:13.37,heightPct:2.256,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_5',label:'اسم الحالة5',xPct:60.973,yPct:62.541,widthPct:24.169,heightPct:2.208,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_5',label:'الجنسية5',xPct:53.822,yPct:62.444,widthPct:7.288,heightPct:2.305,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_5',label:'الجنس5',xPct:47.728,yPct:62.541,widthPct:6.194,heightPct:2.208,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_5',label:'العمر 5',xPct:43.038,yPct:62.567,widthPct:3.87,heightPct:2.16,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_5',label:'رقم الهوية5',xPct:28.633,yPct:62.567,widthPct:14.532,heightPct:2.16,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_5',label:'جهة التحويل5',xPct:4.5,yPct:62.567,widthPct:13.37,heightPct:2.112,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_6',label:'اسم الحالة6',xPct:61.01,yPct:64.663,widthPct:24.101,heightPct:2.16,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_6',label:'الجنسية6',xPct:53.8,yPct:64.663,widthPct:7.424,heightPct:2.16,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_6',label:'الجنس6',xPct:47.812,yPct:64.613,widthPct:6.126,heightPct:2.16,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_6',label:'العمر6',xPct:28.633,yPct:64.663,widthPct:14.464,heightPct:2.063,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_6',label:'رقم الهوية6',xPct:42.966,yPct:64.561,widthPct:3.87,heightPct:2.256,fontSize:10,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_6',label:'جهة التحويل6',xPct:4.5,yPct:64.663,widthPct:13.302,heightPct:2.208,fontSize:16,direction:'rtl',dataType:'text'}
+]},
+taqrir_markabat:{label:'تقرير مركبات',icon:'🚗',imageSize:{w:2448,h:3340},fields:[
+{type:'text',key:'dd',label:'تاريخ اليوم',xPct:27.782,yPct:16.138,widthPct:2.239,heightPct:1.818,fontSize:25,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'mm',label:'الشهر',xPct:25.26,yPct:16.124,widthPct:1.955,heightPct:1.819,fontSize:25,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yy',label:'السنة',xPct:22.928,yPct:16.018,widthPct:2.036,heightPct:1.967,fontSize:25,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'min',label:'الدقيقة',xPct:7.68,yPct:16.213,widthPct:1.834,heightPct:1.699,fontSize:25,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'hour',label:'الساعة',xPct:5.157,yPct:16.213,widthPct:1.712,heightPct:1.699,fontSize:25,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'day',label:'اليوم',xPct:37.704,yPct:16.213,widthPct:3.945,heightPct:1.642,fontSize:8,direction:'rtl',dataType:'day_name'},
+{type:'text',key:'serial_num',label:'الرقم التسلسلي',xPct:50.076,yPct:16.018,widthPct:17.046,heightPct:1.857,fontSize:25,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'reporter_name',label:'اسم المبلغ',xPct:58.343,yPct:17.824,widthPct:22.851,heightPct:2.127,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'reporter_phone',label:'رقم المبلغ',xPct:26.3,yPct:18.142,widthPct:21.709,heightPct:1.58,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'city_name',label:'المدينة',xPct:59.211,yPct:19.951,widthPct:14.751,heightPct:2.056,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'district',label:'الحي',xPct:40.686,yPct:19.703,widthPct:14.394,heightPct:2.235,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'street',label:'الشارع',xPct:17.088,yPct:19.876,widthPct:17.777,heightPct:2.057,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'operator_name',label:'مستلم البلاغ',xPct:43.131,yPct:21.848,widthPct:31.031,heightPct:2.206,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'operator_rank',label:'رتبة مستلم البلاغ',xPct:23.463,yPct:21.933,widthPct:13.926,heightPct:1.85,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'responding_units',label:'الفرقة أو الفرق المشاركة',xPct:24.98,yPct:24.054,widthPct:26.637,heightPct:1.79,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'distance_km',label:'المسافة بين الفرقة الأولى والموقع',xPct:3.835,yPct:25.696,widthPct:41.286,heightPct:1.878,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778288428245',label:'خيار',xPct:55.917,yPct:28.172,widthPct:1.388,heightPct:1.105},
+{type:'checkbox',key:'chk_1778288500138',label:'خيار',xPct:63.727,yPct:28.266,widthPct:1.548,heightPct:1.016},
+{type:'checkbox',key:'chk_1778288518352',label:'خيار',xPct:71.043,yPct:28.385,widthPct:1.629,heightPct:1.194},
+{type:'checkbox',key:'chk_1778288531552',label:'خيار',xPct:78.903,yPct:28.114,widthPct:1.467,heightPct:1.194},
+{type:'text',key:'site_other_text',label:'في حال اختيار (أخرى) – اذكر النوع',xPct:3.835,yPct:27.832,widthPct:38.512,heightPct:1.821,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778288621198',label:'خيار',xPct:47.419,yPct:28.175,widthPct:1.791,heightPct:1.134},
+{type:'checkbox',key:'chk_1778288674175',label:'خيار',xPct:71.233,yPct:30.44,widthPct:1.548,heightPct:1.194},
+{type:'checkbox',key:'chk_1778288857958',label:'خيار',xPct:56.552,yPct:30.263,widthPct:1.388,heightPct:1.165},
+{type:'text',key:'accident_description',label:'وصف الحادث',xPct:2.672,yPct:33.659,widthPct:89.98,heightPct:1.485,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'accident_description2',label:'وصف الحادث',xPct:2.672,yPct:34.862,widthPct:89.98,heightPct:1.7,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'operations_description',label:'وصف سير العمليات',xPct:3.309,yPct:39.103,widthPct:89.598,heightPct:1.758,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'operations_description2',label:'وصف سير العمليات2',xPct:3.309,yPct:40.742,widthPct:89.595,heightPct:1.76,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_accidental_text',label:'سبب عرضي',xPct:56.751,yPct:68.288,widthPct:16.107,heightPct:2.067,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_criminal_text',label:'سبب جنائي',xPct:25,yPct:68.527,widthPct:14.635,heightPct:1.767,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_unknown_text',label:'سبب غير محدد',xPct:2.672,yPct:68.452,widthPct:10.996,heightPct:1.737,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778289468544',label:'خيار',xPct:88.022,yPct:82.797,widthPct:2.453,heightPct:1.438},
+{type:'checkbox',key:'chk_1778289490617',label:'خيار',xPct:93.835,yPct:86.199,widthPct:2.616,heightPct:1.738},
+{type:'checkbox',key:'chk_1778289503052',label:'خيار',xPct:71.078,yPct:84.487,widthPct:2.535,heightPct:1.858},
+{type:'text',key:'participants_other_text',label:'أخرى – اذكر الجهة',xPct:40.686,yPct:81.748,widthPct:19.703,heightPct:2.157,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778289538096',label:'خيار',xPct:58.912,yPct:84.52,widthPct:2.371,heightPct:1.678},
+{type:'checkbox',key:'chk_1778289543855',label:'خيار',xPct:94.082,yPct:84.46,widthPct:2.207,heightPct:1.318},
+{type:'checkbox',key:'chk_1778289549902',label:'خيار',xPct:94.122,yPct:88.299,widthPct:2.044,heightPct:1.798},
+{type:'checkbox',key:'chk_1778289555834',label:'خيار',xPct:83.847,yPct:76.776,widthPct:0.98,heightPct:0.719},
+{type:'text',key:'handover_other',label:'في حال التسليم لجهة الاختصاص – اذكر الجهة',xPct:10.21,yPct:83.741,widthPct:28.536,heightPct:2.037,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_job',label:'الوظيفة',xPct:32.963,yPct:91.507,widthPct:13.078,heightPct:1.708,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_name',label:'اسم الضابط',xPct:33.085,yPct:93.215,widthPct:12.832,heightPct:1.558,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_rank',label:'الرتبة',xPct:33.085,yPct:94.653,widthPct:12.832,heightPct:1.798,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'signature',key:'sig_1778291243846',label:'توقيع',xPct:15.07,yPct:91.867,widthPct:18.037,heightPct:8.016},
+{type:'text',key:'name_1',label:'اسم الحالة1',xPct:47.149,yPct:57.377,widthPct:32.789,heightPct:1.887,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_1',label:'الجنسية1',xPct:27.657,yPct:57.29,widthPct:8.558,heightPct:1.88,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_1',label:'الجنس',xPct:20.427,yPct:59.2,widthPct:7.335,heightPct:1.88,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_1',label:'العمر',xPct:14.336,yPct:57.327,widthPct:6.081,heightPct:1.85,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'name_2',label:'اسم الحالة2',xPct:47.135,yPct:58.996,widthPct:32.83,heightPct:2.037,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_2',label:'الجنسية2',xPct:27.657,yPct:59.087,widthPct:8.558,heightPct:2.035,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_2',label:'الجنس2',xPct:20.436,yPct:57.365,widthPct:7.439,heightPct:1.834,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_2',label:'العمر2',xPct:14.417,yPct:59.207,widthPct:6.103,heightPct:1.896,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'name_3',label:'اسم الحالة3',xPct:47.177,yPct:61.031,widthPct:32.871,heightPct:1.977,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_3',label:'الجنسية3',xPct:27.657,yPct:61.064,widthPct:8.643,heightPct:1.85,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_3',label:'الجنس3',xPct:20.43,yPct:61.064,widthPct:7.25,heightPct:1.88,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_3',label:'العمر 3',xPct:14.336,yPct:61.035,widthPct:6.185,heightPct:1.912,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'name_4',label:'اسم الحالة4',xPct:47.19,yPct:62.889,widthPct:32.871,heightPct:2.007,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_4',label:'الجنسية4',xPct:27.548,yPct:62.927,widthPct:8.791,heightPct:1.834,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_4',label:'الجنس4',xPct:20.384,yPct:62.862,widthPct:7.313,heightPct:1.896,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_4',label:'العمر 4',xPct:14.343,yPct:62.922,widthPct:6.185,heightPct:1.85,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'name_5',label:'اسم الحالة5',xPct:47.108,yPct:64.776,widthPct:32.952,heightPct:1.767,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_5',label:'الجنسية5',xPct:27.657,yPct:64.657,widthPct:8.708,heightPct:2.067,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_5',label:'الجنس5',xPct:20.343,yPct:64.694,widthPct:7.439,heightPct:1.85,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_5',label:'العمر 5',xPct:14.415,yPct:64.667,widthPct:6.185,heightPct:1.896,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'name_6',label:'اسم الحالة6',xPct:47.149,yPct:66.574,widthPct:32.912,heightPct:1.887,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_6',label:'الجنسية6',xPct:27.657,yPct:66.574,widthPct:8.667,heightPct:1.887,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_6',label:'الجنس6',xPct:20.384,yPct:66.574,widthPct:7.398,heightPct:1.85,fontSize:35,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_6',label:'العمر6',xPct:14.415,yPct:66.689,widthPct:6.018,heightPct:1.814,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'checkbox',key:'chk_1778366247152',label:'خيار',xPct:88.177,yPct:80.429,widthPct:2.126,heightPct:1.798},
+{type:'checkbox',key:'chk_1778366274863',label:'خيار',xPct:66.552,yPct:80.639,widthPct:2.207,heightPct:1.618},
+{type:'checkbox',key:'chk_1778366291676',label:'خيار',xPct:66.512,yPct:78.36,widthPct:2.289,heightPct:1.438},
+{type:'checkbox',key:'chk_1778366307411',label:'خيار',xPct:88.187,yPct:78.15,widthPct:2.207,heightPct:1.678},
+{type:'checkbox',key:'chk_1778366338467',label:'خيار',xPct:67.575,yPct:74.403,widthPct:2.044,heightPct:1.858},
+{type:'checkbox',key:'chk_1778366355631',label:'خيار',xPct:56.994,yPct:74.523,widthPct:2.698,heightPct:1.678},
+{type:'checkbox',key:'chk_1778366365660',label:'خيار',xPct:53.955,yPct:72.154,widthPct:2.044,heightPct:1.918},
+{type:'checkbox',key:'chk_1778366376454',label:'خيار',xPct:77.922,yPct:68.707,widthPct:2.207,heightPct:1.558},
+{type:'checkbox',key:'chk_1778366383251',label:'خيار',xPct:53.996,yPct:68.677,widthPct:1.962,heightPct:1.618},
+{type:'checkbox',key:'chk_1778366391743',label:'خيار',xPct:21.077,yPct:68.677,widthPct:2.616,heightPct:1.678},
+{type:'checkbox',key:'chk_1778366597324',label:'خيار',xPct:42.347,yPct:57.349,widthPct:4.661,heightPct:1.798},
+{type:'checkbox',key:'chk_1778366607020',label:'خيار',xPct:36.202,yPct:57.303,widthPct:6.234,heightPct:1.904},
+{type:'checkbox',key:'chk_1778366616812',label:'خيار',xPct:42.265,yPct:59.087,widthPct:4.825,heightPct:1.978},
+{type:'checkbox',key:'chk_1778366622232',label:'خيار',xPct:36.214,yPct:59.147,widthPct:6.215,heightPct:1.978},
+{type:'checkbox',key:'chk_1778366626067',label:'خيار',xPct:36.214,yPct:62.862,widthPct:6.134,heightPct:1.978},
+{type:'checkbox',key:'chk_1778366629890',label:'خيار',xPct:42.265,yPct:62.862,widthPct:4.907,heightPct:1.918},
+{type:'checkbox',key:'chk_1778366633517',label:'خيار',xPct:42.265,yPct:64.746,widthPct:4.988,heightPct:1.798},
+{type:'checkbox',key:'chk_1778366637607',label:'خيار',xPct:36.214,yPct:64.746,widthPct:6.134,heightPct:1.918},
+{type:'checkbox',key:'chk_1778366641747',label:'خيار',xPct:42.179,yPct:66.574,widthPct:5.109,heightPct:1.858},
+{type:'checkbox',key:'chk_1778366646640',label:'خيار',xPct:36.214,yPct:66.544,widthPct:6.052,heightPct:1.918},
+{type:'checkbox',key:'chk_1778366719931',label:'خيار',xPct:42.265,yPct:61.064,widthPct:4.988,heightPct:1.918},
+{type:'checkbox',key:'chk_1778366724900',label:'خيار',xPct:36.214,yPct:61.064,widthPct:6.134,heightPct:1.918},
+{type:'text',key:'notes',label:'ملاحظات1',xPct:3.35,yPct:57.349,widthPct:11.001,heightPct:1.94,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes2',label:'ملاحظات2',xPct:3.391,yPct:59.199,widthPct:11.001,heightPct:1.894,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes3',label:'ملاحظات3',xPct:3.391,yPct:61.033,widthPct:11.001,heightPct:1.894,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes4',label:'ملاحظات4',xPct:3.35,yPct:62.897,widthPct:11.126,heightPct:1.848,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes5',label:'ملاحظات5',xPct:3.35,yPct:64.745,widthPct:11.064,heightPct:1.848,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes6',label:'ملاحظات6',xPct:3.309,yPct:66.563,widthPct:11.126,heightPct:1.94,fontSize:25,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'chk_1778367786162',label:'خيار',xPct:75.889,yPct:37.001,widthPct:1.519,heightPct:1.233},
+{type:'checkbox',key:'chk_1778367801972',label:'خيار',xPct:62.886,yPct:36.883,widthPct:1.328,heightPct:1.333},
+{type:'text',key:'car1',label:'نوع المركبة1',xPct:78.778,yPct:44.755,widthPct:8.575,heightPct:1.85,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'car3',label:'نوع المركبة3',xPct:78.598,yPct:48.384,widthPct:8.636,heightPct:1.896,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'car4',label:'نوع المركبة4',xPct:78.702,yPct:50.197,widthPct:8.545,heightPct:2.025,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'car5',label:'نوع المركبة5',xPct:78.598,yPct:52.167,widthPct:8.545,heightPct:1.842,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'car2',label:'نوع المركبة2',xPct:78.598,yPct:46.598,widthPct:8.575,heightPct:1.969,fontSize:20,direction:'rtl',dataType:'text'},
+{type:'text',key:'color1',label:'اللون1',xPct:65.235,yPct:44.748,widthPct:6.171,heightPct:1.888,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'color2',label:'اللون2',xPct:65.235,yPct:46.636,widthPct:6.148,heightPct:1.878,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'color3',label:'اللون3',xPct:65.235,yPct:48.514,widthPct:6.296,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'color4',label:'اللون4',xPct:65.173,yPct:50.335,widthPct:6.171,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'color5',label:'اللون5',xPct:65.235,yPct:52.139,widthPct:6.108,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'owner1',label:'اسم المالك1',xPct:33.619,yPct:44.748,widthPct:21.976,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'owner2',label:'اسم المالك2',xPct:33.619,yPct:46.636,widthPct:22.039,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'owner3',label:'اسم المالك3',xPct:33.619,yPct:48.376,widthPct:22.039,heightPct:1.888,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'owner4',label:'اسم المالك4',xPct:33.619,yPct:50.264,widthPct:22.039,heightPct:1.888,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'owner5',label:'اسم المالك5',xPct:33.619,yPct:52.143,widthPct:22.039,heightPct:1.796,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'driver1',label:'اسم السائق1',xPct:14.435,yPct:44.748,widthPct:19.352,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'driver2',label:'اسم السائق2',xPct:14.435,yPct:46.636,widthPct:19.352,heightPct:1.796,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'driver3',label:'اسم السائق3',xPct:14.354,yPct:48.406,widthPct:19.415,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'driver4',label:'اسم السائق4',xPct:14.354,yPct:50.248,widthPct:19.415,heightPct:1.934,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'driver5',label:'اسم السائق5',xPct:14.313,yPct:52.143,widthPct:19.415,heightPct:1.796,fontSize:30,direction:'rtl',dataType:'text'},
+{type:'text',key:'model1',label:'الموديل1',xPct:71.344,yPct:44.808,widthPct:7.358,heightPct:1.796,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'model2',label:'الموديل2',xPct:71.344,yPct:46.605,widthPct:7.42,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'model3',label:'الموديل3',xPct:71.281,yPct:48.447,widthPct:7.42,heightPct:1.888,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'model4',label:'الموديل4',xPct:71.344,yPct:50.335,widthPct:7.358,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'model5',label:'الموديل5',xPct:71.344,yPct:52.177,widthPct:7.358,heightPct:1.888,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'plate',label:'رقم اللوحة1',xPct:55.595,yPct:44.688,widthPct:9.794,heightPct:1.98,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'plate2',label:'رقم اللوحة2',xPct:55.595,yPct:46.608,widthPct:9.732,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'plate3',label:'رقم اللوحة3',xPct:55.595,yPct:48.45,widthPct:9.732,heightPct:1.888,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'plate4',label:'رقم اللوحة4',xPct:55.595,yPct:50.338,widthPct:9.732,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'plate5',label:'رقم اللوحة5',xPct:55.595,yPct:52.18,widthPct:9.732,heightPct:1.796,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'comp1',label:'عدد المرافقين1',xPct:3.309,yPct:44.808,widthPct:11.106,heightPct:1.796,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'comp2',label:'عدد المرافقين2',xPct:3.309,yPct:46.605,widthPct:11.106,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'comp3',label:'عدد المرافقين3',xPct:3.309,yPct:48.387,widthPct:11.106,heightPct:1.842,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'comp4',label:'عدد المرافقين4',xPct:3.371,yPct:50.199,widthPct:11.044,heightPct:1.934,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'comp5',label:'عدد المرافقين5',xPct:3.309,yPct:52.133,widthPct:11.106,heightPct:1.934,fontSize:30,direction:'rtl',dataType:'number_arabic'}
+]},
+iqrar_aradiya:{label:'إقرار عرضية',icon:'📝',imageSize:{w:2481,h:3509},fields:[
+{type:'text',key:'dd',label:'تاريخ اليوم',xPct:41.217,yPct:26.947,widthPct:13.392,heightPct:2.786,fontSize:37,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yy',label:'السنة',xPct:33.288,yPct:17.426,widthPct:13.392,heightPct:2.289,fontSize:40,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'day',label:'اليوم',xPct:63.314,yPct:26.779,widthPct:10.028,heightPct:2.954,fontSize:35,direction:'rtl',dataType:'day_name'},
+{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:52.643,yPct:20.846,widthPct:26.769,heightPct:3.402,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'id_num',label:'رقم الهوية',xPct:22.127,yPct:21.029,widthPct:20.028,heightPct:2.651,fontSize:40,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:49.907,yPct:79.024,widthPct:28.652,heightPct:2.936,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'phone_num',label:'رقم الجوال',xPct:49.907,yPct:84.695,widthPct:28.601,heightPct:2.833,fontSize:40,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_num',label:'رقم الهوية',xPct:49.907,yPct:81.961,widthPct:28.696,heightPct:2.734,fontSize:40,direction:'rtl',dataType:'number_arabic'},
+{type:'signature',key:'sig_1778843742352',label:'توقيع',xPct:49.907,yPct:88.589,widthPct:27.17,heightPct:9.838},
+{type:'text',key:'district',label:'الحي',xPct:18.641,yPct:27.123,widthPct:12.747,heightPct:2.957,fontSize:39,direction:'rtl',dataType:'text'},
+{type:'text',key:'fire-cause',label:'سبب الحريق',xPct:6.894,yPct:30.08,widthPct:78.465,heightPct:2.957,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content1',label:'المحتويات1',xPct:8.142,yPct:37.643,widthPct:74.6,heightPct:2.625,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content2',label:'المحتويات2',xPct:7.765,yPct:40.269,widthPct:74.951,heightPct:2.708,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content3',label:'المحتويات3',xPct:7.765,yPct:42.977,widthPct:74.951,heightPct:2.708,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content4',label:'المحتويات4',xPct:7.765,yPct:45.685,widthPct:75.068,heightPct:2.957,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content5',label:'المحتويات5',xPct:7.765,yPct:48.642,widthPct:75.068,heightPct:3.122,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content6',label:'المحتويات6',xPct:7.883,yPct:51.579,widthPct:74.951,heightPct:2.791,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'content',label:'المحتويات7',xPct:7.883,yPct:54.37,widthPct:74.951,heightPct:3.288,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'namee',label:'الاسم',xPct:11.33,yPct:76.088,widthPct:25.984,heightPct:3.205,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'rankk',label:'الرتبة',xPct:11.33,yPct:79.524,widthPct:26.026,heightPct:3.005,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'signature',key:'sig_1778844355439',label:'توقيع',xPct:11.33,yPct:84.029,widthPct:24.644,heightPct:14.754}
+]},
+mahdar_mushtarak:{label:'محضر مشترك',icon:'🤝',imageSize:{w:2481,h:3508},fields:[
+{type:'text',key:'dd',label:'تاريخ اليوم',xPct:44.086,yPct:17.475,widthPct:3.347,heightPct:2.724,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'mm',label:'الشهر',xPct:38.498,yPct:17.606,widthPct:4.994,heightPct:2.572,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yy',label:'السنة',xPct:33.29,yPct:17.344,widthPct:4.089,heightPct:2.835,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'min',label:'الدقيقة',xPct:70.281,yPct:23.791,widthPct:5.159,heightPct:2.983,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'hour',label:'الساعة',xPct:63.682,yPct:23.791,widthPct:6.269,heightPct:3.042,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'day',label:'اليوم',xPct:49.997,yPct:24.578,widthPct:6.566,heightPct:1.931,fontSize:30,direction:'rtl',dataType:'day_name'},
+{type:'signature',key:'sig_1778279390487',label:'توقيع',xPct:66.294,yPct:82.917,widthPct:21.962,heightPct:14.485},
+{type:'checkbox',key:'chk_1778286744716',label:'خيار',xPct:61.594,yPct:31.761,widthPct:4.176,heightPct:2.197},
+{type:'checkbox',key:'chk_1778286773019',label:'بطاقة مقيم',xPct:48.367,yPct:31.85,widthPct:4.256,heightPct:2.078},
+{type:'checkbox',key:'chk_1778286853375',label:'خيار',xPct:27.342,yPct:32.022,widthPct:2.279,heightPct:1.673},
+{type:'checkbox',key:'chk_1778286873339',label:'خيار',xPct:46.089,yPct:34.039,widthPct:3.466,heightPct:2.081},
+{type:'checkbox',key:'chk_1778286918489',label:'خيار',xPct:63.9,yPct:34.047,widthPct:3.426,heightPct:2.074},
+{type:'checkbox',key:'chk_1778845144979',label:'خيار',xPct:74.577,yPct:31.963,widthPct:2.531,heightPct:1.79},
+{type:'checkbox',key:'chk_1778845153467',label:'خيار',xPct:79.897,yPct:34.24,widthPct:2.531,heightPct:1.557},
+{type:'checkbox',key:'chk_1778845164175',label:'خيار',xPct:79.113,yPct:38.234,widthPct:3.107,heightPct:2.488},
+{type:'checkbox',key:'chk_1778845171841',label:'خيار',xPct:67.647,yPct:38.594,widthPct:2.778,heightPct:1.848},
+{type:'checkbox',key:'chk_1778845184364',label:'خيار',xPct:57.013,yPct:38.653,widthPct:2.531,heightPct:1.732},
+{type:'checkbox',key:'chk_1778845190944',label:'خيار',xPct:44.7,yPct:38.744,widthPct:2.037,heightPct:1.499},
+{type:'checkbox',key:'chk_1778845198909',label:'خيار',xPct:80.732,yPct:41.614,widthPct:2.695,heightPct:2.081},
+{type:'checkbox',key:'chk_1778845209758',label:'خيار',xPct:80.461,yPct:44.419,widthPct:3.683,heightPct:2.721},
+{type:'checkbox',key:'chk_1778845218706',label:'خيار',xPct:80.873,yPct:47.895,widthPct:3.186,heightPct:2.078},
+{type:'checkbox',key:'chk_1778845224544',label:'خيار',xPct:80.239,yPct:51.066,widthPct:3.189,heightPct:1.964},
+{type:'checkbox',key:'chk_1778845232343',label:'خيار',xPct:80.722,yPct:54.097,widthPct:2.937,heightPct:2.253},
+{type:'checkbox',key:'chk_1778845240119',label:'خيار',xPct:81.438,yPct:57.338,widthPct:2.687,heightPct:2.077},
+{type:'text',key:'ddd',label:'تاريخ يوم',xPct:34.857,yPct:24.279,widthPct:3.947,heightPct:2.765,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'mmm',label:'شهر',xPct:27.571,yPct:24.099,widthPct:6.416,heightPct:2.89,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yyy',label:'سنة',xPct:21.19,yPct:24.279,widthPct:3.537,heightPct:2.53,fontSize:30,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'loc',label:'موقع الحادث',xPct:63.077,yPct:28.77,widthPct:20.378,heightPct:1.835,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'other1',label:'جهة اخرى',xPct:16.583,yPct:33.525,widthPct:24.62,heightPct:2.988,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'other2',label:'فرق اخرى',xPct:18.507,yPct:38.028,widthPct:21.113,heightPct:2.469,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'other3',label:'نوع اخر',xPct:55.487,yPct:56.818,widthPct:21.194,heightPct:2.7,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes1',label:'ملاحظات1',xPct:14.897,yPct:61.246,widthPct:72.339,heightPct:1.835,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'notes2',label:'ملاحظات2',xPct:14.897,yPct:63.539,widthPct:80.007,heightPct:1.892,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'incident-type',label:'نوع الحادث',xPct:63.292,yPct:26.808,widthPct:20.052,heightPct:1.892,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'cd-name',label:'اسم مندوب الدفاع المدني',xPct:66.555,yPct:78.063,widthPct:23.07,heightPct:2.354,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'rankkk',label:'الرتبة',xPct:66.555,yPct:80.417,widthPct:22.989,heightPct:2.238,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:"site's-name",label:'اسم الجهة',xPct:13.663,yPct:75.19,widthPct:22.989,heightPct:2.873,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'reprsentitive',label:'اسم مندوب الجهة',xPct:13.663,yPct:77.89,widthPct:24.457,heightPct:2.354,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'text',key:'rankkkk',label:'الرتبة',xPct:13.663,yPct:80.244,widthPct:23.152,heightPct:2.296,fontSize:40,direction:'rtl',dataType:'text'},
+{type:'signature',key:'sig_1778846175722',label:'توقيع',xPct:13.663,yPct:82.655,widthPct:21.775,heightPct:14.571}
+]}
+};
+
+/* ============================================================
+   GLOBALS
+   ============================================================ */
+let db, auth;
+let currentUser=null, currentUserData=null;
+let incidents=[], allUsers=[];
+let currentIncident=null;
+let currentForm=null;          // {id, type}
+let formValues={}, sigData={}, sigPaths={};
+let zoom=1.0;
+const DAYS_AR=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function toAr(s){return String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);}
+function $(id){return document.getElementById(id);}
+
+const HIJRI_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+function hijriToGregorian(hy,hm,hd){
+  let jd=Math.floor((11*hy+3)/30)+354*hy+30*hm-Math.floor((hm-1)/2)+hd+1948440-385;
+  let l=jd+68569;
+  let n=Math.floor(4*l/146097);
+  l=l-Math.floor((146097*n+3)/4);
+  let i=Math.floor(4000*(l+1)/1461001);
+  l=l-Math.floor(1461*i/4)+31;
+  let j=Math.floor(80*l/2447);
+  let d=l-Math.floor(2447*j/80);
+  l=Math.floor(j/11);
+  let m=j+2-12*l;
+  let y=100*(n-49)+i+l;
+  return {year:y,month:m,day:d};
+}
+function gregorianToHijri(gy,gm,gd){
+  let jd=Math.floor((1461*(gy+4800+Math.floor((gm-14)/12)))/4)+Math.floor((367*(gm-2-12*Math.floor((gm-14)/12)))/12)-Math.floor((3*Math.floor((gy+4900+Math.floor((gm-14)/12))/100))/4)+gd-32075;
+  let l=jd-1948440+10632,n=Math.floor((l-1)/10631);
+  l=l-10631*n+354;
+  let j=Math.floor((10985-l)/5316)*Math.floor((50*l)/17719)+Math.floor(l/5670)*Math.floor((43*l)/15238);
+  l=l-Math.floor((30-j)/15)*Math.floor((17719*j)/50)-Math.floor(j/16)*Math.floor((15238*j)/43)+29;
+  let hm=Math.floor((24*l)/709),hd=l-Math.floor((709*hm)/24),hy=30*n+j-30;
+  return {year:hy,month:hm,day:hd};
+}
+function tsToDate(ts){
+  if(!ts) return new Date();
+  if(ts.toDate) return ts.toDate();
+  if(ts.seconds) return new Date(ts.seconds*1000);
+  return new Date(ts);
+}
+function genSerial(date){
+  const h=gregorianToHijri(date.getFullYear(),date.getMonth()+1,date.getDate());
+  return `${h.year}${String(h.month).padStart(2,'0')}${String(h.day).padStart(2,'0')}.${String(date.getHours()).padStart(2,'0')}${String(date.getMinutes()).padStart(2,'0')}`;
+}
+function fmtDate(ts){
+  const d=tsToDate(ts);
+  const h=gregorianToHijri(d.getFullYear(),d.getMonth()+1,d.getDate());
+  return `${toAr(DAYS_AR[d.getDay()])} ${toAr(h.day)}/${toAr(h.month)}/${toAr(h.year)} هـ — ${toAr(String(d.getHours()).padStart(2,'0'))}:${toAr(String(d.getMinutes()).padStart(2,'0'))}`;
+}
+function showToast(m,t=''){const e=$('toast');e.textContent=m;e.className='show '+t;setTimeout(()=>e.className='',3000);}
+function showLoading(v,txt){if(txt)$('loading-txt').textContent=txt;$('loading').classList.toggle('show',v);}
+function showAlert(m,t='error'){const a=$('alert-box');a.textContent=m;a.className='alert show '+t;}
+function hideAlert(){$('alert-box').className='alert';}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);}
+function closeModal(id){$(id).classList.remove('show');}
+function uid(){return 'f'+Date.now()+Math.floor(Math.random()*9000+1000);}
+
+/* ============================================================
+   FIREBASE INIT
+   ============================================================ */
+function isConfigured(){const f=CONFIG.firebase;return f.apiKey&&!f.apiKey.includes('ENTER_')&&f.projectId&&!f.projectId.includes('ENTER_');}
+function initFirebase(){
+  if(!isConfigured()){$('config-warn').style.display='block';showScreen('login-screen');return;}
+  try{
+    firebase.initializeApp(CONFIG.firebase);
+    auth=firebase.auth(); db=firebase.firestore();
+    auth.onAuthStateChanged(async u=>{
+      if(u){
+        currentUser=u;
+        try{
+          const doc=await db.collection('users').doc(u.uid).get();
+          currentUserData=doc.exists?doc.data():null;
+        }catch(e){console.error(e);}
+        if(!currentUserData){await auth.signOut();return;}
+        enterApp();
+      }else{
+        currentUser=null;currentUserData=null;showScreen('login-screen');
+      }
+    });
+  }catch(e){console.error(e);showAlert('خطأ في الاتصال بقاعدة البيانات');showScreen('login-screen');}
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+function switchTab(t){
+  hideAlert();
+  $('tab-login').classList.toggle('active',t==='login');
+  $('tab-reg').classList.toggle('active',t==='reg');
+  $('login-form').style.display=t==='login'?'block':'none';
+  $('reg-form').style.display=t==='reg'?'block':'none';
+}
+function emailOf(num){return num.trim()+'@cdsa.inv';}
+
+async function doLogin(){
+  hideAlert();
+  const num=$('lg-num').value.trim(), pass=$('lg-pass').value;
+  if(!num||!pass){showAlert('أدخل الرقم العسكري وكلمة المرور');return;}
+  showLoading(true,'جارٍ تسجيل الدخول...');
+  try{
+    await auth.signInWithEmailAndPassword(emailOf(num),pass);
+    showLoading(false);
+  }catch(e){
+    showLoading(false);
+    showAlert(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found'
+      ?'الرقم العسكري أو كلمة المرور غير صحيحة':'تعذّر تسجيل الدخول');
+  }
+}
+async function doRegister(){
+  hideAlert();
+  const name=$('rg-name').value.trim(),rank=$('rg-rank').value.trim(),
+        num=$('rg-num').value.trim(),p1=$('rg-pass').value,p2=$('rg-pass2').value;
+  if(!name||!rank||!num||!p1){showAlert('عبّئ جميع الحقول');return;}
+  if(p1.length<6){showAlert('كلمة المرور 6 أحرف على الأقل');return;}
+  if(p1!==p2){showAlert('كلمتا المرور غير متطابقتين');return;}
+  showLoading(true,'جارٍ إنشاء الحساب...');
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(emailOf(num),p1);
+    await db.collection('users').doc(cred.user.uid).set({
+      name,rank,militaryNum:num,
+      isAdmin:num===CONFIG.adminMilitaryNum,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentUserData={name,rank,militaryNum:num,isAdmin:num===CONFIG.adminMilitaryNum};
+    showLoading(false);
+  }catch(e){
+    showLoading(false);
+    showAlert(e.code==='auth/email-already-in-use'?'هذا الرقم العسكري مسجّل مسبقاً':'تعذّر إنشاء الحساب');
+  }
+}
+function doLogout(){auth.signOut();}
+
+/* ============================================================
+   APP ENTRY
+   ============================================================ */
+async function enterApp(){
+  $('dash-user').innerHTML=`${currentUserData.name}<span>${currentUserData.rank}</span>`;
+  $('btn-admin').style.display=currentUserData.isAdmin?'inline-flex':'none';
+  await loadIncidents();
+  showScreen('dash-screen');
+}
+async function loadIncidents(){
+  showLoading(true,'جارٍ تحميل الحوادث...');
+  try{
+    let q=db.collection('incidents');
+    if(!currentUserData.isAdmin) q=q.where('officerMilitaryNum','==',currentUserData.militaryNum);
+    const snap=await q.get();
+    incidents=snap.docs.map(d=>({_id:d.id,...d.data()})).filter(i=>!i.deleted);
+    incidents.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
+  }catch(e){console.error(e);showToast('تعذّر تحميل الحوادث','error');}
+  showLoading(false);
+  renderIncidents();
+}
+function renderIncidents(){
+  const term=($('search-inc').value||'').trim();
+  const list=incidents.filter(i=>!term||(i.serialNum||'').includes(term)||(i.officerName||'').includes(term));
+  $('stat-total').textContent=toAr(incidents.length);
+  $('stat-done').textContent=toAr(incidents.filter(i=>i.status==='completed').length);
+  const c=$('inc-list');
+  if(!list.length){c.innerHTML='<div class="empty-state"><span class="ico">📁</span><p>لا توجد حوادث</p></div>';return;}
+  c.innerHTML=list.map(i=>{
+    const done=i.status==='completed';
+    return `<div class="inc-card ${done?'done':''}">
+      <div class="inc-card-top">
+        <div>
+          <div class="inc-serial">${i.serialNum}</div>
+          <div class="inc-meta">${fmtDate(i.createdAt)}</div>
+          <div class="inc-officer">👮 ${i.officerName||'-'} | ${i.officerRank||''}</div>
+        </div>
+        <span class="badge ${done?'done':'draft'}">${done?'🟢 مكتملة':'🟡 تحت التحرير'}</span>
+      </div>
+      <div class="inc-actions">
+        <button class="btn btn-primary btn-sm" onclick="openIncident('${i._id}')">فتح</button>
+        <button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄 تصدير</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function backToDash(){loadIncidents();showScreen('dash-screen');}
+
+/* ============================================================
+   NEW INCIDENT
+   ============================================================ */
+function openNewIncident(){
+  const sel=$('ni-m');
+  if(!sel.options.length){
+    sel.innerHTML=HIJRI_MONTHS.map((m,i)=>`<option value="${i+1}">${i+1} — ${m}</option>`).join('');
+  }
+  const now=new Date();
+  const h=gregorianToHijri(now.getFullYear(),now.getMonth()+1,now.getDate());
+  $('ni-d').value=h.day;
+  sel.value=h.month;
+  $('ni-y').value=h.year;
+  $('ni-hh').value=String(now.getHours()).padStart(2,'0');
+  $('ni-mm').value=String(now.getMinutes()).padStart(2,'0');
+  updateGregPreview();
+  ['ni-d','ni-m','ni-y'].forEach(id=>$(id).oninput=$(id).onchange=updateGregPreview);
+  $('modal-new').classList.add('show');
+}
+function updateGregPreview(){
+  const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
+  if(!d||!m||!y){$('ni-greg-preview').textContent='';return;}
+  try{
+    const g=hijriToGregorian(y,m,d);
+    $('ni-greg-preview').textContent=`(يوافق ${g.day}/${g.month}/${g.year} م)`;
+  }catch(e){$('ni-greg-preview').textContent='';}
+}
+async function createIncident(){
+  const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
+  const hh=parseInt($('ni-hh').value),mm=parseInt($('ni-mm').value);
+  if(!d||d<1||d>30){showToast('اليوم الهجري غير صحيح','error');return;}
+  if(!m||m<1||m>12){showToast('الشهر الهجري غير صحيح','error');return;}
+  if(!y||y<1400||y>1500){showToast('السنة الهجرية غير صحيحة','error');return;}
+  if(isNaN(hh)||hh<0||hh>23){showToast('الساعة يجب 0-23','error');return;}
+  if(isNaN(mm)||mm<0||mm>59){showToast('الدقيقة يجب 0-59','error');return;}
+  const g=hijriToGregorian(y,m,d);
+  const date=new Date(g.year,g.month-1,g.day,hh,mm,0,0);
+  const serial=`${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}.${String(hh).padStart(2,'0')}${String(mm).padStart(2,'0')}`;
+  closeModal('modal-new');
+  showLoading(true,'جارٍ إنشاء الحادثة...');
+  try{
+    const ref=db.collection('incidents').doc();
+    const data={
+      serialNum:serial,
+      createdAt:firebase.firestore.Timestamp.fromDate(date),
+      officerMilitaryNum:currentUserData.militaryNum,
+      officerName:currentUserData.name,
+      officerRank:currentUserData.rank,
+      status:'draft',
+      formsList:[]
+    };
+    await ref.set(data);
+    incidents.unshift({_id:ref.id,...data});
+    showLoading(false);
+    showToast('تم إنشاء الحادثة','ok');
+    openIncident(ref.id);
+  }catch(e){showLoading(false);console.error(e);showToast('تعذّر إنشاء الحادثة','error');}
+}
+
+/* ============================================================
+   INCIDENT SCREEN
+   ============================================================ */
+function openIncident(id){
+  currentIncident=incidents.find(i=>i._id===id);
+  if(!currentIncident){showToast('الحادثة غير موجودة','error');return;}
+  renderIncidentScreen();
+  showScreen('incident-screen');
+}
+function renderIncidentScreen(){
+  const i=currentIncident, done=i.status==='completed';
+  $('inc-serial').textContent=i.serialNum;
+  $('inc-date').textContent=fmtDate(i.createdAt);
+  $('inc-officer').textContent=`👮 ${i.officerName||'-'} | ${i.officerRank||''}`;
+  $('inc-hd-status').textContent=done?'مكتملة':'تحت التحرير';
+  const b=$('inc-badge');
+  b.className='badge '+(done?'done':'draft');
+  b.textContent=done?'🟢 مكتملة':'🟡 تحت التحرير';
+  $('btn-status').textContent=done?'إرجاع للتحرير':'إنهاء التحقيق';
+  renderFormsList();
+}
+function renderFormsList(){
+  const forms=currentIncident.formsList||[];
+  const c=$('forms-list');
+  if(!forms.length){c.innerHTML='<div class="empty-state"><span class="ico">📝</span><p>لا توجد نماذج. أضف نموذجاً جديداً.</p></div>';return;}
+  c.innerHTML=forms.map(f=>{
+    const cfg=FORM_CONFIGS[f.type];if(!cfg)return '';
+    return `<div class="form-item">
+      <div class="form-item-info">
+        <div class="form-icon">${cfg.icon}</div>
+        <div><div class="form-item-name">${cfg.label}</div>
+        <div class="form-item-sub">محفوظ في Firestore</div></div>
+      </div>
+      <div class="form-item-actions">
+        <button class="btn btn-primary btn-sm" onclick="openForm('${f.id}','${f.type}')">فتح</button>
+        <button class="btn btn-danger btn-sm" onclick="removeForm('${f.id}')">حذف</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function toggleStatus(){
+  const ns=currentIncident.status==='completed'?'draft':'completed';
+  showLoading(true,'جارٍ التحديث...');
+  try{
+    await db.collection('incidents').doc(currentIncident._id).update({status:ns});
+    currentIncident.status=ns;
+    showLoading(false);
+    renderIncidentScreen();
+    showToast(ns==='completed'?'تم إنهاء التحقيق':'أُعيدت للتحرير','ok');
+  }catch(e){showLoading(false);showToast('تعذّر التحديث','error');}
+}
+async function deleteIncident(){
+  if(!confirm('نقل الحادثة إلى المحذوفات؟\nيمكن للأدمن استعادتها لاحقاً.'))return;
+  showLoading(true,'جارٍ النقل...');
+  try{
+    await db.collection('incidents').doc(currentIncident._id).update({
+      deleted:true,
+      deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      deletedBy:currentUserData.militaryNum
+    });
+    incidents=incidents.filter(i=>i._id!==currentIncident._id);
+    showLoading(false);showToast('نُقلت إلى المحذوفات','ok');
+    backToDash();
+  }catch(e){showLoading(false);showToast('تعذّر الحذف','error');}
+}
+
+/* ============================================================
+   ADD / REMOVE FORM
+   ============================================================ */
+function openAddForm(){
+  const c=$('choose-forms');
+  c.innerHTML=Object.entries(FORM_CONFIGS).map(([k,v])=>
+    `<button class="choose-item" onclick="addForm('${k}')">
+      <span class="ico">${v.icon}</span><span class="nm">${v.label}</span>
+    </button>`).join('');
+  $('modal-addform').classList.add('show');
+}
+async function addForm(type){
+  closeModal('modal-addform');
+  const inst={id:uid(),type};
+  const list=[...(currentIncident.formsList||[]),inst];
+  showLoading(true,'جارٍ الإضافة...');
+  try{
+    await db.collection('incidents').doc(currentIncident._id).update({formsList:list});
+    currentIncident.formsList=list;
+    showLoading(false);
+    renderFormsList();
+    openForm(inst.id,type);
+  }catch(e){showLoading(false);showToast('تعذّر الإضافة','error');}
+}
+async function removeForm(fid){
+  if(!confirm('حذف هذا النموذج؟'))return;
+  const list=(currentIncident.formsList||[]).filter(f=>f.id!==fid);
+  showLoading(true,'جارٍ الحذف...');
+  try{
+    await db.collection('incidents').doc(currentIncident._id).update({
+      formsList:list,
+      ['searchByForm.'+fid]:firebase.firestore.FieldValue.delete()
+    });
+    try{await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).delete();}catch(e){}
+    currentIncident.formsList=list;
+    if(currentIncident.searchByForm)delete currentIncident.searchByForm[fid];
+    showLoading(false);renderFormsList();showToast('تم الحذف','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الحذف','error');}
+}
+
+/* ============================================================
+   FORM RENDERER
+   ============================================================ */
+async function openForm(fid,type){
+  try{
+    currentForm={id:fid,type};
+    formValues={};sigData={};sigPaths={};
+    const cfg=FORM_CONFIGS[type];
+    $('form-ttl').innerHTML=cfg.label+' <span>| '+currentIncident.serialNum+'</span>';
+    showLoading(true,'جارٍ تحميل النموذج...');
+    try{
+      const doc=await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).get();
+      if(doc.exists){const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};}
+    }catch(e){console.error(e);}
+    autoPopulate(type);
+    const img=$('form-img');
+    img.onload=()=>{showLoading(false);zoomFit();};
+    img.onerror=()=>{showLoading(false);showToast('تعذّر تحميل صورة النموذج','error');renderFields();};
+    img.src=CONFIG.formImages[type]||'';
+    showScreen('form-screen');
+  }catch(err){showLoading(false);showToast('خطأ: '+err.message,'error');console.error(err);}
+}
+function autoPopulate(type){
+  const d=tsToDate(currentIncident.createdAt);
+  const h=gregorianToHijri(d.getFullYear(),d.getMonth()+1,d.getDate());
+  const auto={
+    dd:toAr(String(h.day).padStart(2,'0')),
+    mm:toAr(String(h.month).padStart(2,'0')),
+    yy:toAr(String(h.year).slice(-2)),
+    ddd:toAr(String(h.day).padStart(2,'0')),
+    mmm:toAr(String(h.month).padStart(2,'0')),
+    yyy:toAr(String(h.year).slice(-2)),
+    hour:toAr(String(d.getHours()).padStart(2,'0')),
+    min:toAr(String(d.getMinutes()).padStart(2,'0')),
+    day:DAYS_AR[d.getDay()],
+    serial_num:toAr(currentIncident.serialNum),
+    officer_name:currentUserData?currentUserData.name:'',
+    'cd-name':currentUserData?currentUserData.name:'',
+    namee:currentUserData?currentUserData.name:'',
+    officer_rank:currentUserData?currentUserData.rank:'',
+    rankk:currentUserData?currentUserData.rank:'',
+    rankkk:currentUserData?currentUserData.rank:''
+  };
+  for(const[k,v]of Object.entries(auto))if(!formValues[k]&&v)formValues[k]=v;
+}
+const BASE_W=900;
+function curW(){return Math.round(BASE_W*zoom);}
+function renderFields(){
+  const cfg=FORM_CONFIGS[currentForm.type];if(!cfg)return;
+  const img=$('form-img'),cont=$('form-container'),layer=$('fields-layer');
+  const cw=curW();
+  const ch=Math.round(cw*(cfg.imageSize.h/cfg.imageSize.w));
+  cont.style.width=cw+'px';
+  cont.style.height=ch+'px';
+  layer.innerHTML='';
+  const scale=cw/cfg.imageSize.w;
+  cfg.fields.forEach(f=>{
+    const x=f.xPct/100*cw, y=f.yPct/100*ch;
+    const w=f.widthPct/100*cw, h=f.heightPct/100*ch;
+    if(f.type==='text') mkText(f,x,y,w,h,scale,layer);
+    else if(f.type==='checkbox') mkCheck(f,x,y,w,h,layer);
+    else if(f.type==='signature') mkSig(f,x,y,w,h,layer);
+  });
+}
+function mkText(f,x,y,w,h,scale,layer){
+  const inp=document.createElement('input');
+  inp.type='text';
+  inp.className='field-overlay '+(f.direction==='ltr'?'ltr':'rtl');
+  const fs=Math.max(9,Math.round((f.fontSize||14)*scale));
+  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${fs}px;`;
+  inp.value=formValues[f.key]||'';
+  inp.placeholder=f.label||'';
+  inp.dataset.key=f.key;
+  if(!inp.value)inp.classList.add('export-empty');
+  const isNum=f.dataType==='number_arabic';
+  inp.addEventListener('input',()=>{
+    if(isNum){
+      const p=inp.selectionStart;
+      inp.value=inp.value.replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+      try{inp.setSelectionRange(p,p);}catch(e){}
+    }
+    formValues[f.key]=inp.value;
+    inp.classList.toggle('export-empty',!inp.value);
+    layer.querySelectorAll(`input[data-key="${CSS.escape(f.key)}"]`).forEach(el=>{
+      if(el!==inp){el.value=inp.value;el.classList.toggle('export-empty',!inp.value);}
+    });
+  });
+  layer.appendChild(inp);
+}
+function mkCheck(f,x,y,w,h,layer){
+  const b=document.createElement('button');
+  b.className='chk-overlay';
+  const sz=Math.max(14,Math.round(Math.min(w,h)*0.95));
+  b.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${sz}px;`;
+  b.dataset.key=f.key;
+  const on=!!formValues[f.key];
+  b.textContent=on?'✓':'';
+  b.classList.toggle('on',on);
+  b.addEventListener('click',()=>{
+    const now=!(formValues[f.key]);
+    formValues[f.key]=now;
+    b.textContent=now?'✓':'';
+    b.classList.toggle('on',now);
+  });
+  layer.appendChild(b);
+}
+function mkSig(f,x,y,w,h,layer){
+  const wrap=document.createElement('div');
+  wrap.className='sig-overlay';
+  wrap.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+  const cv=document.createElement('canvas');
+  cv.className='sig-canvas';
+  cv.width=Math.round(w*2);cv.height=Math.round(h*2);
+  const cl=document.createElement('button');
+  cl.className='sig-clear';cl.textContent='مسح';
+  cl.addEventListener('click',e=>{e.preventDefault();clearSig(f.key,cv);});
+  wrap.appendChild(cv);wrap.appendChild(cl);
+  layer.appendChild(wrap);
+  const ctx=cv.getContext('2d');
+  ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0a1f3a';
+  if(sigData[f.key]){const im=new Image();im.onload=()=>ctx.drawImage(im,0,0,cv.width,cv.height);im.src=sigData[f.key];}
+  let drawing=false,last=null;
+  if(!sigPaths[f.key])sigPaths[f.key]=[];
+  function pos(e){
+    const r=cv.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+    return {x:cx*(cv.width/r.width),y:cy*(cv.height/r.height)};
+  }
+  function start(e){e.preventDefault();drawing=true;last=pos(e);}
+  function move(e){
+    if(!drawing)return;e.preventDefault();
+    const p=pos(e);
+    ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+    last=p;
+  }
+  function end(){if(!drawing)return;drawing=false;sigData[f.key]=cv.toDataURL('image/png');}
+  cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false});
+  cv.addEventListener('touchmove',move,{passive:false});
+  cv.addEventListener('touchend',end);
+}
+function clearSig(key,cv){cv.getContext('2d').clearRect(0,0,cv.width,cv.height);delete sigData[key];}
+
+/* ===== ZOOM ===== */
+function zoomStep(d){zoom=Math.min(3,Math.max(0.25,zoom+d*0.15));applyZoom();}
+function zoomFit(){
+  const cfg=FORM_CONFIGS[currentForm.type];if(!cfg)return;
+  const avail=$('form-scroll').clientWidth-36;
+  zoom=Math.max(0.25,Math.min(2,avail/BASE_W));
+  applyZoom();
+}
+function applyZoom(){$('zoom-lbl').textContent=Math.round(zoom*100)+'%';renderFields();}
+
+/* ===== SAVE ===== */
+async function saveForm(silent){
+  if(!currentForm)return;
+  if(!silent)showLoading(true,'جارٍ الحفظ...');
+  try{
+    await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id)
+      .set({type:currentForm.type,data:formValues,sigData,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    // فهرس البحث: كل القيم النصية لهذا النموذج
+    const blob=Object.values(formValues).filter(v=>typeof v==='string'&&v.trim()).join(' · ').trim();
+    const lbl=FORM_CONFIGS[currentForm.type]?FORM_CONFIGS[currentForm.type].label:'';
+    await db.collection('incidents').doc(currentIncident._id)
+      .update({['searchByForm.'+currentForm.id]:lbl+' '+blob});
+    if(!currentIncident.searchByForm)currentIncident.searchByForm={};
+    currentIncident.searchByForm[currentForm.id]=lbl+' '+blob;
+    if(!silent){showLoading(false);showToast('تم الحفظ','ok');}
+  }catch(e){if(!silent){showLoading(false);}showToast('تعذّر الحفظ','error');console.error(e);}
+}
+async function closeForm(){await saveForm(true);renderIncidentScreen();showScreen('incident-screen');}
+
+/* ============================================================
+   PDF EXPORT
+   ============================================================ */
+async function captureForm(type){
+  const cont=$('form-container');
+  cont.classList.add('exporting');
+  await new Promise(r=>setTimeout(r,80));
+  const canvas=await html2canvas(cont,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+  cont.classList.remove('exporting');
+  return canvas;
+}
+async function exportFormPDF(){
+  if(!currentForm)return;
+  await saveForm(true);
+  showLoading(true,'جارٍ إنشاء PDF...');
+  try{
+    const canvas=await captureForm(currentForm.type);
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:canvas.width>canvas.height?'l':'p',unit:'pt',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    const r=Math.min(pw/canvas.width,ph/canvas.height);
+    const w=canvas.width*r,h=canvas.height*r;
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',(pw-w)/2,(ph-h)/2,w,h);
+    pdf.save(`${currentIncident.serialNum}_${FORM_CONFIGS[currentForm.type].label}.pdf`);
+    showLoading(false);showToast('تم التصدير','ok');
+  }catch(e){showLoading(false);showToast('تعذّر التصدير','error');console.error(e);}
+}
+async function exportIncidentPDF(incId){
+  const inc=incId?(incidents.find(i=>i._id===incId)||adminIncs.find(i=>i._id===incId)):currentIncident;
+  if(!inc){showToast('الحادثة غير موجودة','error');return;}
+  const forms=inc.formsList||[];
+  if(!forms.length){showToast('لا توجد نماذج للتصدير','error');return;}
+  const prevInc=currentIncident,prevForm=currentForm,
+        pV=formValues,pS=sigData,pP=sigPaths,pZ=zoom;
+  const activeScreen=document.querySelector('.screen.active');
+  currentIncident=inc;
+  showLoading(true,'جارٍ تجهيز PDF...');
+  $('form-screen').classList.add('active'); // needed so html2canvas can render
+  try{
+    const {jsPDF}=window.jspdf;let pdf=null;
+    for(let n=0;n<forms.length;n++){
+      const f=forms[n];
+      showLoading(true,`نموذج ${toAr(n+1)} من ${toAr(forms.length)}...`);
+      await loadFormForExport(f);
+      const canvas=await captureForm(f.type);
+      const orient=canvas.width>canvas.height?'l':'p';
+      if(!pdf){pdf=new jsPDF({orientation:orient,unit:'pt',format:'a4'});}
+      else{pdf.addPage('a4',orient);}
+      const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+      const r=Math.min(pw/canvas.width,ph/canvas.height);
+      const w=canvas.width*r,h=canvas.height*r;
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.9),'JPEG',(pw-w)/2,(ph-h)/2,w,h);
+    }
+    pdf.save(`${inc.serialNum}_كامل.pdf`);
+    showLoading(false);showToast('تم تصدير الحادثة كاملة','ok');
+  }catch(e){showLoading(false);showToast('تعذّر التصدير','error');console.error(e);}
+  $('form-screen').classList.remove('active');
+  if(activeScreen)activeScreen.classList.add('active');
+  currentIncident=prevInc;currentForm=prevForm;formValues=pV;sigData=pS;sigPaths=pP;zoom=pZ;
+}
+function loadFormForExport(f){
+  return new Promise(async(resolve)=>{
+    currentForm={id:f.id,type:f.type};
+    formValues={};sigData={};sigPaths={};
+    try{
+      const doc=await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(f.id).get();
+      if(doc.exists){const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};}
+    }catch(e){}
+    autoPopulate(f.type);
+    const img=$('form-img');
+    img.onload=()=>{zoom=1;renderFields();setTimeout(resolve,150);};
+    img.onerror=()=>{renderFields();setTimeout(resolve,150);};
+    if(img.src===CONFIG.formImages[f.type]){img.onload();}
+    else img.src=CONFIG.formImages[f.type]||'';
+  });
+}
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+let adminIncs=[], adminFilter='all';
+async function openAdmin(){
+  showLoading(true,'جارٍ تحميل الأرشيف...');
+  try{
+    const us=await db.collection('users').get();
+    allUsers=us.docs.map(d=>({_uid:d.id,...d.data()}));
+    const all=await db.collection('incidents').get();
+    adminIncs=all.docs.map(d=>({_id:d.id,...d.data()}));
+    adminIncs.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
+    refreshAdminStats();
+    renderAdminIncs();
+    renderAdminUsers();
+    showLoading(false);
+    showScreen('admin-screen');
+  }catch(e){showLoading(false);showToast('تعذّر التحميل','error');console.error(e);}
+}
+function refreshAdminStats(){
+  const live=adminIncs.filter(i=>!i.deleted);
+  const del=adminIncs.filter(i=>i.deleted);
+  $('a-total').textContent=toAr(live.length);
+  $('a-done').textContent=toAr(live.filter(i=>i.status==='completed').length);
+  $('a-draft').textContent=toAr(live.filter(i=>i.status!=='completed').length);
+  $('a-users').textContent=toAr(allUsers.length);
+  $('a-del-count').textContent=del.length?'('+toAr(del.length)+')':'';
+}
+function setAdminFilter(f){
+  adminFilter=f;
+  document.querySelectorAll('.a-fbtn').forEach(b=>b.classList.toggle('active',b.dataset.f===f));
+  renderAdminIncs();
+}
+function incSearchText(i){
+  const sb=i.searchByForm?Object.values(i.searchByForm).join(' '):'';
+  return [(i.serialNum||''),(i.officerName||''),(i.officerRank||''),fmtDate(i.createdAt),sb].join(' ').toLowerCase();
+}
+function renderAdminIncs(){
+  const term=($('a-search').value||'').trim().toLowerCase();
+  let list=adminIncs.slice();
+  if(adminFilter==='deleted') list=list.filter(i=>i.deleted);
+  else{
+    list=list.filter(i=>!i.deleted);
+    if(adminFilter==='completed')list=list.filter(i=>i.status==='completed');
+    else if(adminFilter==='draft')list=list.filter(i=>i.status!=='completed');
+  }
+  if(term)list=list.filter(i=>incSearchText(i).includes(term));
+  const t=$('admin-incs');
+  if(!list.length){t.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">لا توجد نتائج</td></tr>';return;}
+  t.innerHTML=list.map(i=>{
+    const done=i.status==='completed';
+    const actions = i.deleted ? `
+        <button class="btn btn-accent btn-sm" onclick="adminRestoreInc('${i._id}')">↻ استعادة</button>
+        <button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">عرض</button>` : `
+        <button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">فتح</button>
+        <button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄</button>
+        <button class="btn btn-danger btn-sm" onclick="adminDeleteInc('${i._id}')">حذف</button>`;
+    const statusCell = i.deleted ? '🗑️ محذوفة' : (done?'🟢 مكتملة':'🟡 تحت التحرير');
+    return `<tr${i.deleted?' style="opacity:.75"':''}>
+      <td style="direction:ltr;font-weight:700">${i.serialNum}</td>
+      <td>${i.officerName||'-'}<div style="font-size:11px;color:var(--muted)">${i.officerRank||''}</div></td>
+      <td style="font-size:12px">${fmtDate(i.createdAt)}</td>
+      <td>${statusCell}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap">${actions}</div></td></tr>`;
+  }).join('');
+}
+function renderAdminUsers(){
+  const t=$('admin-users');
+  if(!allUsers.length){t.innerHTML='<tr><td colspan="6">لا يوجد</td></tr>';return;}
+  t.innerHTML=allUsers.map(u=>{
+    const cnt=adminIncs.filter(i=>!i.deleted&&i.officerMilitaryNum===u.militaryNum).length;
+    const me=currentUserData&&u.militaryNum===currentUserData.militaryNum;
+    return `<tr>
+      <td>${u.name}</td><td>${u.rank}</td>
+      <td style="direction:ltr">${u.militaryNum}</td>
+      <td>${toAr(cnt)}</td>
+      <td>${u.isAdmin?'<b style="color:var(--primary)">أدمن</b>':'ضابط'}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" ${me?'disabled':''} onclick="adminToggleRole('${u._uid}',${!u.isAdmin})">${u.isAdmin?'إلغاء أدمن':'ترقية لأدمن'}</button>
+        <button class="btn btn-danger btn-sm" ${me?'disabled':''} onclick="adminDeleteUser('${u._uid}','${u.militaryNum}')">حذف</button>
+      </div></td></tr>`;
+  }).join('');
+}
+async function adminOpen(id){
+  showLoading(true);
+  try{
+    const doc=await db.collection('incidents').doc(id).get();
+    if(doc.exists){
+      const inc={_id:doc.id,...doc.data()};
+      const ix=incidents.findIndex(x=>x._id===id);
+      if(ix<0)incidents.push(inc); else incidents[ix]=inc;
+      showLoading(false);openIncident(id);
+    }else{showLoading(false);showToast('غير موجودة','error');}
+  }catch(e){showLoading(false);showToast('خطأ','error');}
+}
+async function adminDeleteInc(id){
+  const inc=adminIncs.find(i=>i._id===id);
+  if(!confirm(`نقل الحادثة ${inc?inc.serialNum:''} إلى المحذوفات؟\nتقدر تستعيدها من تبويب "المحذوفات".`))return;
+  showLoading(true,'جارٍ النقل...');
+  try{
+    await db.collection('incidents').doc(id).update({
+      deleted:true,
+      deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      deletedBy:currentUserData.militaryNum
+    });
+    const it=adminIncs.find(i=>i._id===id);
+    if(it){it.deleted=true;it.deletedAt=new Date();it.deletedBy=currentUserData.militaryNum;}
+    incidents=incidents.filter(i=>i._id!==id);
+    refreshAdminStats();
+    renderAdminIncs();renderAdminUsers();
+    showLoading(false);showToast('نُقلت إلى المحذوفات','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الحذف','error');console.error(e);}
+}
+async function adminRestoreInc(id){
+  const inc=adminIncs.find(i=>i._id===id);
+  if(!confirm(`استعادة الحادثة ${inc?inc.serialNum:''}؟`))return;
+  showLoading(true,'جارٍ الاستعادة...');
+  try{
+    await db.collection('incidents').doc(id).update({
+      deleted:firebase.firestore.FieldValue.delete(),
+      deletedAt:firebase.firestore.FieldValue.delete(),
+      deletedBy:firebase.firestore.FieldValue.delete()
+    });
+    const it=adminIncs.find(i=>i._id===id);
+    if(it){delete it.deleted;delete it.deletedAt;delete it.deletedBy;}
+    refreshAdminStats();
+    renderAdminIncs();renderAdminUsers();
+    showLoading(false);showToast('تمت الاستعادة','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الاستعادة','error');console.error(e);}
+}
+async function adminToggleRole(uid,makeAdmin){
+  if(!confirm(makeAdmin?'منح صلاحية الأدمن لهذا المستخدم؟':'إلغاء صلاحية الأدمن؟'))return;
+  showLoading(true);
+  try{
+    await db.collection('users').doc(uid).update({isAdmin:makeAdmin});
+    const u=allUsers.find(x=>x._uid===uid);if(u)u.isAdmin=makeAdmin;
+    renderAdminUsers();showLoading(false);showToast('تم التحديث','ok');
+  }catch(e){showLoading(false);showToast('تعذّر التحديث','error');}
+}
+async function adminDeleteUser(uid,mil){
+  if(!confirm('حذف هذا المستخدم؟\nملاحظة: حوادثه المحفوظة تبقى في الأرشيف.'))return;
+  showLoading(true,'جارٍ الحذف...');
+  try{
+    await db.collection('users').doc(uid).delete();
+    allUsers=allUsers.filter(u=>u._uid!==uid);
+    $('a-users').textContent=toAr(allUsers.length);
+    renderAdminUsers();showLoading(false);
+    showToast('تم حذف المستخدم (لا يمكنه الدخول بعد الآن)','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الحذف','error');console.error(e);}
+}
+
+/* ===== resize ===== */
+let rzT;
+window.addEventListener('resize',()=>{
+  clearTimeout(rzT);
+  rzT=setTimeout(()=>{if($('form-screen').classList.contains('active')&&currentForm)renderFields();},250);
+});
+
+/* ===== INIT ===== */
+window.addEventListener('DOMContentLoaded',initFirebase);
+</script>
+</body>
+</html>

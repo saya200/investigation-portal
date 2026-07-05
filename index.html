@@ -851,11 +851,18 @@ function initFirebase(){
     auth.onAuthStateChanged(async u=>{
       if(u){
         currentUser=u;
+        let permErr=false;
         try{
           const doc=await db.collection('users').doc(u.uid).get();
           currentUserData=doc.exists?doc.data():null;
-        }catch(e){console.error(e);}
-        if(!currentUserData){await auth.signOut();return;}
+        }catch(e){console.error(e);permErr=(e&&e.code==='permission-denied');}
+        if(!currentUserData){
+          await auth.signOut();
+          showScreen('login-screen');
+          if(permErr) showAlert('قاعدة البيانات ترفض الوصول — لم تُنشر قواعد Firestore بعد. راجع الخطوات.');
+          else showAlert('لا يوجد ملف لهذا الحساب. أنشئ حساباً جديداً بالرقم العسكري.');
+          return;
+        }
         enterApp();
       }else{
         currentUser=null;currentUserData=null;showScreen('login-screen');
@@ -898,8 +905,9 @@ async function doRegister(){
   if(p1.length<6){showAlert('كلمة المرور 6 أحرف على الأقل');return;}
   if(p1!==p2){showAlert('كلمتا المرور غير متطابقتين');return;}
   showLoading(true,'جارٍ إنشاء الحساب...');
+  let cred=null;
   try{
-    const cred=await auth.createUserWithEmailAndPassword(emailOf(num),p1);
+    cred=await auth.createUserWithEmailAndPassword(emailOf(num),p1);
     await db.collection('users').doc(cred.user.uid).set({
       name,rank,militaryNum:num,
       isAdmin:num===CONFIG.adminMilitaryNum,
@@ -908,8 +916,18 @@ async function doRegister(){
     currentUserData={name,rank,militaryNum:num,isAdmin:num===CONFIG.adminMilitaryNum};
     showLoading(false);
   }catch(e){
-    showLoading(false);
-    showAlert(e.code==='auth/email-already-in-use'?'هذا الرقم العسكري مسجّل مسبقاً':'تعذّر إنشاء الحساب');
+    showLoading(false);console.error(e);
+    // إذا نجحت المصادقة وفشلت كتابة الملف (قواعد مرفوضة) — احذف الحساب اليتيم لتتمكن من إعادة المحاولة
+    if(cred&&cred.user){
+      try{await cred.user.delete();}catch(_){}
+      if(e&&e.code==='permission-denied'){
+        showAlert('قاعدة البيانات ترفض الكتابة — لم تُنشر قواعد Firestore بعد. راجع الخطوات.');
+        return;
+      }
+    }
+    showAlert(e.code==='auth/email-already-in-use'?'هذا الرقم العسكري مسجّل مسبقاً'
+      :e.code==='auth/operation-not-allowed'?'مزوّد "البريد/كلمة المرور" غير مُفعّل في Firebase'
+      :'تعذّر إنشاء الحساب');
   }
 }
 function doLogout(){auth.signOut();}

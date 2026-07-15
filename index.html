@@ -145,6 +145,8 @@ input,textarea{font-family:inherit;}
 .field-overlay{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
   color:#0a1f17;font-weight:700;padding:0 3px;outline:none;border-radius:2px;}
 .field-overlay:focus{background:rgba(255,255,255,.95);border:1.5px solid var(--primary);box-shadow:0 0 0 2px rgba(13,79,60,.2);}
+/* التسمية مجرد تلميح خافت (placeholder) لا نص فعلي */
+.field-overlay::placeholder,.field-area::placeholder{color:rgba(10,31,23,.30);font-weight:400;}
 .field-overlay.rtl{text-align:right;direction:rtl;}
 .field-overlay.ltr{text-align:left;direction:ltr;}
 .field-overlay.export-empty{background:transparent !important;border:none !important;}
@@ -1245,8 +1247,11 @@ function mkText(f,x,y,w,h,scale,layer){
   const inp=document.createElement('input');
   inp.type='text';
   inp.className='field-overlay '+(f.direction==='ltr'?'ltr':'rtl');
-  const baseFs=Math.max(9,Math.round((f.fontSize||14)*scale));
-  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;`;
+  // الخط لا يتجاوز ارتفاع الصندوق أبداً (يمنع الفيضان على الجوال حيث تصغر الصناديق)
+  const raw=Math.round((f.fontSize||14)*scale);
+  const fitCap=Math.max(6,Math.floor(h*0.82));
+  const baseFs=Math.max(6,Math.min(raw,fitCap));
+  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;line-height:${h}px;`;
   inp.value=formValues[f.key]||'';
   inp.placeholder=f.label||'';
   inp.dataset.key=f.key;
@@ -1271,7 +1276,8 @@ function mkText(f,x,y,w,h,scale,layer){
 function mkArea(f,x,y,w,h,scale,layer){
   const ta=document.createElement('textarea');
   ta.className='field-area '+(f.direction==='ltr'?'ltr':'rtl');
-  const baseFs=Math.max(9,Math.round((f.fontSize||14)*scale));
+  // textarea متعدد الأسطر: خط متناسب بحد أدنى منخفض؛ autoShrink يعالج الفيضان الرأسي
+  const baseFs=Math.max(6,Math.round((f.fontSize||14)*scale));
   ta.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;`;
   ta.value=formValues[f.key]||'';
   ta.placeholder=f.label||'';
@@ -1385,8 +1391,14 @@ async function closeForm(){await saveForm(true);renderIncidentScreen();showScree
 async function captureForm(type){
   const cont=$('form-container');
   cont.classList.add('exporting');
+  // إزالة الـ placeholder فعلياً من الحقول الفارغة قبل الالتقاط (ضمان عدم طبع التسمية في PDF)
+  const stripped=[];
+  cont.querySelectorAll('input.field-overlay,textarea.field-area').forEach(el=>{
+    if(el.placeholder){stripped.push([el,el.placeholder]);el.placeholder='';}
+  });
   await new Promise(r=>setTimeout(r,80));
   const canvas=await html2canvas(cont,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+  stripped.forEach(([el,ph])=>{el.placeholder=ph;});
   cont.classList.remove('exporting');
   return canvas;
 }

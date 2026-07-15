@@ -150,12 +150,25 @@ input,textarea{font-family:inherit;}
 .field-overlay.export-empty{background:transparent !important;border:none !important;}
 .exporting .field-overlay{background:transparent !important;border:none !important;}
 .exporting .field-overlay::placeholder{color:transparent !important;}
-.exporting .chk-overlay{background:transparent !important;}
+.exporting .chk-overlay{background:transparent !important;border-color:transparent !important;}
 .exporting .sig-clear{display:none !important;}
 .exporting .sig-overlay{background:transparent !important;border:none !important;}
-.chk-overlay{position:absolute;background:rgba(255,247,200,.4);border:1px dashed rgba(201,162,39,.55);
-  display:flex;align-items:center;justify-content:center;color:var(--ok);font-weight:900;border-radius:3px;line-height:1;}
-.chk-overlay.on{background:rgba(30,132,73,.12);border-color:var(--ok);}
+/* حقل نص متعدد الأسطر */
+.field-area{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
+  color:#0a1f17;font-weight:700;padding:2px 3px;outline:none;border-radius:2px;box-sizing:border-box;
+  resize:none;line-height:1.35;white-space:pre-wrap;word-wrap:break-word;overflow:hidden;
+  font-family:'Cairo',sans-serif;}
+.field-area:focus{background:rgba(255,255,255,.95);border:1.5px solid var(--primary);box-shadow:0 0 0 2px rgba(13,79,60,.2);}
+.field-area.rtl{text-align:right;direction:rtl;}
+.field-area.ltr{text-align:left;direction:ltr;}
+.field-area.export-empty{background:transparent !important;border:none !important;}
+.exporting .field-area{background:transparent !important;border:none !important;}
+.exporting .field-area::placeholder{color:transparent !important;}
+/* خيار — إطار باهت دائم (٣٠٪) + ✓ مضبوطة داخل الشكل المطبوع */
+.chk-overlay{position:absolute;direction:rtl;background:rgba(0,0,0,.015);border:1px solid rgba(0,0,0,.16);
+  display:flex;align-items:center;justify-content:center;color:var(--ok);font-weight:900;border-radius:2px;line-height:1;}
+.chk-overlay.rd{border-radius:50%;}
+.chk-overlay.on{background:rgba(30,132,73,.08);border-color:rgba(30,132,73,.65);}
 .sig-overlay{position:absolute;background:rgba(220,235,255,.35);border:1px dashed rgba(60,110,200,.5);border-radius:3px;overflow:hidden;}
 .sig-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;}
 .sig-clear{position:absolute;top:2px;left:2px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
@@ -467,110 +480,120 @@ sand_istilam:{label:'سند استلام موقع حادث',icon:'📋',imageSiz
 {type:'checkbox',key:'chk_1778286918489',label:'خيار',xPct:11.387,yPct:31.049,widthPct:2.895,heightPct:2.03}
 ]},
 taqrir_hadith:{label:'تقرير حادث',icon:'📄',imageSize:{w:1000,h:1416},fields:[
-{type:'text',key:'dd',label:'تاريخ اليوم',xPct:28.3,yPct:16.094,widthPct:3.086,heightPct:1.917,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'mm',label:'الشهر',xPct:25.1,yPct:16.023,widthPct:3,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'yy',label:'السنة',xPct:23.1,yPct:16.094,widthPct:3,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'min',label:'الدقيقة',xPct:7.556,yPct:16.301,widthPct:3.086,heightPct:1.746,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'hour',label:'الساعة',xPct:5.1,yPct:16.286,widthPct:3,heightPct:1.746,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'day',label:'اليوم',xPct:38.397,yPct:15.882,widthPct:4.062,heightPct:2.311,fontSize:8,direction:'rtl',dataType:'day_name'},
-{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:43.4,yPct:30.72,widthPct:32.7,heightPct:2.198,fontSize:18,direction:'rtl',dataType:'text'},
-{type:'text',key:'phone_num',label:'رقم الجوال',xPct:35.645,yPct:34.388,widthPct:39.096,heightPct:2.499,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'serial_num',label:'الرقم التسلسلي',xPct:50.094,yPct:15.913,widthPct:18.109,heightPct:2.28,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'reporter_name',label:'اسم المبلغ',xPct:57.614,yPct:18.032,widthPct:23.869,heightPct:2.037,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'reporter_phone',label:'رقم المبلغ',xPct:28.1,yPct:18.032,widthPct:20.172,heightPct:1.794,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'city_name',label:'المدينة',xPct:61.397,yPct:19.94,widthPct:11.66,heightPct:1.794,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'district',label:'الحي',xPct:41.066,yPct:19.819,widthPct:14.154,heightPct:2.037,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'street',label:'الشارع',xPct:15.645,yPct:19.637,widthPct:20.086,heightPct:2.219,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'operator_name',label:'مستلم البلاغ',xPct:55.22,yPct:21.856,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'operator_rank',label:'رتبة مستلم البلاغ',xPct:15.731,yPct:21.856,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'responding_units',label:'الفرقة أو الفرق المشاركة',xPct:24.446,yPct:24.257,widthPct:27.48,heightPct:2.28,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'distance_km',label:'المسافة بين الفرقة الأولى والموقع',xPct:26.1,yPct:26.537,widthPct:19.914,heightPct:1.915,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'checkbox',key:'chk_1778288428245',label:'خيار',xPct:78.483,yPct:28.664,widthPct:3,heightPct:1.907},
-{type:'checkbox',key:'chk_1778288500138',label:'خيار',xPct:68.448,yPct:28.664,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288518352',label:'خيار',xPct:56.948,yPct:28.664,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288531552',label:'خيار',xPct:47.743,yPct:29.017,widthPct:2.4,heightPct:1.695},
-{type:'text',key:'site_other_text',label:'في حال اختيار (أخرى) – اذكر النوع',xPct:14.489,yPct:28.189,widthPct:27.222,heightPct:2.644,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'checkbox',key:'chk_1778288611542',label:'خيار',xPct:38.028,yPct:30.833,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288621198',label:'خيار',xPct:29.843,yPct:30.833,widthPct:2.4,heightPct:1.695},
-{type:'text',key:'nationality',label:'الجنسية',xPct:0.5,yPct:30.632,widthPct:15.787,heightPct:1.976,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'checkbox',key:'chk_1778288674175',label:'خيار',xPct:89.929,yPct:32.528,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288692558',label:'خيار',xPct:59.148,yPct:32.608,widthPct:3,heightPct:1.998},
-{type:'text',key:'id_num',label:'الهوية الوطنية',xPct:64.046,yPct:32.608,widthPct:14.928,heightPct:1.794,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_iqama_text',label:'هوية الاقامة',xPct:33.4,yPct:32.608,widthPct:14.24,heightPct:1.976,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'checkbox',key:'chk_1778288853174',label:'خيار',xPct:71.048,yPct:45.492,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288857958',label:'خيار',xPct:28.6,yPct:32.758,widthPct:3.197,heightPct:1.897},
-{type:'checkbox',key:'chk_1778288920966',label:'خيار',xPct:52.864,yPct:45.492,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288924667',label:'خيار',xPct:31.497,yPct:45.429,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778288927467',label:'خيار',xPct:16.431,yPct:45.429,widthPct:2.4,heightPct:1.695},
-{type:'text',key:'id_passport_text',label:'رقم جواز السفر',xPct:7.5,yPct:32.811,widthPct:9.932,heightPct:1.843,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'total_area',label:'مساحة الموقع الإجمالية م٢',xPct:58.192,yPct:36.886,widthPct:11.709,heightPct:2.61,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'damaged_area',label:'مساحة الجزء المتضرر م٢',xPct:12.344,yPct:37.026,widthPct:15.756,heightPct:2.471,fontSize:16,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'accident_description',label:'وصف الحادث',xPct:1.81,yPct:40.054,widthPct:91.659,heightPct:1.913,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'accident_description2',label:'وصف الحادث',xPct:1.81,yPct:42.438,widthPct:91.659,heightPct:2.61,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'operations_description',label:'وصف سير العمليات',xPct:3.1,yPct:47.124,widthPct:91.066,heightPct:1.913,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'operations_description2',label:'وصف سير العمليات2',xPct:3.1,yPct:49.037,widthPct:91.066,heightPct:1.983,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'cause_accidental_text',label:'سبب عرضي',xPct:58.192,yPct:68.508,widthPct:14.374,heightPct:2.331,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'cause_criminal_text',label:'سبب جنائي',xPct:26.014,yPct:68.438,widthPct:14.176,heightPct:2.471,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'cause_unknown_text',label:'سبب غير محدد',xPct:1.81,yPct:68.508,widthPct:12.696,heightPct:2.262,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'checkbox',key:'chk_1778289405530',label:'خيار',xPct:54.664,yPct:69.032,widthPct:3,heightPct:1.625},
-{type:'checkbox',key:'chk_1778289407422',label:'خيار',xPct:60.048,yPct:72.81,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289407570',label:'خيار',xPct:77.379,yPct:68.823,widthPct:3.486,heightPct:1.834},
-{type:'checkbox',key:'chk_1778289436331',label:'خيار',xPct:22.914,yPct:69.033,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289446149',label:'خيار',xPct:63.148,yPct:74.92,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289447128',label:'خيار',xPct:73.248,yPct:74.92,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289458876',label:'خيار',xPct:66.248,yPct:78.352,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289463544',label:'خيار',xPct:66.048,yPct:80.495,widthPct:3,heightPct:1.765},
-{type:'checkbox',key:'chk_1778289468544',label:'خيار',xPct:87.629,yPct:78.352,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289490617',label:'خيار',xPct:87.629,yPct:80.541,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289497681',label:'خيار',xPct:66.248,yPct:82.586,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289503052',label:'خيار',xPct:87.629,yPct:82.586,widthPct:2.4,heightPct:1.695},
-{type:'text',key:'participants_other_text',label:'أخرى – اذكر الجهة',xPct:41.664,yPct:82.233,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'checkbox',key:'chk_1778289538096',label:'خيار',xPct:94.266,yPct:84.705,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289543855',label:'خيار',xPct:94.266,yPct:86.612,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289549902',label:'خيار',xPct:94.266,yPct:88.65,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289555834',label:'خيار',xPct:71.648,yPct:84.917,widthPct:2.4,heightPct:1.695},
-{type:'checkbox',key:'chk_1778289562415',label:'خيار',xPct:59.464,yPct:84.846,widthPct:2.4,heightPct:1.695},
-{type:'text',key:'handover_other',label:'في حال التسليم لجهة الاختصاص – اذكر الجهة',xPct:17.432,yPct:84.354,widthPct:23.849,heightPct:2.68,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'officer_job',label:'الوظيفة',xPct:26.211,yPct:92.556,widthPct:19.803,heightPct:1.774,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'officer_name',label:'اسم الضابط',xPct:26.211,yPct:94.33,widthPct:19.803,heightPct:1.704,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'officer_rank',label:'الرتبة',xPct:26.211,yPct:96.034,widthPct:19.803,heightPct:1.565,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'signature',key:'sig_1778291243846',label:'توقيع',xPct:18.458,yPct:97.599,widthPct:27.969,heightPct:2.436},
-{type:'text',key:'name_1',label:'اسم الحالة1',xPct:61.272,yPct:54.01,widthPct:23.553,heightPct:2.053,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'nationality_1',label:'الجنسية1',xPct:53.806,yPct:53.942,widthPct:7.366,heightPct:2.262,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'gender_1',label:'الجنس',xPct:47.724,yPct:53.945,widthPct:6.083,heightPct:2.262,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'age_1',label:'العمر',xPct:43.01,yPct:53.945,widthPct:3.813,heightPct:2.192,fontSize:12,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_1',label:'رقم الهوية1',xPct:28.633,yPct:54.01,widthPct:14.473,heightPct:2.122,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'name_2',label:'اسم الحالة2',xPct:61.172,yPct:56.132,widthPct:23.948,heightPct:2.122,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'nationality_2',label:'الجنسية2',xPct:53.807,yPct:56.132,widthPct:7.366,heightPct:2.192,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'gender_2',label:'الجنس2',xPct:47.728,yPct:56.062,widthPct:6.242,heightPct:2.24,fontSize:8,direction:'rtl',dataType:'text'},
-{type:'text',key:'age_2',label:'العمر2',xPct:43.106,yPct:56.062,widthPct:3.714,heightPct:2.192,fontSize:12,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_2',label:'رقم الهوية2',xPct:28.633,yPct:56.132,widthPct:14.571,heightPct:2.262,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'destination',label:'جهة التحويل',xPct:4.435,yPct:53.905,widthPct:13.37,heightPct:2.208,fontSize:14,direction:'rtl',dataType:'text'},
-{type:'text',key:'destination_2',label:'جهة التحويل2',xPct:4.5,yPct:56.113,widthPct:13.302,heightPct:2.208,fontSize:14,direction:'rtl',dataType:'text'},
-{type:'text',key:'name_3',label:'اسم الحالة3',xPct:60.973,yPct:58.321,widthPct:24.169,heightPct:2.112,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'nationality_3',label:'الجنسية3',xPct:53.807,yPct:58.321,widthPct:7.288,heightPct:2.208,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'gender_3',label:'الجنس3',xPct:47.728,yPct:58.225,widthPct:6.194,heightPct:2.256,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'age_3',label:'العمر 3',xPct:43.038,yPct:58.243,widthPct:3.87,heightPct:2.112,fontSize:12,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_3',label:'رقم الهوية3',xPct:28.633,yPct:58.321,widthPct:14.532,heightPct:2.112,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'destination_3',label:'جهة التحويل3',xPct:4.5,yPct:58.321,widthPct:13.302,heightPct:2.208,fontSize:14,direction:'rtl',dataType:'text'},
-{type:'text',key:'name_4',label:'اسم الحالة4',xPct:61.095,yPct:60.529,widthPct:23.964,heightPct:2.063,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'nationality_4',label:'الجنسية4',xPct:53.822,yPct:60.355,widthPct:7.151,heightPct:2.256,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'gender_4',label:'الجنس4',xPct:47.728,yPct:60.407,widthPct:6.194,heightPct:2.16,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'age_4',label:'العمر 4',xPct:42.966,yPct:60.355,widthPct:3.939,heightPct:2.16,fontSize:12,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_4',label:'رقم الهوية4',xPct:28.633,yPct:60.355,widthPct:14.396,heightPct:2.16,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'destination_4',label:'جهة التحويل4',xPct:4.5,yPct:60.355,widthPct:13.37,heightPct:2.256,fontSize:14,direction:'rtl',dataType:'text'},
-{type:'text',key:'name_5',label:'اسم الحالة5',xPct:60.973,yPct:62.541,widthPct:24.169,heightPct:2.208,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'nationality_5',label:'الجنسية5',xPct:53.822,yPct:62.444,widthPct:7.288,heightPct:2.305,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'gender_5',label:'الجنس5',xPct:47.728,yPct:62.541,widthPct:6.194,heightPct:2.208,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'age_5',label:'العمر 5',xPct:43.038,yPct:62.567,widthPct:3.87,heightPct:2.16,fontSize:12,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_5',label:'رقم الهوية5',xPct:28.633,yPct:62.567,widthPct:14.532,heightPct:2.16,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'destination_5',label:'جهة التحويل5',xPct:4.5,yPct:62.567,widthPct:13.37,heightPct:2.112,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'name_6',label:'اسم الحالة6',xPct:61.01,yPct:64.663,widthPct:24.101,heightPct:2.16,fontSize:16,direction:'rtl',dataType:'text'},
-{type:'text',key:'nationality_6',label:'الجنسية6',xPct:53.8,yPct:64.663,widthPct:7.424,heightPct:2.16,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'gender_6',label:'الجنس6',xPct:47.812,yPct:64.613,widthPct:6.126,heightPct:2.16,fontSize:10,direction:'rtl',dataType:'text'},
-{type:'text',key:'age_6',label:'العمر6',xPct:28.633,yPct:64.663,widthPct:14.464,heightPct:2.063,fontSize:14,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'id_6',label:'رقم الهوية6',xPct:42.966,yPct:64.561,widthPct:3.87,heightPct:2.256,fontSize:10,direction:'rtl',dataType:'number_arabic'},
-{type:'text',key:'destination_6',label:'جهة التحويل6',xPct:4.5,yPct:64.663,widthPct:13.302,heightPct:2.208,fontSize:16,direction:'rtl',dataType:'text'}
+{type:'text',key:'dd',label:'تاريخ اليوم',xPct:28.3,yPct:16.026,widthPct:3.1,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'mm',label:'الشهر',xPct:25.1,yPct:16.026,widthPct:3,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'yy',label:'السنة',xPct:22.8,yPct:16.026,widthPct:3,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'min',label:'الدقيقة',xPct:7.5,yPct:16.026,widthPct:3.1,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'hour',label:'الساعة',xPct:5,yPct:16.026,widthPct:3,heightPct:1.977,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'day',label:'اليوم',xPct:38.4,yPct:16.026,widthPct:4.1,heightPct:1.977,fontSize:16,direction:'rtl',dataType:'day_name'},
+{type:'text',key:'owner_name',label:'اسم صاحب الموقع',xPct:43.4,yPct:30.791,widthPct:32.7,heightPct:1.907,fontSize:18,direction:'rtl',dataType:'text'},
+{type:'text',key:'phone_num',label:'رقم الجوال',xPct:35.6,yPct:34.393,widthPct:39.1,heightPct:2.472,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'serial_num',label:'الرقم التسلسلي',xPct:50.1,yPct:16.026,widthPct:18.1,heightPct:1.977,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'reporter_name',label:'اسم المبلغ',xPct:57.7,yPct:18.079,widthPct:23.9,heightPct:1.766,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'reporter_phone',label:'رقم المبلغ',xPct:28.1,yPct:18.079,widthPct:20.2,heightPct:1.766,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'city_name',label:'المدينة',xPct:61.3,yPct:19.915,widthPct:11.7,heightPct:1.977,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'district',label:'الحي',xPct:41.1,yPct:19.915,widthPct:14.2,heightPct:1.977,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'street',label:'الشارع',xPct:15.6,yPct:19.915,widthPct:20.1,heightPct:1.977,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'operator_name',label:'مستلم البلاغ',xPct:54.7,yPct:21.893,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'operator_rank',label:'رتبة مستلم البلاغ',xPct:15.7,yPct:21.893,widthPct:20,heightPct:2.401,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'responding_units',label:'الفرقة أو الفرق المشاركة',xPct:24.4,yPct:24.223,widthPct:27.5,heightPct:2.26,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'distance_km',label:'المسافة بين الفرقة الأولى والموقع',xPct:26.1,yPct:26.554,widthPct:19.9,heightPct:1.907,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'site_other_text',label:'في حال اختيار (أخرى) – اذكر النوع',xPct:14.5,yPct:28.531,widthPct:27.2,heightPct:1.977,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality',label:'الجنسية',xPct:-0.1,yPct:30.791,widthPct:15.8,heightPct:1.907,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'id_num',label:'الهوية الوطنية',xPct:64.05,yPct:32.698,widthPct:14.9,heightPct:1.766,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_iqama_text',label:'هوية الاقامة',xPct:33.4,yPct:32.698,widthPct:14.2,heightPct:1.766,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_passport_text',label:'رقم جواز السفر',xPct:7.5,yPct:32.698,widthPct:9.9,heightPct:1.766,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'total_area',label:'مساحة الموقع الإجمالية م٢',xPct:58.2,yPct:36.864,widthPct:11.7,heightPct:2.613,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'damaged_area',label:'مساحة الجزء المتضرر م٢',xPct:12.3,yPct:37.006,widthPct:15.8,heightPct:2.472,fontSize:16,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'cause_accidental_text',label:'سبب عرضي',xPct:58.2,yPct:68.573,widthPct:14.4,heightPct:2.26,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_criminal_text',label:'سبب جنائي',xPct:26,yPct:68.573,widthPct:14.2,heightPct:2.26,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'cause_unknown_text',label:'سبب غير محدد',xPct:1.8,yPct:68.573,widthPct:12.7,heightPct:2.26,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'participants_other_text',label:'أخرى – اذكر الجهة',xPct:41.7,yPct:82.415,widthPct:20,heightPct:1.907,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'handover_other',label:'في حال التسليم لجهة الاختصاص – اذكر الجهة',xPct:17.4,yPct:84.605,widthPct:23.8,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_job',label:'الوظيفة',xPct:26.2,yPct:92.585,widthPct:19.8,heightPct:1.766,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_name',label:'اسم الضابط',xPct:26.2,yPct:94.35,widthPct:19.8,heightPct:1.695,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'officer_rank',label:'الرتبة',xPct:26.2,yPct:96.045,widthPct:19.8,heightPct:1.554,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'signature',key:'sig_1778291243846',label:'توقيع',xPct:0.986,yPct:90.567,widthPct:24.814,heightPct:7.566},
+{type:'text',key:'name_1',label:'اسم الحالة1',xPct:61.3,yPct:53.955,widthPct:23.6,heightPct:2.189,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_1',label:'الجنسية1',xPct:53.8,yPct:53.955,widthPct:7.4,heightPct:2.189,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_1',label:'الجنس',xPct:47.7,yPct:53.955,widthPct:6.1,heightPct:2.189,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_1',label:'العمر',xPct:43,yPct:53.955,widthPct:3.8,heightPct:2.189,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_1',label:'رقم الهوية1',xPct:28.6,yPct:53.955,widthPct:14.5,heightPct:2.189,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination',label:'جهة التحويل',xPct:4.4,yPct:53.955,widthPct:13.4,heightPct:2.189,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_2',label:'اسم الحالة2',xPct:61.2,yPct:56.144,widthPct:23.9,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_2',label:'الجنسية2',xPct:53.8,yPct:56.144,widthPct:7.4,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_2',label:'الجنس2',xPct:47.7,yPct:56.144,widthPct:6.2,heightPct:2.048,fontSize:8,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_2',label:'العمر2',xPct:43.1,yPct:56.144,widthPct:3.7,heightPct:2.048,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'رقم_الهوية2',label:'رقم الهوية2',xPct:28.6,yPct:56.144,widthPct:14.6,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_2',label:'جهة التحويل2',xPct:4.5,yPct:56.144,widthPct:13.3,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_3',label:'اسم الحالة3',xPct:61,yPct:58.333,widthPct:24.2,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_3',label:'الجنسية3',xPct:53.8,yPct:58.333,widthPct:7.3,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_3',label:'الجنس3',xPct:47.7,yPct:58.333,widthPct:6.2,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_3',label:'العمر 3',xPct:43,yPct:58.333,widthPct:3.9,heightPct:2.048,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_3',label:'رقم الهوية3',xPct:28.6,yPct:58.333,widthPct:14.5,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_3',label:'جهة التحويل3',xPct:4.5,yPct:58.333,widthPct:13.3,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_4',label:'اسم الحالة4',xPct:61.1,yPct:60.452,widthPct:24,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_4',label:'الجنسية4',xPct:53.8,yPct:60.452,widthPct:7.2,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_4',label:'الجنس4',xPct:47.7,yPct:60.452,widthPct:6.2,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_4',label:'العمر 4',xPct:43,yPct:60.452,widthPct:3.9,heightPct:2.048,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_4',label:'رقم الهوية4',xPct:28.6,yPct:60.452,widthPct:14.4,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_4',label:'جهة التحويل4',xPct:4.5,yPct:60.452,widthPct:13.4,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_5',label:'اسم الحالة5',xPct:61,yPct:62.571,widthPct:24.2,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_5',label:'الجنسية5',xPct:53.8,yPct:62.571,widthPct:7.3,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_5',label:'الجنس5',xPct:47.7,yPct:62.571,widthPct:6.2,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_5',label:'العمر 5',xPct:43,yPct:62.571,widthPct:3.9,heightPct:2.048,fontSize:12,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_5',label:'رقم الهوية5',xPct:28.6,yPct:62.571,widthPct:14.5,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_5',label:'جهة التحويل5',xPct:4.5,yPct:62.571,widthPct:13.4,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'name_6',label:'اسم الحالة6',xPct:61,yPct:64.689,widthPct:24.1,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'text',key:'nationality_6',label:'الجنسية6',xPct:53.8,yPct:64.689,widthPct:7.4,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'gender_6',label:'الجنس6',xPct:47.8,yPct:64.689,widthPct:6.1,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'text'},
+{type:'text',key:'age_6',label:'العمر6',xPct:28.6,yPct:64.689,widthPct:14.5,heightPct:2.048,fontSize:14,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'id_6',label:'رقم الهوية6',xPct:43,yPct:64.689,widthPct:3.9,heightPct:2.048,fontSize:10,direction:'rtl',dataType:'number_arabic'},
+{type:'text',key:'destination_6',label:'جهة التحويل6',xPct:4.5,yPct:64.689,widthPct:13.3,heightPct:2.048,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'textarea',key:'incident_description',label:'وصف الحادث',xPct:3.109,yPct:39.936,widthPct:91.27,heightPct:5.691,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'textarea',key:'ops_description',label:'وصف العمليات',xPct:3.2,yPct:47.387,widthPct:91.921,heightPct:3.85,fontSize:16,direction:'rtl',dataType:'text'},
+{type:'checkbox',key:'loc_residential',label:'سكني',xPct:78.6,yPct:28.46,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'loc_commercial',label:'تجاري',xPct:68.15,yPct:28.46,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'loc_industrial',label:'صناعي',xPct:56.7,yPct:28.46,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'loc_other',label:'موقع اخر',xPct:47.65,yPct:28.867,widthPct:3,heightPct:2.065,shape:'circle'},
+{type:'checkbox',key:'owner_type_owner',label:'مالك',xPct:37.65,yPct:30.589,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'owner_type_tenant',label:'مستاجر',xPct:29.55,yPct:30.589,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'id_national',label:'رقم الهوية الوطنية',xPct:89.7,yPct:32.223,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'id_resident',label:'هوية مقيم',xPct:59.1,yPct:32.506,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'id_passport',label:'رقم الجواز',xPct:28.75,yPct:32.556,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'ops_extinguish',label:'اعمال الاطفاء',xPct:70.75,yPct:45.127,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'ops_rescue',label:'اعمال الانقاذ',xPct:52.5,yPct:45.208,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'ops_evacuate',label:'اعمال الاخلاء',xPct:31.15,yPct:45.117,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'ops_shelter',label:'اعمال الايواء',xPct:16.1,yPct:45.198,widthPct:3,heightPct:2.27,shape:'circle'},
+{type:'checkbox',key:'cause_accidental',label:'عرضي',xPct:78,yPct:68.856,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'cause_criminal',label:'جنائي او شبه جنائي',xPct:54.9,yPct:68.927,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'cause_undetermined',label:'لم يحدد',xPct:22.9,yPct:68.997,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'chk_1784042421339',label:'خيار',xPct:60,yPct:72.82,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'investigator_called_yes',label:'نعم',xPct:73.35,yPct:74.914,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'investigator_called_no',label:'لا',xPct:63.2,yPct:74.844,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'entity_red_crescent',label:'الهلال الاحمر',xPct:87.383,yPct:78.178,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'entity_electricity',label:'شركة الكهرباء',xPct:87.383,yPct:80.367,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'entity_security_patrol',label:'الدوريات الامنية',xPct:87.383,yPct:82.486,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'entity_forensics',label:'الادلة الجنائية',xPct:65.95,yPct:78.178,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'entity_municipality',label:'الامانة',xPct:65.95,yPct:80.367,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'entity_other',label:'جهة اخرى',xPct:66.05,yPct:82.451,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'handover_after_extinguish',label:'سلم من اعمال الاطفاء',xPct:71.7,yPct:84.816,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'handover_after_rescue',label:'سلم من اعمال الانقاذ',xPct:59.5,yPct:84.816,widthPct:2.4,heightPct:1.695,shape:'circle'},
+{type:'checkbox',key:'handover_after_ops',label:'سلم الحادث لجهة الاختصاص',xPct:93.978,yPct:84.499,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'handover_to_owner',label:'سلم الموقع لصاحبه',xPct:93.978,yPct:86.441,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'investigation_ongoing',label:'لايزال التحقيق جاري',xPct:93.978,yPct:88.418,widthPct:3,heightPct:2.119,shape:'circle'},
+{type:'checkbox',key:'chk_1778291962914',label:'خيار',xPct:20,yPct:56.144,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778291965815',label:'خيار',xPct:24.8,yPct:56.144,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292106425',label:'خيار',xPct:24.8,yPct:58.333,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292114332',label:'خيار',xPct:20,yPct:58.333,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292117369',label:'خيار',xPct:24.8,yPct:60.452,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292120238',label:'خيار',xPct:20,yPct:60.452,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292123675',label:'خيار',xPct:24.8,yPct:62.571,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292131713',label:'خيار',xPct:20,yPct:62.571,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292135299',label:'خيار',xPct:24.8,yPct:64.689,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292139399',label:'خيار',xPct:20,yPct:64.689,widthPct:2.4,heightPct:2.048},
+{type:'checkbox',key:'chk_1778292204427',label:'خيار',xPct:20,yPct:54.449,widthPct:2.4,heightPct:1.695},
+{type:'checkbox',key:'chk_1778292207691',label:'خيار',xPct:24.8,yPct:54.52,widthPct:2.4,heightPct:1.695}
 ]},
 taqrir_markabat:{label:'تقرير مركبات',icon:'🚗',imageSize:{w:2448,h:3340},fields:[
 {type:'text',key:'dd',label:'تاريخ اليوم',xPct:27.782,yPct:16.138,widthPct:2.239,heightPct:1.818,fontSize:25,direction:'rtl',dataType:'number_arabic'},
@@ -1205,16 +1228,25 @@ function renderFields(){
     const x=f.xPct/100*cw, y=f.yPct/100*ch;
     const w=f.widthPct/100*cw, h=f.heightPct/100*ch;
     if(f.type==='text') mkText(f,x,y,w,h,scale,layer);
+    else if(f.type==='textarea') mkArea(f,x,y,w,h,scale,layer);
     else if(f.type==='checkbox') mkCheck(f,x,y,w,h,layer);
     else if(f.type==='signature') mkSig(f,x,y,w,h,layer);
   });
+}
+/* تصغير الخط تلقائياً فقط عند فيضان النص الفعلي (يبدأ من الحجم الافتراضي المريح) */
+function autoShrink(el,baseFs,isArea){
+  const min=Math.max(7,Math.round(baseFs*0.55));
+  el.style.fontSize=baseFs+'px';
+  let fs=baseFs,guard=0;
+  const over=()=>isArea?(el.scrollHeight>el.clientHeight+1):(el.scrollWidth>el.clientWidth+1);
+  while(fs>min && over() && guard<60){fs-=1;el.style.fontSize=fs+'px';guard++;}
 }
 function mkText(f,x,y,w,h,scale,layer){
   const inp=document.createElement('input');
   inp.type='text';
   inp.className='field-overlay '+(f.direction==='ltr'?'ltr':'rtl');
-  const fs=Math.max(9,Math.round((f.fontSize||14)*scale));
-  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${fs}px;`;
+  const baseFs=Math.max(9,Math.round((f.fontSize||14)*scale));
+  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;`;
   inp.value=formValues[f.key]||'';
   inp.placeholder=f.label||'';
   inp.dataset.key=f.key;
@@ -1228,16 +1260,44 @@ function mkText(f,x,y,w,h,scale,layer){
     }
     formValues[f.key]=inp.value;
     inp.classList.toggle('export-empty',!inp.value);
+    autoShrink(inp,baseFs,false);
     layer.querySelectorAll(`input[data-key="${CSS.escape(f.key)}"]`).forEach(el=>{
-      if(el!==inp){el.value=inp.value;el.classList.toggle('export-empty',!inp.value);}
+      if(el!==inp){el.value=inp.value;el.classList.toggle('export-empty',!inp.value);autoShrink(el,baseFs,false);}
     });
   });
   layer.appendChild(inp);
+  if(inp.value)autoShrink(inp,baseFs,false);
+}
+function mkArea(f,x,y,w,h,scale,layer){
+  const ta=document.createElement('textarea');
+  ta.className='field-area '+(f.direction==='ltr'?'ltr':'rtl');
+  const baseFs=Math.max(9,Math.round((f.fontSize||14)*scale));
+  ta.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;`;
+  ta.value=formValues[f.key]||'';
+  ta.placeholder=f.label||'';
+  ta.dataset.key=f.key;
+  if(!ta.value)ta.classList.add('export-empty');
+  const isNum=f.dataType==='number_arabic';
+  ta.addEventListener('input',()=>{
+    if(isNum){
+      const p=ta.selectionStart;
+      ta.value=ta.value.replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+      try{ta.setSelectionRange(p,p);}catch(e){}
+    }
+    formValues[f.key]=ta.value;
+    ta.classList.toggle('export-empty',!ta.value);
+    autoShrink(ta,baseFs,true);
+    layer.querySelectorAll(`textarea[data-key="${CSS.escape(f.key)}"]`).forEach(el=>{
+      if(el!==ta){el.value=ta.value;el.classList.toggle('export-empty',!ta.value);autoShrink(el,baseFs,true);}
+    });
+  });
+  layer.appendChild(ta);
+  if(ta.value)autoShrink(ta,baseFs,true);
 }
 function mkCheck(f,x,y,w,h,layer){
   const b=document.createElement('button');
-  b.className='chk-overlay';
-  const sz=Math.max(14,Math.round(Math.min(w,h)*0.95));
+  b.className='chk-overlay'+(f.shape==='circle'?' rd':'');
+  const sz=Math.max(9,Math.round(Math.min(w,h)*0.72));
   b.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${sz}px;`;
   b.dataset.key=f.key;
   const on=!!formValues[f.key];

@@ -1251,7 +1251,7 @@ function mkText(f,x,y,w,h,scale,layer){
   const raw=Math.round((f.fontSize||14)*scale);
   const fitCap=Math.max(6,Math.floor(h*0.82));
   const baseFs=Math.max(6,Math.min(raw,fitCap));
-  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;line-height:${h}px;`;
+  inp.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;`;
   inp.value=formValues[f.key]||'';
   inp.placeholder=f.label||'';
   inp.dataset.key=f.key;
@@ -1388,19 +1388,37 @@ async function closeForm(){await saveForm(true);renderIncidentScreen();showScree
 /* ============================================================
    PDF EXPORT
    ============================================================ */
+/* دقة تصدير ثابتة: لا تعتمد إطلاقاً على زوم الشاشة.
+   قبلها كان الجوال يصدّر بزوم ~0.36 فتصير الصناديق ~8px والخط ~6px،
+   فيفشل html2canvas في رسم نص الحقول ويختفي. الآن الجوال = سطح المكتب تماماً. */
+const EXPORT_ZOOM=1.4;
 async function captureForm(type){
   const cont=$('form-container');
-  cont.classList.add('exporting');
-  // إزالة الـ placeholder فعلياً من الحقول الفارغة قبل الالتقاط (ضمان عدم طبع التسمية في PDF)
+  const prevZoom=zoom;
   const stripped=[];
-  cont.querySelectorAll('input.field-overlay,textarea.field-area').forEach(el=>{
-    if(el.placeholder){stripped.push([el,el.placeholder]);el.placeholder='';}
-  });
-  await new Promise(r=>setTimeout(r,80));
-  const canvas=await html2canvas(cont,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
-  stripped.forEach(([el,ph])=>{el.placeholder=ph;});
-  cont.classList.remove('exporting');
-  return canvas;
+  try{
+    zoom=EXPORT_ZOOM;
+    renderFields(); // يُعاد البناء من formValues/sigData — القيم مصدرها الذاكرة فلا تُفقد
+    cont.classList.add('exporting');
+    // إخفاء الـ placeholder للحقول الفارغة فعلياً فقط — لا نلمس أي حقل فيه نص
+    cont.querySelectorAll('input.field-overlay,textarea.field-area').forEach(el=>{
+      if(el.value==='' && el.placeholder){stripped.push([el,el.placeholder]);el.placeholder='';}
+    });
+    await new Promise(r=>setTimeout(r,180)); // مهلة أطول لأجهزة الجوال الأضعف
+    return await html2canvas(cont,{
+      scale:2,useCORS:true,backgroundColor:'#fff',logging:false,
+      // تثبيت أبعاد الالتقاط — يمنع القصّ/الفراغ على متصفحات الجوال
+      width:cont.offsetWidth,height:cont.offsetHeight,
+      windowWidth:cont.offsetWidth,windowHeight:cont.offsetHeight,
+      scrollX:0,scrollY:0
+    });
+  } finally {
+    // الاستعادة مضمونة حتى لو حدث خطأ
+    stripped.forEach(([el,ph])=>{el.placeholder=ph;});
+    cont.classList.remove('exporting');
+    zoom=prevZoom;
+    renderFields();
+  }
 }
 async function exportFormPDF(){
   if(!currentForm)return;

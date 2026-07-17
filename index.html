@@ -4,8 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>منصة شعبة التحقيق - الدفاع المدني</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d4f3c">
+<link rel="apple-touch-icon" href="https://i.ibb.co/LhqT0fqz/1200px-svg.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -19,7 +23,7 @@
   --shadow:0 4px 18px rgba(13,79,60,.10);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
+html,body{font-family:'Noto Naskh Arabic',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
 body{min-height:100vh;}
 img{max-width:100%;}
 button{font-family:inherit;cursor:pointer;border:none;}
@@ -159,7 +163,7 @@ input,textarea{font-family:inherit;}
 .field-area{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
   color:#0a1f17;font-weight:700;padding:2px 3px;outline:none;border-radius:2px;box-sizing:border-box;
   resize:none;line-height:1.35;white-space:pre-wrap;word-wrap:break-word;overflow:hidden;
-  font-family:'Cairo',sans-serif;}
+  font-family:'Noto Naskh Arabic',sans-serif;}
 .field-area:focus{background:rgba(255,255,255,.95);border:1.5px solid var(--primary);box-shadow:0 0 0 2px rgba(13,79,60,.2);}
 .field-area.rtl{text-align:right;direction:rtl;}
 .field-area.ltr{text-align:left;direction:ltr;}
@@ -222,6 +226,30 @@ tr:last-child td{border-bottom:none;}
   .inc-actions .btn,.form-item-actions .btn{flex:1;}
   .header-logo h2 span{display:none;}
 }
+
+/* ===== سحّاب تكبير/تصغير عائم (جوال فقط، داخل شاشة النموذج) ===== */
+.mob-zoom,.mz-mini{display:none;position:fixed;left:14px;bottom:100px;z-index:150;}
+@media(max-width:680px){
+  .mob-zoom.show{display:flex;}
+  .mz-mini.show{display:flex;}
+}
+.mob-zoom{flex-direction:column;align-items:center;gap:8px;background:rgba(15,23,42,.62);
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);border-radius:16px;padding:10px 8px;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);}
+.mz-close{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;
+  font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mz-slider-wrap{height:130px;width:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mz-slider-wrap input[type=range]{width:120px;height:30px;transform:rotate(-90deg);accent-color:var(--accent);}
+.mz-lbl{color:#fff;font-size:11px;font-weight:700;min-width:34px;text-align:center;}
+.mz-mini{width:42px;height:42px;border-radius:50%;background:rgba(15,23,42,.32);color:rgba(255,255,255,.85);
+  font-size:19px;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.25);}
+
+/* ===== شريط أدوات شاشة الدخول (تثبيت / نسخ الرابط) ===== */
+.login-tools{display:flex;justify-content:center;gap:10px;margin-top:16px;}
+.login-tool-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;
+  background:rgba(13,79,60,.06);color:var(--muted);font-size:12px;font-weight:700;transition:.15s;}
+.login-tool-btn:hover{background:rgba(13,79,60,.12);color:var(--primary);}
+.login-tool-btn.copied{background:rgba(30,132,73,.14);color:var(--ok);}
 </style>
 </head>
 <body>
@@ -260,6 +288,11 @@ tr:last-child td{border-bottom:none;}
       <div class="field"><label>تأكيد كلمة المرور</label>
         <input id="rg-pass2" type="password" placeholder="••••••"></div>
       <button class="btn btn-accent btn-block" onclick="doRegister()">إنشاء الحساب</button>
+    </div>
+
+    <div class="login-tools">
+      <button class="login-tool-btn" id="installBtn" onclick="installApp()" style="display:none">📲 تثبيت التطبيق</button>
+      <button class="login-tool-btn" id="copyLinkBtn" onclick="copyPageLink()">🔗 نسخ الرابط</button>
     </div>
   </div>
 </div>
@@ -352,6 +385,16 @@ tr:last-child td{border-bottom:none;}
       <div id="fields-layer"></div>
     </div>
   </div>
+
+  <!-- سحّاب تكبير/تصغير عائم (جوال) -->
+  <div class="mob-zoom show" id="mobZoom">
+    <button class="mz-close" onclick="mobZoomToggle(false)">×</button>
+    <div class="mz-slider-wrap">
+      <input type="range" id="mz-range" min="25" max="300" value="100" oninput="mobZoomInput(this.value)">
+    </div>
+    <span class="mz-lbl" id="mz-lbl">100%</span>
+  </div>
+  <button class="mz-mini" id="mzMini" onclick="mobZoomToggle(true)" title="تكبير/تصغير">🔍</button>
 </div>
 
 <!-- ============ ADMIN ============ -->
@@ -1364,7 +1407,27 @@ function zoomFit(){
   zoom=Math.max(0.25,Math.min(2,avail/BASE_W));
   applyZoom();
 }
-function applyZoom(){$('zoom-lbl').textContent=Math.round(zoom*100)+'%';renderFields();}
+function applyZoom(){
+  $('zoom-lbl').textContent=Math.round(zoom*100)+'%';
+  renderFields();
+  syncMobZoomUI();
+}
+
+/* ===== سحّاب الزوم العائم (جوال) ===== */
+function mobZoomInput(v){
+  zoom=Math.max(0.25,Math.min(3,(+v)/100));
+  applyZoom();
+}
+function syncMobZoomUI(){
+  const pct=Math.round(zoom*100);
+  const r=$('mz-range'); if(r) r.value=pct;
+  const l=$('mz-lbl'); if(l) l.textContent=pct+'%';
+}
+function mobZoomToggle(full){
+  const box=$('mobZoom'),mini=$('mzMini');
+  if(box) box.classList.toggle('show',full);
+  if(mini) mini.classList.toggle('show',!full);
+}
 
 /* ===== SAVE ===== */
 async function saveForm(silent){
@@ -1672,6 +1735,53 @@ window.addEventListener('resize',()=>{
   clearTimeout(rzT);
   rzT=setTimeout(()=>{if($('form-screen').classList.contains('active')&&currentForm)renderFields();},250);
 });
+
+/* ===== PWA: تثبيت التطبيق ===== */
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const b=$('installBtn'); if(b) b.style.display='inline-flex';
+});
+window.addEventListener('appinstalled',()=>{
+  deferredInstallPrompt=null;
+  const b=$('installBtn'); if(b) b.style.display='none';
+  showToast('تم تثبيت التطبيق','ok');
+});
+async function installApp(){
+  if(!deferredInstallPrompt){showToast('التثبيت غير مدعوم على هذا المتصفح حالياً','error');return;}
+  deferredInstallPrompt.prompt();
+  try{await deferredInstallPrompt.userChoice;}catch(e){}
+  deferredInstallPrompt=null;
+  const b=$('installBtn'); if(b) b.style.display='none';
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(e=>console.error('SW register failed',e));
+  });
+}
+
+/* ===== نسخ رابط الصفحة ===== */
+async function copyPageLink(){
+  const url=location.href;
+  const btn=$('copyLinkBtn');
+  try{
+    await navigator.clipboard.writeText(url);
+  }catch(e){
+    // احتياطي للمتصفحات القديمة/بلا صلاحية Clipboard API
+    const ta=document.createElement('textarea');
+    ta.value=url;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(_){}
+    document.body.removeChild(ta);
+  }
+  if(btn){
+    const old=btn.textContent;
+    btn.textContent='✅ تم النسخ';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=old;btn.classList.remove('copied');},2000);
+  }
+  showToast('تم نسخ الرابط','ok');
+}
 
 /* ===== INIT ===== */
 window.addEventListener('DOMContentLoaded',initFirebase);

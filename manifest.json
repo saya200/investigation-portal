@@ -1,0 +1,27 @@
+{
+  "name": "منصة شعبة التحقيق - الدفاع المدني",
+  "short_name": "شعبة التحقيق",
+  "description": "منصة إدارة الحوادث والتحقيق - الدفاع المدني",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef2f0",
+  "theme_color": "#0d4f3c",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/LhqT0fqz/1200px-svg.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.ibb.co/LhqT0fqz/1200px-svg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

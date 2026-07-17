@@ -1481,6 +1481,19 @@ function mkStatic(el,isArea){
   box.appendChild(sp);
   return box;
 }
+/* ضمان تحميل خط Noto Naskh Arabic كاملاً (كل الأوزان المستخدمة) قبل التقاط html2canvas.
+   السبب: إن التقط html2canvas النص قبل اكتمال تحميل الخط، يرسمه بخط احتياطي أو
+   بمقاييس غير متطابقة، فيلجأ لمسارات قياس/رسم حرف-بحرف تكسر تشكيل الحروف العربية
+   المتصلة (نفس عرض "انفصال الحروف" — لكن سببه هنا توقيت التحميل لا CSS الالتفاف).
+   Safari تحديداً أشد حساسية لهذا التوقيت من متصفحات أخرى. */
+function ensureFontsReady(){
+  if(!(window.FontFace && document.fonts)) return Promise.resolve();
+  const weights=['400','500','600','700'];
+  const loaders=weights.map(w=>document.fonts.load(`${w} 16px "Noto Naskh Arabic"`).catch(()=>{}));
+  const ready=document.fonts.ready?document.fonts.ready.catch(()=>{}):Promise.resolve();
+  const timeout=new Promise(res=>setTimeout(res,2000)); // لا نُعلّق التصدير إن تعثّر فحص الخط
+  return Promise.race([Promise.all([ready,...loaders]),timeout]);
+}
 async function captureForm(type){
   const cont=$('form-container');
   const prevZoom=zoom;
@@ -1496,7 +1509,10 @@ async function captureForm(type){
       // النص الحقيقي فقط يُرسم كعنصر ثابت موسّط رأسياً
       if(el.value!=='') el.parentNode.insertBefore(mkStatic(el,isArea),el.nextSibling);
     });
-    await new Promise(r=>setTimeout(r,180)); // مهلة استقرار لأجهزة الجوال الأضعف
+    await Promise.all([
+      ensureFontsReady(),
+      new Promise(r=>setTimeout(r,180)) // مهلة استقرار تخطيط أدنى لأجهزة الجوال الأضعف
+    ]);
     return await html2canvas(cont,{
       scale:2,useCORS:true,backgroundColor:'#fff',logging:false,
       // تثبيت أبعاد الالتقاط — يمنع القصّ/الفراغ على متصفحات الجوال

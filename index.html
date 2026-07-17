@@ -1392,19 +1392,42 @@ async function closeForm(){await saveForm(true);renderIncidentScreen();showScree
    قبلها كان الجوال يصدّر بزوم ~0.36 فتصير الصناديق ~8px والخط ~6px،
    فيفشل html2canvas في رسم نص الحقول ويختفي. الآن الجوال = سطح المكتب تماماً. */
 const EXPORT_ZOOM=1.4;
+/* html2canvas يرسم نص <input> من الأعلى ولا يوسّطه رأسياً، وقد يُسقطه كلياً عند الأحجام الصغيرة.
+   الحل: أثناء الالتقاط نخفي الحقول الحقيقية ونرسم مكانها عناصر نصية ثابتة (div) موسّطة —
+   الـ div يرسمه html2canvas بدقة وثبات في كل الأحجام والأجهزة. */
+function mkStatic(el,isArea){
+  const cs=getComputedStyle(el);
+  const box=document.createElement('div');
+  box.className='pdf-static';
+  box.style.cssText=`position:absolute;left:${el.style.left};top:${el.style.top};`+
+    `width:${el.style.width};height:${el.style.height};box-sizing:border-box;overflow:hidden;`+
+    `display:flex;align-items:${isArea?'flex-start':'center'};`+
+    `padding:${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft};`;
+  const sp=document.createElement('span');
+  sp.style.cssText=`width:100%;font-family:${cs.fontFamily};font-size:${cs.fontSize};`+
+    `font-weight:${cs.fontWeight};color:${cs.color};direction:${cs.direction};`+
+    `text-align:${cs.textAlign};line-height:${isArea?'1.35':'1.15'};`+
+    `white-space:${isArea?'pre-wrap':'nowrap'};word-wrap:break-word;`;
+  sp.textContent=el.value;
+  box.appendChild(sp);
+  return box;
+}
 async function captureForm(type){
   const cont=$('form-container');
   const prevZoom=zoom;
-  const stripped=[];
   try{
+    // دقة ثابتة لكل مسارات التصدير — مستقلة تماماً عن زوم شاشة المستخدم
     zoom=EXPORT_ZOOM;
-    renderFields(); // يُعاد البناء من formValues/sigData — القيم مصدرها الذاكرة فلا تُفقد
+    renderFields(); // يُعاد البناء من formValues/sigData في الذاكرة — لا فقدان للقيم
     cont.classList.add('exporting');
-    // إخفاء الـ placeholder للحقول الفارغة فعلياً فقط — لا نلمس أي حقل فيه نص
     cont.querySelectorAll('input.field-overlay,textarea.field-area').forEach(el=>{
-      if(el.value==='' && el.placeholder){stripped.push([el,el.placeholder]);el.placeholder='';}
+      const isArea=el.tagName==='TEXTAREA';
+      // الحقل الأصلي يُخفى دائماً ⇒ يستحيل طبع الـ placeholder
+      el.style.visibility='hidden';
+      // النص الحقيقي فقط يُرسم كعنصر ثابت موسّط رأسياً
+      if(el.value!=='') el.parentNode.insertBefore(mkStatic(el,isArea),el.nextSibling);
     });
-    await new Promise(r=>setTimeout(r,180)); // مهلة أطول لأجهزة الجوال الأضعف
+    await new Promise(r=>setTimeout(r,180)); // مهلة استقرار لأجهزة الجوال الأضعف
     return await html2canvas(cont,{
       scale:2,useCORS:true,backgroundColor:'#fff',logging:false,
       // تثبيت أبعاد الالتقاط — يمنع القصّ/الفراغ على متصفحات الجوال
@@ -1413,8 +1436,8 @@ async function captureForm(type){
       scrollX:0,scrollY:0
     });
   } finally {
-    // الاستعادة مضمونة حتى لو حدث خطأ
-    stripped.forEach(([el,ph])=>{el.placeholder=ph;});
+    // الاستعادة مضمونة حتى لو حدث خطأ (renderFields يعيد بناء الطبقة كاملة)
+    cont.querySelectorAll('.pdf-static').forEach(n=>n.remove());
     cont.classList.remove('exporting');
     zoom=prevZoom;
     renderFields();

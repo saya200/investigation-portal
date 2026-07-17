@@ -1407,7 +1407,13 @@ function mkStatic(el,isArea){
   sp.style.cssText=`width:100%;font-family:${cs.fontFamily};font-size:${cs.fontSize};`+
     `font-weight:${cs.fontWeight};color:${cs.color};direction:${cs.direction};`+
     `text-align:${cs.textAlign};line-height:${isArea?'1.35':'1.15'};`+
-    `white-space:${isArea?'pre-wrap':'nowrap'};word-wrap:break-word;`;
+    (isArea
+      /* textarea: كتلة نصية متصلة، الالتفاف عند المسافات فقط.
+         مُنع break-word لأنه يجعل html2canvas يقطع بين الحروف ويرسمها منفردة
+         فتفقد تشكيل العربية (حروف مقطّعة). */
+      ? `white-space:pre-wrap;overflow-wrap:normal;word-wrap:normal;word-break:normal;`
+      /* text: سطر واحد — يبقى كما هو تماماً دون تغيير */
+      : `white-space:nowrap;word-wrap:break-word;`);
   sp.textContent=el.value;
   box.appendChild(sp);
   return box;

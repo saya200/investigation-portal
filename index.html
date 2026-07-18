@@ -7,9 +7,21 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d4f3c">
 <link rel="apple-touch-icon" href="https://i.ibb.co/LhqT0fqz/1200px-svg.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* خط Noto Naskh Arabic — محلي من المستودع (لا Google Fonts CDN) لضمان توقيت تحميل ثابت وسريع،
+   خصوصاً على Safari الذي كان يتأخر أحياناً في جلب الخط من CDN خارجي فيسبب انفصال حروف عند التصدير.
+   ملف واحد بكل الأوزان (خط متغيّر variable font) لكل مجموعة أحرف — نفس أسلوب Google Fonts نفسه. */
+@font-face{
+  font-family:'Noto Naskh Arabic';font-style:normal;font-display:swap;font-weight:400 700;
+  src:url('fonts/NotoNaskhArabic-arabic.woff2') format('woff2');
+  unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC;
+}
+@font-face{
+  font-family:'Noto Naskh Arabic';font-style:normal;font-display:swap;font-weight:400 700;
+  src:url('fonts/NotoNaskhArabic-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+2000-206F,U+20AC,U+2122;
+}
+</style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>

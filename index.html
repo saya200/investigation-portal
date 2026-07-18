@@ -124,32 +124,64 @@ input,textarea{font-family:inherit;}
 .inc-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
 
 /* ===== بطاقة أرشيف موحّدة (القائمة الشخصية + لوحة الأدمن — تصميم واحد) ===== */
+.view-toggle-row{display:flex;justify-content:flex-end;margin-bottom:10px;}
+.vt-btn{width:34px;height:34px;border-radius:8px;background:var(--card);border:1.5px solid var(--border);
+  color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.vt-btn:first-child{border-radius:8px 0 0 8px;}
+.vt-btn:last-child{border-radius:0 8px 8px 0;border-right:none;}
+.vt-btn.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+
 .arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
 .arch-card{position:relative;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
-  overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;}
+  overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;
+  border-top:4px solid var(--accent);}                 /* تحت التحرير */
 .arch-card:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(13,79,60,.16);}
-/* مؤشر الحالة: شريط علوي عريض ملوّن بلا نص */
-.arch-card{border-top:4px solid var(--accent);}      /* تحت التحرير */
-.arch-card.st-done{border-top-color:var(--ok);}       /* مكتملة */
+.arch-card.st-done{border-top-color:var(--ok);}         /* مكتملة */
 .arch-card.st-deleted{border-top-color:#94a3b8;opacity:.75;}
+/* مؤشر "تحت التحرير" الإضافي: نقاط ⋯ في الزاوية الحرة (مكتملة تبقى بلا أي أيقونة) */
+.arch-dots{position:absolute;top:0;right:0;width:26px;height:22px;display:flex;align-items:center;justify-content:center;
+  background:rgba(201,162,39,.14);color:var(--accent-dark);font-size:16px;font-weight:900;line-height:1;
+  border-radius:0 0 0 10px;z-index:2;letter-spacing:1px;}
 .arch-body{padding:13px 15px 12px;display:flex;flex-direction:column;gap:9px;flex:1;}
+/* الصف العلوي: التاريخ يسار — (رقم الحادثة + عدّاد النماذج) يمين، بلا أي تراكب (تدفّق flex طبيعي) */
 .arch-row1{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.arch-date{font-size:12px;color:var(--muted);font-weight:600;}
+.arch-row1-right{display:flex;align-items:center;gap:7px;}
+.arch-date{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
 .arch-serial{font-size:16px;font-weight:800;color:var(--primary);direction:ltr;letter-spacing:.5px;}
+.arch-count{background:rgba(13,79,60,.08);color:var(--primary);font-size:11px;font-weight:700;
+  padding:3px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;white-space:nowrap;}
 .arch-desc{font-size:13.5px;line-height:1.6;color:var(--text);}
 .arch-officer{font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;
   border-top:1px solid var(--border);padding-top:9px;margin-top:auto;}
 .arch-officer .rk{color:var(--muted);font-weight:600;}
-/* عدّاد النماذج: رقم صغير بزاوية البطاقة */
-.arch-count{position:absolute;top:8px;left:8px;background:rgba(13,79,60,.9);color:#fff;
-  font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:3px;z-index:2;}
-/* مؤشر سبب الحادث: شريط لوني رفيع منفصل تماماً عن الحالة */
+/* مؤشر سبب الحادث: شريط لوني رفيع منفصل تماماً عن مؤشر الحالة */
 .arch-cause{height:4px;width:100%;}
 .arch-cause.accidental{background:#e67e22;}   /* عرضي */
 .arch-cause.criminal{background:#c0392b;}     /* جنائي */
 .arch-cause.undetermined{background:#7f8c8d;} /* غير محدد */
 .arch-actions{display:flex;gap:7px;padding:0 15px 13px;flex-wrap:wrap;}
-.arch-actions .btn{flex:1;}
+.arch-actions .btn{flex:1;padding:9px 13px;font-size:13px;}
+/* الأزرار مريحة للمس على الجوال (الافتراضي)، وتصغر تلقائياً على الكمبيوتر — نفس نقطة كسر المشروع */
+@media(min-width:681px){
+  .arch-actions .btn{padding:6px 10px;font-size:11.5px;}
+}
+
+/* ===== وضع العرض السطري (List) — للكمبيوتر بشكل أساسي، متاح دائماً ===== */
+.arch-grid.list-mode{grid-template-columns:1fr;gap:8px;}
+.list-mode .arch-card{flex-direction:row;align-items:center;border-top:none;border-right:4px solid var(--accent);}
+.list-mode .arch-card.st-done{border-right-color:var(--ok);}
+.list-mode .arch-card.st-deleted{border-right-color:#94a3b8;}
+.list-mode .arch-dots{top:auto;bottom:0;right:0;border-radius:10px 0 0 0;}
+.list-mode .arch-body{flex-direction:row;align-items:center;gap:16px;padding:9px 14px;flex:1;min-width:0;}
+.list-mode .arch-row1{flex-direction:column;align-items:flex-start;gap:2px;flex-shrink:0;}
+.list-mode .arch-desc{display:none;}
+.list-mode .arch-officer{border-top:none;padding-top:0;margin-top:0;white-space:nowrap;flex-shrink:0;}
+.list-mode .arch-cause{width:4px;height:100%;position:absolute;left:0;top:0;}
+.list-mode .arch-actions{padding:9px 14px 9px 0;flex-shrink:0;flex-wrap:nowrap;}
+@media(max-width:680px){
+  .list-mode .arch-card{flex-wrap:wrap;}
+  .list-mode .arch-body{flex-wrap:wrap;}
+}
 
 /* ===== FORM ITEMS ===== */
 .forms-list{margin-top:6px;}
@@ -372,6 +404,10 @@ tr:last-child td{border-bottom:none;}
       <span class="ico">🔍</span>
       <input id="search-inc" type="text" placeholder="ابحث برقم الحادثة..." oninput="renderIncidents()">
     </div>
+    <div class="view-toggle-row">
+      <button class="vt-btn" data-mode="grid" onclick="setArchView('grid')" title="عرض شبكي">⊞</button>
+      <button class="vt-btn" data-mode="list" onclick="setArchView('list')" title="عرض سطري">☰</button>
+    </div>
     <div id="inc-list"></div>
   </div>
 </div>
@@ -470,6 +506,10 @@ tr:last-child td{border-bottom:none;}
       <button class="btn btn-ghost btn-sm a-fbtn" data-f="draft" onclick="setAdminFilter('draft')">🟡 تحت التحرير</button>
       <button class="btn btn-ghost btn-sm a-fbtn" data-f="completed" onclick="setAdminFilter('completed')">🟢 مكتملة</button>
       <button class="btn btn-ghost btn-sm a-fbtn" data-f="deleted" onclick="setAdminFilter('deleted')">🗑️ المحذوفات <span id="a-del-count" style="opacity:.7"></span></button>
+    </div>
+    <div class="view-toggle-row">
+      <button class="vt-btn" data-mode="grid" onclick="setArchView('grid')" title="عرض شبكي">⊞</button>
+      <button class="vt-btn" data-mode="list" onclick="setArchView('list')" title="عرض سطري">☰</button>
     </div>
     <div id="admin-incs" style="margin-bottom:28px"></div>
 
@@ -896,6 +936,21 @@ let currentForm=null;          // {id, type}
 let formValues={}, sigData={}, sigPaths={};
 let zoom=1.0;
 const DAYS_AR=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+/* عرض شبكي/سطري لقوائم الأرشيف — يتذكر آخر اختيار صريح للمستخدم؛ الافتراضي حسب عرض الشاشة عند أول تشغيل */
+let archView=(function(){
+  try{const v=localStorage.getItem('archViewMode');if(v==='grid'||v==='list')return v;}catch(e){}
+  return window.innerWidth<=680?'grid':'list';
+})();
+function setArchView(mode){
+  archView=mode;
+  try{localStorage.setItem('archViewMode',mode);}catch(e){}
+  updateViewToggleUI();
+  if($('inc-list')) renderIncidents();
+  if($('admin-incs')&&$('admin-screen').classList.contains('active')) renderAdminIncs();
+}
+function updateViewToggleUI(){
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===archView));
+}
 
 /* ============================================================
    HELPERS
@@ -1069,6 +1124,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
    opts.open/opts.actions تُمرَّر حسب السياق؛ التصميم والتقلص الديناميكي واحد في الحالتين. */
 function archCard(i,actionsHTML,onOpen){
   const done=i.status==='completed';
+  const isDraft=!i.deleted&&!done;
   const stClass=i.deleted?'st-deleted':(done?'st-done':'');
   const nForms=(i.formsList||[]).length;
   const excerpt=(i.descriptionExcerpt||'').trim();
@@ -1076,15 +1132,20 @@ function archCard(i,actionsHTML,onOpen){
   // العناصر الاختيارية تُحذف بالكامل (هي وعناوينها) عند غياب البيانات ⇒ تقلص ديناميكي
   const descHTML=excerpt?`<div class="arch-desc">${esc(excerpt)}</div>`:'';
   const causeHTML=cause?`<div class="arch-cause ${cause}"></div>`:'';
+  // "⋯" لحالة تحت التحرير فقط (مكتملة تبقى بلا أي أيقونة إضافية — اللون وحده كافٍ)
+  const dotsHTML=isDraft?`<span class="arch-dots" title="تحت التحرير">⋯</span>`:'';
   return `<div class="arch-card ${stClass}" onclick="${onOpen}">
-    <span class="arch-count">📎 ${toAr(nForms)}</span>
+    ${dotsHTML}
     <div class="arch-body">
       <div class="arch-row1">
         <span class="arch-date">${fmtDate(i.createdAt)}</span>
-        <span class="arch-serial">${esc(i.serialNum)}</span>
+        <span class="arch-row1-right">
+          <span class="arch-serial">${esc(i.serialNum)}</span>
+          <span class="arch-count">📎 ${toAr(nForms)}</span>
+        </span>
       </div>
       ${descHTML}
-      <div class="arch-officer">👮 ${esc(i.officerName||'-')} <span class="rk">${esc(i.officerRank||'')}</span></div>
+      <div class="arch-officer">${esc(i.officerName||'-')} <span class="rk">${esc(i.officerRank||'')}</span></div>
     </div>
     ${causeHTML}
     ${actionsHTML?`<div class="arch-actions" onclick="event.stopPropagation()">${actionsHTML}</div>`:''}
@@ -1096,8 +1157,9 @@ function renderIncidents(){
   $('stat-total').textContent=toAr(incidents.length);
   $('stat-done').textContent=toAr(incidents.filter(i=>i.status==='completed').length);
   const c=$('inc-list');
+  updateViewToggleUI();
   if(!list.length){c.innerHTML='<div class="empty-state"><span class="ico">📁</span><p>لا توجد حوادث</p></div>';return;}
-  c.innerHTML='<div class="arch-grid">'+list.map(i=>{
+  c.innerHTML=`<div class="arch-grid ${archView==='list'?'list-mode':''}">`+list.map(i=>{
     const actions=`<button class="btn btn-primary btn-sm" onclick="openIncident('${i._id}')">فتح</button>`+
       `<button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄 تصدير</button>`;
     return archCard(i,actions,`openIncident('${i._id}')`);
@@ -1761,8 +1823,9 @@ function renderAdminIncs(){
   }
   if(term)list=list.filter(i=>incSearchText(i).includes(term));
   const t=$('admin-incs');
+  updateViewToggleUI();
   if(!list.length){t.innerHTML='<div class="empty-state"><span class="ico">📁</span><p>لا توجد نتائج</p></div>';return;}
-  t.innerHTML='<div class="arch-grid">'+list.map(i=>{
+  t.innerHTML=`<div class="arch-grid ${archView==='list'?'list-mode':''}">`+list.map(i=>{
     const actions = i.deleted
       ? `<button class="btn btn-accent btn-sm" onclick="adminRestoreInc('${i._id}')">↻ استعادة</button>`+
         `<button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">عرض</button>`

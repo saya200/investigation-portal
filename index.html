@@ -7,6 +7,9 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d4f3c">
 <link rel="apple-touch-icon" href="https://i.ibb.co/LhqT0fqz/1200px-svg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* خط Noto Naskh Arabic — محلي من المستودع (لا Google Fonts CDN) لضمان توقيت تحميل ثابت وسريع،
    خصوصاً على Safari الذي كان يتأخر أحياناً في جلب الخط من CDN خارجي فيسبب انفصال حروف عند التصدير.
@@ -35,7 +38,8 @@
   --shadow:0 4px 18px rgba(13,79,60,.10);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{font-family:'Noto Naskh Arabic',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
+html,body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
+/* Noto Naskh Arabic محصور حصراً بحقول تعبئة النماذج الخمسة (نص/متعدد أسطر) — لا يمتد لأي عنصر آخر بالصفحة */
 body{min-height:100vh;}
 img{max-width:100%;}
 button{font-family:inherit;cursor:pointer;border:none;}
@@ -106,6 +110,7 @@ input,textarea{font-family:inherit;}
 .search-box .ico{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.5;}
 
 /* ===== INCIDENT CARDS ===== */
+/* البطاقة القديمة (تفاصيل الحادثة أعلى شاشة النموذج) — تبقى كما هي */
 .inc-card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);
   border-right:5px solid var(--accent);transition:.15s;}
 .inc-card.done{border-right-color:var(--ok);}
@@ -117,6 +122,34 @@ input,textarea{font-family:inherit;}
 .badge.draft{background:#fdf3d8;color:var(--accent-dark);}
 .badge.done{background:#e3f5ea;color:var(--ok);}
 .inc-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+
+/* ===== بطاقة أرشيف موحّدة (القائمة الشخصية + لوحة الأدمن — تصميم واحد) ===== */
+.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.arch-card{position:relative;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;}
+.arch-card:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(13,79,60,.16);}
+/* مؤشر الحالة: شريط علوي عريض ملوّن بلا نص */
+.arch-card{border-top:4px solid var(--accent);}      /* تحت التحرير */
+.arch-card.st-done{border-top-color:var(--ok);}       /* مكتملة */
+.arch-card.st-deleted{border-top-color:#94a3b8;opacity:.75;}
+.arch-body{padding:13px 15px 12px;display:flex;flex-direction:column;gap:9px;flex:1;}
+.arch-row1{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.arch-date{font-size:12px;color:var(--muted);font-weight:600;}
+.arch-serial{font-size:16px;font-weight:800;color:var(--primary);direction:ltr;letter-spacing:.5px;}
+.arch-desc{font-size:13.5px;line-height:1.6;color:var(--text);}
+.arch-officer{font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;
+  border-top:1px solid var(--border);padding-top:9px;margin-top:auto;}
+.arch-officer .rk{color:var(--muted);font-weight:600;}
+/* عدّاد النماذج: رقم صغير بزاوية البطاقة */
+.arch-count{position:absolute;top:8px;left:8px;background:rgba(13,79,60,.9);color:#fff;
+  font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:3px;z-index:2;}
+/* مؤشر سبب الحادث: شريط لوني رفيع منفصل تماماً عن الحالة */
+.arch-cause{height:4px;width:100%;}
+.arch-cause.accidental{background:#e67e22;}   /* عرضي */
+.arch-cause.criminal{background:#c0392b;}     /* جنائي */
+.arch-cause.undetermined{background:#7f8c8d;} /* غير محدد */
+.arch-actions{display:flex;gap:7px;padding:0 15px 13px;flex-wrap:wrap;}
+.arch-actions .btn{flex:1;}
 
 /* ===== FORM ITEMS ===== */
 .forms-list{margin-top:6px;}
@@ -159,7 +192,8 @@ input,textarea{font-family:inherit;}
 #form-img{display:block;width:100%;height:auto;pointer-events:none;user-select:none;}
 #fields-layer{position:absolute;inset:0;}
 .field-overlay{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
-  color:#0a1f17;font-weight:700;padding:0 3px;outline:none;border-radius:2px;}
+  color:#0a1f17;font-weight:700;padding:0 3px;outline:none;border-radius:2px;
+  font-family:'Noto Naskh Arabic',sans-serif;}
 .field-overlay:focus{background:rgba(255,255,255,.95);border:1.5px solid var(--primary);box-shadow:0 0 0 2px rgba(13,79,60,.2);}
 /* التسمية مجرد تلميح خافت (placeholder) لا نص فعلي */
 .field-overlay::placeholder,.field-area::placeholder{color:rgba(10,31,23,.30);font-weight:400;}
@@ -437,10 +471,7 @@ tr:last-child td{border-bottom:none;}
       <button class="btn btn-ghost btn-sm a-fbtn" data-f="completed" onclick="setAdminFilter('completed')">🟢 مكتملة</button>
       <button class="btn btn-ghost btn-sm a-fbtn" data-f="deleted" onclick="setAdminFilter('deleted')">🗑️ المحذوفات <span id="a-del-count" style="opacity:.7"></span></button>
     </div>
-    <div class="tbl-wrap" style="margin-bottom:28px">
-      <table><thead><tr><th>الرقم</th><th>الضابط</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead>
-      <tbody id="admin-incs"></tbody></table>
-    </div>
+    <div id="admin-incs" style="margin-bottom:28px"></div>
 
     <div class="section-head"><h3>👥 المستخدمون</h3></div>
     <div class="tbl-wrap">
@@ -1033,6 +1064,32 @@ async function loadIncidents(){
   showLoading(false);
   renderIncidents();
 }
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+/* بطاقة أرشيف موحّدة — نفس التصميم في القائمة الشخصية ولوحة الأدمن.
+   opts.open/opts.actions تُمرَّر حسب السياق؛ التصميم والتقلص الديناميكي واحد في الحالتين. */
+function archCard(i,actionsHTML,onOpen){
+  const done=i.status==='completed';
+  const stClass=i.deleted?'st-deleted':(done?'st-done':'');
+  const nForms=(i.formsList||[]).length;
+  const excerpt=(i.descriptionExcerpt||'').trim();
+  const cause=i.causeIndicator||'';
+  // العناصر الاختيارية تُحذف بالكامل (هي وعناوينها) عند غياب البيانات ⇒ تقلص ديناميكي
+  const descHTML=excerpt?`<div class="arch-desc">${esc(excerpt)}</div>`:'';
+  const causeHTML=cause?`<div class="arch-cause ${cause}"></div>`:'';
+  return `<div class="arch-card ${stClass}" onclick="${onOpen}">
+    <span class="arch-count">📎 ${toAr(nForms)}</span>
+    <div class="arch-body">
+      <div class="arch-row1">
+        <span class="arch-date">${fmtDate(i.createdAt)}</span>
+        <span class="arch-serial">${esc(i.serialNum)}</span>
+      </div>
+      ${descHTML}
+      <div class="arch-officer">👮 ${esc(i.officerName||'-')} <span class="rk">${esc(i.officerRank||'')}</span></div>
+    </div>
+    ${causeHTML}
+    ${actionsHTML?`<div class="arch-actions" onclick="event.stopPropagation()">${actionsHTML}</div>`:''}
+  </div>`;
+}
 function renderIncidents(){
   const term=($('search-inc').value||'').trim();
   const list=incidents.filter(i=>!term||(i.serialNum||'').includes(term)||(i.officerName||'').includes(term));
@@ -1040,23 +1097,11 @@ function renderIncidents(){
   $('stat-done').textContent=toAr(incidents.filter(i=>i.status==='completed').length);
   const c=$('inc-list');
   if(!list.length){c.innerHTML='<div class="empty-state"><span class="ico">📁</span><p>لا توجد حوادث</p></div>';return;}
-  c.innerHTML=list.map(i=>{
-    const done=i.status==='completed';
-    return `<div class="inc-card ${done?'done':''}">
-      <div class="inc-card-top">
-        <div>
-          <div class="inc-serial">${i.serialNum}</div>
-          <div class="inc-meta">${fmtDate(i.createdAt)}</div>
-          <div class="inc-officer">👮 ${i.officerName||'-'} | ${i.officerRank||''}</div>
-        </div>
-        <span class="badge ${done?'done':'draft'}">${done?'🟢 مكتملة':'🟡 تحت التحرير'}</span>
-      </div>
-      <div class="inc-actions">
-        <button class="btn btn-primary btn-sm" onclick="openIncident('${i._id}')">فتح</button>
-        <button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄 تصدير</button>
-      </div>
-    </div>`;
-  }).join('');
+  c.innerHTML='<div class="arch-grid">'+list.map(i=>{
+    const actions=`<button class="btn btn-primary btn-sm" onclick="openIncident('${i._id}')">فتح</button>`+
+      `<button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄 تصدير</button>`;
+    return archCard(i,actions,`openIncident('${i._id}')`);
+  }).join('')+'</div>';
 }
 function backToDash(){loadIncidents();showScreen('dash-screen');}
 
@@ -1441,6 +1486,21 @@ function mobZoomToggle(full){
   if(mini) mini.classList.toggle('show',!full);
 }
 
+/* مقتطف الوصف: أول ~18 كلمة + "..." إن كان أطول */
+function makeExcerpt(txt,maxWords){
+  const words=(txt||'').trim().split(/\s+/).filter(Boolean);
+  if(!words.length)return '';
+  const lim=maxWords||18;
+  return words.slice(0,lim).join(' ')+(words.length>lim?' …':'');
+}
+/* مؤشر سبب الحادث من خانات تقرير حادث */
+function causeFromValues(v){
+  if(v.cause_accidental)return 'accidental';
+  if(v.cause_criminal)return 'criminal';
+  if(v.cause_undetermined)return 'undetermined';
+  return '';
+}
+
 /* ===== SAVE ===== */
 async function saveForm(silent){
   if(!currentForm)return;
@@ -1451,8 +1511,17 @@ async function saveForm(silent){
     // فهرس البحث: كل القيم النصية لهذا النموذج
     const blob=Object.values(formValues).filter(v=>typeof v==='string'&&v.trim()).join(' · ').trim();
     const lbl=FORM_CONFIGS[currentForm.type]?FORM_CONFIGS[currentForm.type].label:'';
-    await db.collection('incidents').doc(currentIncident._id)
-      .update({['searchByForm.'+currentForm.id]:lbl+' '+blob});
+    const upd={['searchByForm.'+currentForm.id]:lbl+' '+blob};
+    // تخزين مكرر (denormalization) لبطاقة القائمة — فقط من "تقرير حادث"
+    if(currentForm.type==='taqrir_hadith'){
+      const excerpt=makeExcerpt(formValues.incident_description,18);
+      const cause=causeFromValues(formValues);
+      upd.descriptionExcerpt=excerpt;
+      upd.causeIndicator=cause;
+      currentIncident.descriptionExcerpt=excerpt;
+      currentIncident.causeIndicator=cause;
+    }
+    await db.collection('incidents').doc(currentIncident._id).update(upd);
     if(!currentIncident.searchByForm)currentIncident.searchByForm={};
     currentIncident.searchByForm[currentForm.id]=lbl+' '+blob;
     if(!silent){showLoading(false);showToast('تم الحفظ','ok');}
@@ -1692,23 +1761,16 @@ function renderAdminIncs(){
   }
   if(term)list=list.filter(i=>incSearchText(i).includes(term));
   const t=$('admin-incs');
-  if(!list.length){t.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">لا توجد نتائج</td></tr>';return;}
-  t.innerHTML=list.map(i=>{
-    const done=i.status==='completed';
-    const actions = i.deleted ? `
-        <button class="btn btn-accent btn-sm" onclick="adminRestoreInc('${i._id}')">↻ استعادة</button>
-        <button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">عرض</button>` : `
-        <button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">فتح</button>
-        <button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄</button>
-        <button class="btn btn-danger btn-sm" onclick="adminDeleteInc('${i._id}')">حذف</button>`;
-    const statusCell = i.deleted ? '🗑️ محذوفة' : (done?'🟢 مكتملة':'🟡 تحت التحرير');
-    return `<tr${i.deleted?' style="opacity:.75"':''}>
-      <td style="direction:ltr;font-weight:700">${i.serialNum}</td>
-      <td>${i.officerName||'-'}<div style="font-size:11px;color:var(--muted)">${i.officerRank||''}</div></td>
-      <td style="font-size:12px">${fmtDate(i.createdAt)}</td>
-      <td>${statusCell}</td>
-      <td><div style="display:flex;gap:6px;flex-wrap:wrap">${actions}</div></td></tr>`;
-  }).join('');
+  if(!list.length){t.innerHTML='<div class="empty-state"><span class="ico">📁</span><p>لا توجد نتائج</p></div>';return;}
+  t.innerHTML='<div class="arch-grid">'+list.map(i=>{
+    const actions = i.deleted
+      ? `<button class="btn btn-accent btn-sm" onclick="adminRestoreInc('${i._id}')">↻ استعادة</button>`+
+        `<button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">عرض</button>`
+      : `<button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">فتح</button>`+
+        `<button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄</button>`+
+        `<button class="btn btn-danger btn-sm" onclick="adminDeleteInc('${i._id}')">حذف</button>`;
+    return archCard(i,actions,`adminOpen('${i._id}')`);
+  }).join('')+'</div>';
 }
 function renderAdminUsers(){
   const t=$('admin-users');

@@ -1379,6 +1379,20 @@ function autoPopulate(type){
 }
 const BASE_W=900;
 function curW(){return Math.round(BASE_W*zoom);}
+/* ترتيب تنقّل لوحة المفاتيح (tabindex) يطابق الترتيب البصري من الأعلى للأسفل، يميناً قبل يساراً (RTL) —
+   محسوب تلقائياً من xPct/yPct الموجودة أصلاً في FORM_CONFIGS، دون أي تعديل على ترتيب DOM أو بيانات النماذج.
+   الحقول التي يقع فرق ارتفاعها ضمن "band" تُعامَل كأنها بنفس الصف وتُرتَّب بينها من اليمين لليسار. */
+function computeTabOrder(fields){
+  const band=1.2; // % من ارتفاع الصورة — نطاق تسامح لاعتبار حقلين "بنفس الصف" رغم فروق يدوية طفيفة
+  const sorted=fields.slice().sort((a,b)=>{
+    const ra=Math.round((a.yPct||0)/band), rb=Math.round((b.yPct||0)/band);
+    if(ra!==rb) return ra-rb;
+    return (b.xPct||0)-(a.xPct||0); // RTL: الأقرب لليمين (xPct أكبر) يُزار أولاً
+  });
+  const order=new Map();
+  sorted.forEach((f,i)=>order.set(f,i+1)); // tabindex يبدأ من 1
+  return order;
+}
 function renderFields(){
   const cfg=FORM_CONFIGS[currentForm.type];if(!cfg)return;
   const img=$('form-img'),cont=$('form-container'),layer=$('fields-layer');
@@ -1388,11 +1402,12 @@ function renderFields(){
   cont.style.height=ch+'px';
   layer.innerHTML='';
   const scale=cw/cfg.imageSize.w;
+  const tabOrder=computeTabOrder(cfg.fields);
   cfg.fields.forEach(f=>{
     const x=f.xPct/100*cw, y=f.yPct/100*ch;
     const w=f.widthPct/100*cw, h=f.heightPct/100*ch;
-    if(f.type==='text') mkText(f,x,y,w,h,scale,layer);
-    else if(f.type==='textarea') mkArea(f,x,y,w,h,scale,layer);
+    if(f.type==='text') mkText(f,x,y,w,h,scale,layer,tabOrder.get(f));
+    else if(f.type==='textarea') mkArea(f,x,y,w,h,scale,layer,tabOrder.get(f));
     else if(f.type==='checkbox') mkCheck(f,x,y,w,h,layer);
     else if(f.type==='signature') mkSig(f,x,y,w,h,layer);
   });
@@ -1405,7 +1420,7 @@ function autoShrink(el,baseFs,isArea){
   const over=()=>isArea?(el.scrollHeight>el.clientHeight+1):(el.scrollWidth>el.clientWidth+1);
   while(fs>min && over() && guard<60){fs-=1;el.style.fontSize=fs+'px';guard++;}
 }
-function mkText(f,x,y,w,h,scale,layer){
+function mkText(f,x,y,w,h,scale,layer,tabIdx){
   const inp=document.createElement('input');
   inp.type='text';
   inp.className='field-overlay '+(f.direction==='ltr'?'ltr':'rtl');
@@ -1417,6 +1432,7 @@ function mkText(f,x,y,w,h,scale,layer){
   inp.value=formValues[f.key]||'';
   inp.placeholder=f.label||'';
   inp.dataset.key=f.key;
+  if(tabIdx)inp.tabIndex=tabIdx;
   if(!inp.value)inp.classList.add('export-empty');
   const isNum=f.dataType==='number_arabic';
   inp.addEventListener('input',()=>{
@@ -1435,7 +1451,7 @@ function mkText(f,x,y,w,h,scale,layer){
   layer.appendChild(inp);
   if(inp.value)autoShrink(inp,baseFs,false);
 }
-function mkArea(f,x,y,w,h,scale,layer){
+function mkArea(f,x,y,w,h,scale,layer,tabIdx){
   const ta=document.createElement('textarea');
   ta.className='field-area '+(f.direction==='ltr'?'ltr':'rtl');
   // textarea متعدد الأسطر: خط متناسب بحد أدنى منخفض؛ autoShrink يعالج الفيضان الرأسي
@@ -1444,6 +1460,7 @@ function mkArea(f,x,y,w,h,scale,layer){
   ta.value=formValues[f.key]||'';
   ta.placeholder=f.label||'';
   ta.dataset.key=f.key;
+  if(tabIdx)ta.tabIndex=tabIdx;
   if(!ta.value)ta.classList.add('export-empty');
   const isNum=f.dataType==='number_arabic';
   ta.addEventListener('input',()=>{

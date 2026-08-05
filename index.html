@@ -209,6 +209,72 @@ input,textarea{font-family:inherit;}
 .choose-item .ico{font-size:24px;}
 .choose-item .nm{font-weight:700;font-size:15px;}
 
+/* ═══════════ تقرير الواتساب — مكوّن مستقل تماماً (كل الأصناف بسابقة wa-) ═══════════ */
+.wa-modal{max-width:560px;}
+.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.wa-full{grid-column:1/-1;}
+.wa-lbl{font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.wa-hint{font-size:10.5px;font-weight:400;color:var(--muted);}
+.wa-in,.wa-sel,.wa-ta{width:100%;box-sizing:border-box;padding:9px 11px;border:1.5px solid var(--border);
+  border-radius:9px;font-size:13.5px;font-family:inherit;background:#fafdfb;outline:none;transition:.15s;color:var(--text);}
+.wa-in:focus,.wa-sel:focus,.wa-ta:focus{border-color:var(--primary);background:#fff;}
+.wa-ta{resize:vertical;min-height:60px;line-height:1.5;}
+.wa-now{background:none;border:none;color:var(--primary);font-size:11px;font-weight:700;
+  font-family:inherit;cursor:pointer;padding:0;text-decoration:underline;}
+/* عجلة السحب (أسلوب iOS) — scroll-snap */
+.wa-wheels{position:relative;display:flex;align-items:center;justify-content:center;gap:2px;
+  background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:0 6px;height:132px;overflow:hidden;}
+.wa-wcol{width:52px;height:100%;overflow:hidden;}
+.wa-wscroll{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;}
+.wa-wscroll::-webkit-scrollbar{display:none;}
+.wa-wpad{height:44px;}
+.wa-wcell{height:44px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;
+  cursor:pointer;font-size:14px;color:var(--muted);transition:color .15s,font-size .15s,font-weight .15s;}
+.wa-wcell.on{font-size:19px;font-weight:800;color:var(--primary);}
+.wa-wsep{font-size:16px;font-weight:800;color:var(--muted);padding:0 2px;}
+.wa-wmark{position:absolute;top:44px;right:6px;left:6px;height:44px;pointer-events:none;
+  border-top:1.5px solid var(--border);border-bottom:1.5px solid var(--border);background:rgba(13,79,60,.03);}
+/* بحث ذاتي للأحياء */
+.wa-ac{position:relative;}
+.wa-aclist{position:absolute;top:100%;right:0;left:0;margin-top:3px;background:var(--card);
+  border:1.5px solid var(--border);border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.14);
+  z-index:40;max-height:190px;overflow-y:auto;display:none;}
+.wa-aclist.show{display:block;}
+.wa-acitem{display:block;width:100%;text-align:right;padding:9px 11px;background:none;border:none;
+  border-bottom:1px solid var(--border);font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;}
+.wa-acitem:last-child{border-bottom:none;}
+.wa-acitem:hover,.wa-acitem.hi{background:#f0f7f4;color:var(--primary);font-weight:700;}
+/* الجهات المشاركة */
+.wa-ents{display:flex;flex-direction:column;gap:5px;}
+.wa-ent{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid var(--border);
+  border-radius:9px;background:#fafdfb;transition:.15s;}
+.wa-ent.on{border-color:var(--ok);background:rgba(30,132,73,.07);}
+.wa-ent .nm{flex:1;font-size:13px;font-weight:600;}
+.wa-ent .tg{width:28px;height:28px;border-radius:7px;border:none;background:var(--border);color:var(--text);
+  font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:.15s;line-height:1;}
+.wa-ent.on .tg{background:var(--ok);color:#fff;}
+/* معاينة النص */
+.wa-prev{background:#0f1b17;color:#e8f0ec;border-radius:12px;padding:14px;font-size:13px;
+  line-height:1.85;white-space:pre-wrap;word-wrap:break-word;max-height:46vh;overflow-y:auto;
+  border:1.5px solid #24382f;text-align:right;direction:rtl;}
+.wa-prev b{color:#8fe3b8;font-weight:800;}
+/* خيارات التغذية */
+.wa-feed{display:grid;gap:10px;}
+.wa-feedbtn{display:flex;align-items:center;gap:12px;padding:15px;border:1.5px solid var(--border);
+  border-radius:12px;background:var(--card);text-align:right;width:100%;transition:.15s;cursor:pointer;}
+.wa-feedbtn:hover{border-color:var(--primary);background:#f7fbf9;}
+.wa-feedbtn .ico{font-size:24px;}
+.wa-feedbtn .nm{font-weight:700;font-size:15px;}
+.wa-x{width:30px;height:30px;flex-shrink:0;border:none;border-radius:8px;background:var(--bg);
+  color:var(--muted);font-size:15px;font-weight:800;cursor:pointer;line-height:1;transition:.15s;}
+.wa-x:hover{background:var(--danger);color:#fff;}
+@media(max-width:680px){
+  .wa-grid{grid-template-columns:1fr;}
+  .wa-modal{max-width:100%;padding:20px 16px;}
+}
+
 /* ===== FORM RENDERER ===== */
 #form-screen{background:#54595d;}
 .form-toolbar{background:var(--primary);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -439,7 +505,10 @@ tr:last-child td{border-bottom:none;}
     </div>
     <div class="section-head">
       <h3>النماذج المضافة</h3>
-      <button class="btn btn-primary btn-sm" onclick="openAddForm()">+ إضافة نموذج</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-accent btn-sm" onclick="openWaReport()">💬 تقرير الواتساب</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddForm()">+ إضافة نموذج</button>
+      </div>
     </div>
     <div id="forms-list" class="forms-list"></div>
   </div>
@@ -554,6 +623,125 @@ tr:last-child td{border-bottom:none;}
     <div class="choose-grid" id="choose-forms"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-addform')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ تقرير الواتساب (مستقل تماماً) ═══════════ -->
+<div class="modal-bg" id="modal-wa">
+  <div class="modal wa-modal">
+    <h3>💬 تقرير الواتساب</h3>
+    <div class="wa-grid">
+      <div><div class="wa-lbl">المنطقة</div>
+        <input class="wa-in" id="wa-region" value="منطقة حائل"></div>
+      <div><div class="wa-lbl">المدينة/المحافظة</div>
+        <input class="wa-in" id="wa-city" value="حائل"></div>
+
+      <div class="wa-ac"><div class="wa-lbl">الحي</div>
+        <input class="wa-in" id="wa-district" placeholder="ابحث عن الحي..." autocomplete="off"
+          oninput="waAcInput('district')" onfocus="waAcInput('district')" onkeydown="waAcKey('district',event)">
+        <div class="wa-aclist" id="wa-aclist"></div></div>
+
+      <div><div class="wa-lbl">اليوم</div>
+        <select class="wa-sel" id="wa-day"></select></div>
+
+      <div class="wa-full"><div class="wa-lbl">التاريخ الهجري <span class="wa-hint">يوم / شهر / سنة</span></div>
+        <div class="wa-wheels">
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-hd" data-wheel="hd"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">/</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-hm" data-wheel="hm"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">/</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-hy" data-wheel="hy"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <div class="wa-wmark"></div>
+        </div></div>
+
+      <!-- ترتيب RTL: العنصر الأول يظهر يميناً ⇒ الدقيقة أولاً (يمين) والساعة ثانياً (يسار) -->
+      <div><div class="wa-lbl">وقت البلاغ <button class="wa-now" onclick="waSetNow('rep')">الآن</button></div>
+        <div class="wa-wheels">
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-repm" data-wheel="repm"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">:</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-reph" data-wheel="reph"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <div class="wa-wmark"></div>
+        </div></div>
+
+      <div><div class="wa-lbl">وقت وصول الفرق <button class="wa-now" onclick="waSetNow('arr')">الآن</button></div>
+        <div class="wa-wheels">
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-arrm" data-wheel="arrm"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">:</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-arrh" data-wheel="arrh"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <div class="wa-wmark"></div>
+        </div></div>
+
+      <div class="wa-full wa-ac"><div class="wa-lbl">نوع الحادث</div>
+        <input class="wa-in" id="wa-type" placeholder="اكتب نوع الحادث أو اختر اقتراحاً" autocomplete="off"
+          oninput="waAcInput('type')" onfocus="waAcInput('type')" onkeydown="waAcKey('type',event)">
+        <div class="wa-aclist" id="wa-typelist"></div></div>
+
+      <div class="wa-full"><div class="wa-lbl">وصف الحادث</div>
+        <textarea class="wa-ta" id="wa-desc" rows="3"></textarea></div>
+
+      <div class="wa-full"><div class="wa-lbl">وصف العملية/الإجراءات
+        <span class="wa-hint">يُدمج مع وصف الحادث عند التوليد</span></div>
+        <textarea class="wa-ta" id="wa-ops" rows="3"></textarea></div>
+
+      <!-- أربعة حقول مستقلة بقيم افتراضية فعلية داخل value (تبقى محفوظة عند إعادة الفتح) -->
+      <div><div class="wa-lbl">عدد الوفيات</div>
+        <input class="wa-in" id="wa-deaths" inputmode="numeric" value="٠"></div>
+      <div><div class="wa-lbl">تفصيل عدد الجنسيات</div>
+        <input class="wa-in" id="wa-deaths-nat" value="-"></div>
+      <div><div class="wa-lbl">عدد الإصابات</div>
+        <input class="wa-in" id="wa-injuries" inputmode="numeric" value="٠"></div>
+      <div><div class="wa-lbl">تفصيل عدد الجنسيات</div>
+        <input class="wa-in" id="wa-injuries-nat" value="-"></div>
+
+      <div class="wa-full"><div class="wa-lbl">الخسائر المادية</div>
+        <textarea class="wa-ta" id="wa-losses" rows="2">-</textarea></div>
+      <div class="wa-full"><div class="wa-lbl">إضافات أخرى</div>
+        <textarea class="wa-ta" id="wa-extra" rows="2"></textarea></div>
+
+      <div class="wa-full"><div class="wa-lbl">الجهات المشاركة</div>
+        <div class="wa-ents" id="wa-ents"></div>
+        <input class="wa-in" id="wa-ent-other" placeholder="اذكر الجهة الأخرى" style="display:none;margin-top:6px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-wa')">إغلاق</button>
+      <button class="btn btn-primary" onclick="waGenerate()">📝 توليد النص</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-wa-preview">
+  <div class="modal wa-modal">
+    <h3>معاينة النص</h3>
+    <div class="wa-prev" id="wa-prev"></div>
+    <div class="modal-actions">
+      <button class="btn btn-accent" onclick="waCopyAndFeed()">📤 نسخ وتغذية</button>
+      <button class="btn btn-primary" onclick="waCopyOnly()">📋 نسخ النص</button>
+    </div>
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-wa-preview')">رجوع للتعديل</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-wa-feed">
+  <div class="modal">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <h3 style="margin-bottom:0">اختر التقرير الرسمي</h3>
+      <button class="wa-x" onclick="waCancelFeed()" title="إلغاء">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.7;margin:14px 0 16px">
+      تم نسخ النص للحافظة. اختر نوع التقرير الذي تريد نقل المدخلات إليه — ستُعبّأ الحقول المطابقة
+      تلقائياً في التقرير المختار، ويمكنك إكمال باقي الحقول والحفظ لاحقاً بشكل طبيعي.
+    </p>
+    <div class="wa-feed">
+      <button class="wa-feedbtn" onclick="waFeedTo('taqrir_hadith')">
+        <span class="ico">📄</span><span class="nm">تقرير حادث</span></button>
+      <button class="wa-feedbtn" onclick="waFeedTo('taqrir_markabat')">
+        <span class="ico">🚗</span><span class="nm">تقرير حادث مركبات</span></button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="waCancelFeed()">إلغاء — بدون فتح أي نموذج</button>
     </div>
   </div>
 </div>
@@ -1990,6 +2178,264 @@ async function copyPageLink(){
     setTimeout(()=>{btn.textContent=old;btn.classList.remove('copied');},2000);
   }
   showToast('تم نسخ الرابط','ok');
+}
+
+/* ════════════════════════════════════════════════════════════
+   تقرير الواتساب — مكوّن مستقل تماماً.
+   لا يمس FORM_CONFIGS ولا منطق التصدير/المحاور/tabindex/autoPopulate.
+   يقرأ فقط أسماء المفاتيح من النماذج الرسمية عند "نسخ وتغذية".
+   ════════════════════════════════════════════════════════════ */
+const WA_DISTRICTS=['الفجر','قفار','المدائن','النرجس','العليا','عقده','الياسمين','أجا','حطين','قرطبة',
+'مطار حائل','الأنوار','سفانة','خارج حدود الأحياء','برزان','الفيحاء','عانقة','جوهرة الوسيطا','المطار',
+'بدائع مريفق','مشار','الخماشية','صديان','صناعية النهضة','أعيرف','لؤلؤه الخزامى','القادسية',
+'حي ضاحية الملك فهد','النقرة','الرصف','البازمين','الشروق','مغيضه','القيروان','قصر العشروات','سماح',
+'السويفلة','المزعبر','الخزامى','المدينة الصناعية','الوادي','الرمال','الإزدهار','المجد','الزهور','الزهرة',
+'صناعية التقدم','الأندلس','الكوثر','الوفاء','الوسيطا','الملك عبدالله','الزبارة','المصيف','درة مشار',
+'أركان','الغدير','النعام','الودي','السلام','المغواه','مريفق','السمراء','البوادي','نقبين','البزيعي',
+'اليمامة','الجبل','الورود','المنار','الأثير','غرناطة','الجثامية','السحاب','الرعيلة','المملكة','غياض',
+'الجامعيين','النيصية','النخيل','الخليج','المروج','الجامعة','العزيزية','درة الودي','صبابة','التعاون',
+'الفروسية','لؤلؤة قفار','البحيرة','إشبيليا','اللقيطة','الروابي','شراف','الرحاب','النفل','الشفاء',
+'الصيهد','صلاح الدين','لبده','الربوة','التلال','المرسلات','الريان','حدري البلاد','البادية',
+'المنتزه الغربي','المنتزه الشرقي','مخطط الراجحي'];
+/* اقتراحات نوع الحادث — مساعدة فقط، والحقل نص حر بالكامل */
+const WA_TYPES=['حريق','احتجاز','إنقاذ'];
+/* الجهات — مطابقة حرفياً لمفاتيح نموذج "تقرير حادث" الرسمي */
+const WA_ENTITIES=[
+  {key:'entity_red_crescent',   label:'الهلال الأحمر'},
+  {key:'entity_electricity',    label:'الشركة السعودية للطاقة'},
+  {key:'entity_security_patrol',label:'الدوريات الأمنية'},
+  {key:'entity_forensics',      label:'الأدلة الجنائية'},
+  {key:'entity_municipality',   label:'الأمانة'},
+  {key:'entity_other',          label:'جهة أخرى'}
+];
+let waWheels={}, waEntSel={}, waText='';
+
+/* ── عجلات السحب ── */
+const WA_WCFG={
+  hd:{from:1,to:30,pad:2}, hm:{from:1,to:12,pad:2}, hy:{from:40,to:60,pad:2},
+  reph:{from:0,to:23,pad:2}, repm:{from:0,to:59,pad:2},
+  arrh:{from:0,to:23,pad:2}, arrm:{from:0,to:59,pad:2}
+};
+function waBuildWheel(name,initVal){
+  const cfg=WA_WCFG[name], sc=document.querySelector(`[data-wheel="${name}"]`);
+  if(!sc)return;
+  const box=sc.querySelector('.wa-wcells');
+  let html='';
+  for(let v=cfg.from;v<=cfg.to;v++){
+    html+=`<div class="wa-wcell" data-v="${v}" onclick="waWheelTap('${name}',${v})">${toAr(String(v).padStart(cfg.pad,'0'))}</div>`;
+  }
+  box.innerHTML=html;
+  waWheels[name]=initVal;
+  sc.onscroll=()=>{
+    clearTimeout(sc._t);
+    sc._t=setTimeout(()=>{
+      const idx=Math.round(sc.scrollTop/44);
+      const v=Math.min(cfg.to,Math.max(cfg.from,cfg.from+idx));
+      waWheels[name]=v; waMarkWheel(name);
+    },90);
+  };
+  waScrollWheel(name,initVal,false);
+}
+function waScrollWheel(name,val,smooth){
+  const cfg=WA_WCFG[name], sc=document.querySelector(`[data-wheel="${name}"]`);
+  if(!sc)return;
+  waWheels[name]=val;
+  sc.scrollTo({top:(val-cfg.from)*44,behavior:smooth?'smooth':'auto'});
+  waMarkWheel(name);
+}
+function waWheelTap(name,v){waScrollWheel(name,v,true);}
+function waMarkWheel(name){
+  const sc=document.querySelector(`[data-wheel="${name}"]`);
+  if(!sc)return;
+  sc.querySelectorAll('.wa-wcell').forEach(c=>c.classList.toggle('on',+c.dataset.v===waWheels[name]));
+}
+function waSetNow(which){
+  const n=new Date();
+  if(which==='rep'){waScrollWheel('reph',n.getHours(),true);waScrollWheel('repm',n.getMinutes(),true);}
+  else{waScrollWheel('arrh',n.getHours(),true);waScrollWheel('arrm',n.getMinutes(),true);}
+}
+
+/* ── بحث ذاتي عام (الحي + نوع الحادث) — نص حر دائماً، والاقتراحات مساعدة فقط ── */
+const WA_AC={
+  district:{inp:'wa-district', list:'wa-aclist',   src:()=>WA_DISTRICTS, max:60},
+  type:    {inp:'wa-type',     list:'wa-typelist', src:()=>WA_TYPES,     max:20}
+};
+let waAcIdx={district:-1,type:-1};
+function waAcInput(which){
+  const c=WA_AC[which]; if(!c)return;
+  const inp=$(c.inp), list=$(c.list);
+  const q=(inp.value||'').trim();
+  const all=c.src();
+  const res=(q?all.filter(d=>d.includes(q)):all).slice(0,c.max);
+  waAcIdx[which]=-1;
+  if(!res.length){list.classList.remove('show');list.innerHTML='';return;}
+  list.innerHTML=res.map(d=>
+    `<button type="button" class="wa-acitem" onclick="waAcPick('${which}','${d.replace(/'/g,"\\'")}')">${d}</button>`
+  ).join('');
+  list.classList.add('show');
+}
+function waAcPick(which,d){
+  const c=WA_AC[which]; if(!c)return;
+  $(c.inp).value=d; $(c.list).classList.remove('show');
+}
+function waAcKey(which,e){
+  const c=WA_AC[which]; if(!c)return;
+  const list=$(c.list);
+  if(!list.classList.contains('show'))return;
+  const items=[...list.querySelectorAll('.wa-acitem')];
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    waAcIdx[which]+=(e.key==='ArrowDown'?1:-1);
+    if(waAcIdx[which]<0)waAcIdx[which]=items.length-1;
+    if(waAcIdx[which]>=items.length)waAcIdx[which]=0;
+    items.forEach((it,i)=>it.classList.toggle('hi',i===waAcIdx[which]));
+    if(items[waAcIdx[which]])items[waAcIdx[which]].scrollIntoView({block:'nearest'});
+  } else if(e.key==='Enter'&&waAcIdx[which]>=0){e.preventDefault();items[waAcIdx[which]].click();}
+  else if(e.key==='Escape'){list.classList.remove('show');}
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('.wa-ac'))return;
+  ['wa-aclist','wa-typelist'].forEach(id=>{const l=$(id); if(l)l.classList.remove('show');});
+});
+function waRenderEnts(){
+  $('wa-ents').innerHTML=WA_ENTITIES.map(en=>
+    `<div class="wa-ent${waEntSel[en.key]?' on':''}" id="wa-ent-${en.key}">
+      <span class="nm">${en.label}</span>
+      <button type="button" class="tg" onclick="waToggleEnt('${en.key}')">${waEntSel[en.key]?'✓':'+'}</button>
+    </div>`).join('');
+  $('wa-ent-other').style.display = waEntSel['entity_other'] ? 'block':'none';
+}
+function waToggleEnt(k){
+  waEntSel[k]=!waEntSel[k];
+  waRenderEnts();
+}
+
+/* ── فتح الأداة ── */
+function openWaReport(){
+  const n=new Date();
+  const h=gregorianToHijri(n.getFullYear(),n.getMonth()+1,n.getDate());
+  $('wa-day').innerHTML=DAYS_AR.map(d=>`<option>${d}</option>`).join('');
+  $('wa-day').value=DAYS_AR[n.getDay()];
+  waEntSel={}; waRenderEnts();
+  $('modal-wa').classList.add('show');
+  // العجلات تُبنى بعد الظهور لضمان صحة القياسات
+  setTimeout(()=>{
+    waBuildWheel('hd',Math.min(30,h.day));
+    waBuildWheel('hm',Math.min(12,h.month));
+    waBuildWheel('hy',+String(h.year).slice(-2)||48);
+    waBuildWheel('reph',n.getHours()); waBuildWheel('repm',n.getMinutes());
+    waBuildWheel('arrh',n.getHours()); waBuildWheel('arrm',n.getMinutes());
+  },60);
+}
+
+/* ── توليد النص ── */
+function waTwo(v){return toAr(String(v).padStart(2,'0'));}
+function waVal(id){return ($(id).value||'').trim();}
+function waIncidentType(){ return waVal('wa-type'); }
+function waGenerate(){
+  const L=[];
+  L.push('*(معلومات نهائية عن حادث منتهي)*');
+  L.push('');
+  const add=(lbl,val)=>{ if(val&&val.trim()) L.push(`*${lbl}*: ${val.trim()}`); };
+  add('المنطقة',waVal('wa-region'));
+  add('المدينة',waVal('wa-city'));
+  add('الحي',waVal('wa-district'));
+  add('اليوم',$('wa-day').value);
+  // التاريخ: يوم/شهر/سنة كاملة — أرقام فقط
+  const hy=1400+ (waWheels.hy||48);
+  add('التاريخ',`${toAr(String(waWheels.hd||1))}/${toAr(String(waWheels.hm||1))}/${toAr(String(hy))}هـ`);
+  add('وقت البلاغ',`${waTwo(waWheels.reph||0)}:${waTwo(waWheels.repm||0)}`);
+  add('وقت وصول الفرق',`${waTwo(waWheels.arrh||0)}:${waTwo(waWheels.arrm||0)}`);
+  add('نوع الحادث',waIncidentType());
+  // دمج وصف الحادث + وصف العملية في فقرة واحدة
+  const merged=[waVal('wa-desc'),waVal('wa-ops')].filter(Boolean).join(' ').trim();
+  add('وصف الحادث',merged);
+  add('عدد الوفيات',waVal('wa-deaths'));
+  add('تفصيل عدد الجنسيات',waVal('wa-deaths-nat'));
+  add('عدد الإصابات',waVal('wa-injuries'));
+  add('تفصيل عدد الجنسيات',waVal('wa-injuries-nat'));
+  add('الخسائر المادية',waVal('wa-losses'));
+  add('إضافات أخرى',waVal('wa-extra'));
+  const ents=WA_ENTITIES.filter(e=>waEntSel[e.key]).map(e=>
+    e.key==='entity_other' ? (waVal('wa-ent-other')||e.label) : e.label);
+  if(ents.length) add('الجهات المشاركة',ents.join('، '));
+  waText=L.join('\n');
+  // المعاينة: تحويل *نص* إلى غامق للعرض فقط (النص المنسوخ يبقى بالنجوم)
+  $('wa-prev').innerHTML=esc(waText).replace(/\*([^*\n]+)\*/g,'<b>$1</b>');
+  $('modal-wa-preview').classList.add('show');
+}
+
+/* ── النسخ ── */
+async function waCopyText(){
+  try{ await navigator.clipboard.writeText(waText); }
+  catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=waText;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(_){}
+    document.body.removeChild(ta);
+  }
+}
+async function waCopyOnly(){ await waCopyText(); showToast('تم نسخ النص','ok'); }
+async function waCopyAndFeed(){
+  await waCopyText();
+  closeModal('modal-wa-preview');
+  $('modal-wa-feed').classList.add('show');
+}
+/* إلغاء التغذية: النص يبقى منسوخاً، ولا يُفتح نموذج ولا تُنقل أي بيانات */
+function waCancelFeed(){
+  closeModal('modal-wa-feed');
+  showToast('أُلغيت التغذية — النص منسوخ في الحافظة','ok');
+}
+
+/* ── التغذية للنموذج الرسمي (مطابقة أسماء المفاتيح) ── */
+function waBuildMap(){
+  const m={};
+  m.city_name=waVal('wa-city');
+  m.district=waVal('wa-district');
+  m.day=$('wa-day').value;
+  m.dd=waTwo(waWheels.hd||1);
+  m.mm=waTwo(waWheels.hm||1);
+  m.yy=waTwo(waWheels.hy||48);
+  m.hour=waTwo(waWheels.reph||0);
+  m.min=waTwo(waWheels.repm||0);
+  const de=waVal('wa-desc'), op=waVal('wa-ops');
+  if(de)m.incident_description=de;
+  if(op)m.ops_description=op;
+  WA_ENTITIES.forEach(en=>{ if(waEntSel[en.key]) m[en.key]=true; });
+  if(waEntSel['entity_other']){
+    const o=waVal('wa-ent-other');
+    if(o)m.participants_other_text=o;
+  }
+  // إزالة الفارغ
+  Object.keys(m).forEach(k=>{ if(m[k]===''||m[k]===undefined) delete m[k]; });
+  return m;
+}
+async function waFeedTo(type){
+  closeModal('modal-wa-feed');
+  if(!currentIncident){showToast('افتح حادثة أولاً','error');return;}
+  const cfg=FORM_CONFIGS[type];
+  if(!cfg){showToast('النموذج غير موجود','error');return;}
+  // لا نُدخل إلا المفاتيح الموجودة فعلاً بهذا النموذج
+  const valid=new Set(cfg.fields.map(f=>f.key));
+  const src=waBuildMap(), data={};
+  Object.keys(src).forEach(k=>{ if(valid.has(k)) data[k]=src[k]; });
+  showLoading(true,'جارٍ تجهيز التقرير...');
+  try{
+    const inst={id:uid(),type};
+    const list=[...(currentIncident.formsList||[]),inst];
+    await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(inst.id)
+      .set({type,data,sigData:{},updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('incidents').doc(currentIncident._id).update({formsList:list});
+    currentIncident.formsList=list;
+    closeModal('modal-wa');
+    showLoading(false);
+    renderFormsList();
+    showToast('تم نقل المدخلات — أكمل باقي الحقول','ok');
+    openForm(inst.id,type);
+  }catch(e){
+    showLoading(false);showToast('تعذّر إنشاء التقرير','error');console.error(e);
+  }
 }
 
 /* ===== INIT ===== */

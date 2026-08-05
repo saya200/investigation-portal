@@ -257,9 +257,10 @@ input,textarea{font-family:inherit;}
 .wa-ent.on .tg{background:var(--ok);color:#fff;}
 /* معاينة النص */
 .wa-prev{background:#0f1b17;color:#e8f0ec;border-radius:12px;padding:14px;font-size:13px;
-  line-height:1.85;white-space:pre-wrap;word-wrap:break-word;max-height:46vh;overflow-y:auto;
-  border:1.5px solid #24382f;text-align:right;direction:rtl;}
-.wa-prev b{color:#8fe3b8;font-weight:800;}
+  line-height:1.85;white-space:pre-wrap;word-wrap:break-word;height:46vh;max-height:46vh;overflow-y:auto;
+  border:1.5px solid #24382f;text-align:right;direction:rtl;width:100%;box-sizing:border-box;
+  font-family:inherit;resize:vertical;}
+.wa-prev:focus{outline:none;border-color:#8fe3b8;}
 /* خيارات التغذية */
 .wa-feed{display:grid;gap:10px;}
 .wa-feedbtn{display:flex;align-items:center;gap:12px;padding:15px;border:1.5px solid var(--border);
@@ -713,7 +714,7 @@ tr:last-child td{border-bottom:none;}
 <div class="modal-bg" id="modal-wa-preview">
   <div class="modal wa-modal">
     <h3>معاينة النص</h3>
-    <div class="wa-prev" id="wa-prev"></div>
+    <textarea class="wa-prev" id="wa-prev" spellcheck="false"></textarea>
     <div class="modal-actions">
       <button class="btn btn-accent" onclick="waCopyAndFeed()">📤 نسخ وتغذية</button>
       <button class="btn btn-primary" onclick="waCopyOnly()">📋 نسخ النص</button>
@@ -2342,10 +2343,12 @@ function waGenerate(){
   add('الحي',waVal('wa-district'));
   add('اليوم',$('wa-day').value);
   // التاريخ: يوم/شهر/سنة كاملة — أرقام فقط
+  // LRM (U+200E) تحيط بأي سلسلة أرقام/فواصل مختلطة بسياق RTL كي يبقى ترتيب القراءة صحيحاً بعد النسخ للصق في أي مكان
+  const lrm=s=>`‎${s}‎`;
   const hy=1400+ (waWheels.hy||48);
-  add('التاريخ',`${toAr(String(waWheels.hd||1))}/${toAr(String(waWheels.hm||1))}/${toAr(String(hy))}هـ`);
-  add('وقت البلاغ',`${waTwo(waWheels.reph||0)}:${waTwo(waWheels.repm||0)}`);
-  add('وقت وصول الفرق',`${waTwo(waWheels.arrh||0)}:${waTwo(waWheels.arrm||0)}`);
+  add('التاريخ',lrm(`${toAr(String(waWheels.hd||1))}/${toAr(String(waWheels.hm||1))}/${toAr(String(hy))}`)+'هـ');
+  add('وقت البلاغ',lrm(`${waTwo(waWheels.reph||0)}:${waTwo(waWheels.repm||0)}`));
+  add('وقت وصول الفرق',lrm(`${waTwo(waWheels.arrh||0)}:${waTwo(waWheels.arrm||0)}`));
   add('نوع الحادث',waIncidentType());
   // دمج وصف الحادث + وصف العملية في فقرة واحدة
   const merged=[waVal('wa-desc'),waVal('wa-ops')].filter(Boolean).join(' ').trim();
@@ -2360,20 +2363,19 @@ function waGenerate(){
     e.key==='entity_other' ? (waVal('wa-ent-other')||e.label) : e.label);
   if(ents.length) add('الجهات المشاركة',ents.join('، '));
   waText=L.join('\n');
-  // المعاينة: تحويل *نص* إلى غامق للعرض فقط (النص المنسوخ يبقى بالنجوم)
-  $('wa-prev').innerHTML=esc(waText).replace(/\*([^*\n]+)\*/g,'<b>$1</b>');
+  // الصندوق نص حقيقي قابل للتحديد والتعديل مباشرة؛ النسخ يقرأ محتواه الحالي (يشمل أي تعديل يدوي)
+  $('wa-prev').value=waText;
   $('modal-wa-preview').classList.add('show');
 }
 
-/* ── النسخ ── */
+/* ── النسخ (يقرأ من صندوق المعاينة مباشرة كي يعكس أي تعديل يدوي للضابط) ── */
 async function waCopyText(){
-  try{ await navigator.clipboard.writeText(waText); }
+  const cur=$('wa-prev').value;
+  try{ await navigator.clipboard.writeText(cur); }
   catch(e){
-    const ta=document.createElement('textarea');
-    ta.value=waText;ta.style.position='fixed';ta.style.opacity='0';
-    document.body.appendChild(ta);ta.select();
+    const ta=$('wa-prev');
+    ta.select();
     try{document.execCommand('copy');}catch(_){}
-    document.body.removeChild(ta);
   }
 }
 async function waCopyOnly(){ await waCopyText(); showToast('تم نسخ النص','ok'); }

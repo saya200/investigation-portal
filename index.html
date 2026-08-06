@@ -2343,8 +2343,9 @@ function waGenerate(){
   add('الحي',waVal('wa-district'));
   add('اليوم',$('wa-day').value);
   // التاريخ: يوم/شهر/سنة كاملة — أرقام فقط
-  // LRM (U+200E) تحيط بأي سلسلة أرقام/فواصل مختلطة بسياق RTL كي يبقى ترتيب القراءة صحيحاً بعد النسخ للصق في أي مكان
-  const lrm=s=>`‎${s}‎`;
+  // الأرقام هندية عربية (Arabic Number) وتنعكس داخل سياق RTL حتى مع LRM البسيطة؛
+  // LRO (U+202D)...PDF (U+202C) يفرضان اتجاه LTR إجبارياً على كامل السلسلة المُضمَّنة فتبقى يوم/شهر/سنة كما هي بعد النسخ لأي مكان
+  const lrm=s=>`‭${s}‬`;
   const hy=1400+ (waWheels.hy||48);
   add('التاريخ',lrm(`${toAr(String(waWheels.hd||1))}/${toAr(String(waWheels.hm||1))}/${toAr(String(hy))}`)+'هـ');
   add('وقت البلاغ',lrm(`${waTwo(waWheels.reph||0)}:${waTwo(waWheels.repm||0)}`));

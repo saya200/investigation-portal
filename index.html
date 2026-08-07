@@ -2343,13 +2343,13 @@ function waGenerate(){
   add('الحي',waVal('wa-district'));
   add('اليوم',$('wa-day').value);
   // التاريخ: يوم/شهر/سنة كاملة — أرقام فقط
-  // الأرقام هندية عربية (Arabic Number) وتنعكس داخل سياق RTL حتى مع LRM البسيطة؛
-  // LRO (U+202D)...PDF (U+202C) يفرضان اتجاه LTR إجبارياً على كامل السلسلة المُضمَّنة فتبقى يوم/شهر/سنة كما هي بعد النسخ لأي مكان
-  const lrm=s=>`‭${s}‬`;
+  // عزل كل مجموعة رقمية بمفردها (LRI...PDI) يحمي ترتيب أرقامها الداخلي فقط دون فرض اتجاه على السلسلة كاملة؛
+  // الفواصل "/" و":" تبقى خارج العزل فيرتّبها سياق RTL المحيط بشكل طبيعي: يمين(يوم/ساعة) ← يسار(سنة/دقيقة)
+  const iso=s=>`⁦${s}⁩`;
   const hy=1400+ (waWheels.hy||48);
-  add('التاريخ',lrm(`${toAr(String(waWheels.hd||1))}/${toAr(String(waWheels.hm||1))}/${toAr(String(hy))}`)+'هـ');
-  add('وقت البلاغ',lrm(`${waTwo(waWheels.reph||0)}:${waTwo(waWheels.repm||0)}`));
-  add('وقت وصول الفرق',lrm(`${waTwo(waWheels.arrh||0)}:${waTwo(waWheels.arrm||0)}`));
+  add('التاريخ',`${iso(toAr(String(waWheels.hd||1)))}/${iso(toAr(String(waWheels.hm||1)))}/${iso(toAr(String(hy)))}هـ`);
+  add('وقت البلاغ',`${iso(waTwo(waWheels.reph||0))}:${iso(waTwo(waWheels.repm||0))}`);
+  add('وقت وصول الفرق',`${iso(waTwo(waWheels.arrh||0))}:${iso(waTwo(waWheels.arrm||0))}`);
   add('نوع الحادث',waIncidentType());
   // دمج وصف الحادث + وصف العملية في فقرة واحدة
   const merged=[waVal('wa-desc'),waVal('wa-ops')].filter(Boolean).join(' ').trim();

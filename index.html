@@ -31,6 +31,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   --primary:#0d4f3c; --primary-light:#1a6b52; --accent:#c9a227; --accent-dark:#a8861f;
@@ -277,22 +278,35 @@ input,textarea{font-family:inherit;}
   .wa-modal{max-width:100%;padding:20px 16px;}
 }
 /* ═══════════ انضمام لتذكرة (مستقل تماماً) ═══════════ */
-.jt-tabs{display:flex;gap:6px;margin-bottom:14px;}
-.jt-tab{flex:1;padding:10px;border:1.5px solid var(--border);background:var(--card);border-radius:10px;
-  font-weight:700;font-size:13px;cursor:pointer;transition:.15s;color:var(--muted);text-align:center;}
-.jt-tab.on{border-color:var(--primary);background:var(--primary);color:#fff;}
+.jt-toggle{display:inline-flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:700;color:var(--primary);padding:0;margin-bottom:4px;}
+.jt-toggle .ico{width:26px;height:26px;border-radius:8px;border:1.5px solid var(--primary);
+  display:inline-flex;align-items:center;justify-content:center;font-size:15px;line-height:1;flex-shrink:0;transition:.15s;}
+.jt-toggle.open .ico{transform:rotate(45deg);}
+.jt-methods{display:none;margin-top:14px;flex-direction:column;gap:14px;}
+.jt-methods.open{display:flex;}
+.jt-seg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px;}
+.jt-seg-btn{flex:1;min-height:42px;padding:8px 4px;border:none;border-radius:9px;background:transparent;
+  font-weight:700;font-size:12.5px;cursor:pointer;transition:.15s;color:var(--muted);text-align:center;font-family:inherit;}
+.jt-seg-btn.on{background:var(--primary);color:#fff;}
 .jt-pane{display:none;}
 .jt-pane.on{display:block;}
 .jt-lbl{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text);}
 .jt-hint{font-size:11px;font-weight:400;color:var(--muted);}
-.jt-in{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;
+.jt-row{display:flex;gap:8px;flex-wrap:wrap;}
+.jt-in{flex:1;min-width:150px;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;
   font-family:inherit;box-sizing:border-box;text-align:center;letter-spacing:1px;}
 .jt-in:focus{outline:none;border-color:var(--primary);}
 .jt-video-wrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:1/1;max-width:280px;margin:0 auto;}
 .jt-video-wrap video{width:100%;height:100%;object-fit:cover;}
 .jt-scan-frame{position:absolute;inset:15%;border:2.5px solid #8fe3b8;border-radius:12px;pointer-events:none;}
-.jt-role{margin-bottom:16px;}
-@media(max-width:680px){.jt-tab{font-size:12px;padding:9px 4px;}}
+.jt-success{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;
+  padding:26px 16px;border:1.5px solid var(--primary);border-radius:var(--radius);background:#eafaf0;}
+.jt-success-check{width:44px;height:44px;border-radius:50%;background:var(--ok);color:#fff;font-size:22px;
+  font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+.jt-success-lbl{font-size:12.5px;color:var(--muted);font-weight:600;}
+.jt-success-name{font-size:22px;font-weight:800;color:var(--primary);}
+@media(max-width:680px){.jt-seg-btn{font-size:11.5px;padding:8px 2px;}}
 
 /* ===== FORM RENDERER ===== */
 #form-screen{background:#54595d;}
@@ -482,7 +496,6 @@ tr:last-child td{border-bottom:none;}
       <h3>📋 الحوادث</h3>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost btn-sm" id="btn-admin" style="display:none" onclick="openAdmin()">لوحة الإدارة</button>
-        <button class="btn btn-accent" onclick="openJoinModal()">🔗 انضمام لتذكرة</button>
         <button class="btn btn-primary" onclick="openNewIncident()">+ حادثة جديدة</button>
       </div>
     </div>
@@ -521,6 +534,7 @@ tr:last-child td{border-bottom:none;}
       <div class="inc-actions">
         <button class="btn btn-accent btn-sm" id="btn-status" onclick="toggleStatus()">إنهاء التحقيق</button>
         <button class="btn btn-primary btn-sm" onclick="exportIncidentPDF()">📄 تصدير الحادثة كاملة</button>
+        <button class="btn btn-primary btn-sm" onclick="openShareModal()">🔗 مشاركة/دعوة زميل</button>
         <button class="btn btn-danger btn-sm" onclick="deleteIncident()">حذف الحادثة</button>
       </div>
     </div>
@@ -615,25 +629,74 @@ tr:last-child td{border-bottom:none;}
 <div class="modal-bg" id="modal-new">
   <div class="modal">
     <h3>حادثة جديدة</h3>
-    <div class="field"><label>تاريخ الحادث (هجري)</label>
-      <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:8px">
-        <input id="ni-d" type="number" min="1" max="30" placeholder="اليوم" inputmode="numeric">
-        <select id="ni-m"></select>
-        <input id="ni-y" type="number" min="1400" max="1500" placeholder="السنة" inputmode="numeric">
-      </div>
-      <div style="display:flex;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap">
-        <span>يوم/شهر/سنة هجري</span><span id="ni-greg-preview"></span>
-      </div>
-    </div>
-    <div class="field"><label>وقت الحادث (٢٤ ساعة)</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <input id="ni-hh" type="number" min="0" max="23" placeholder="الساعة (٠-٢٣)" inputmode="numeric">
-        <input id="ni-mm" type="number" min="0" max="59" placeholder="الدقيقة (٠-٥٩)" inputmode="numeric">
+
+    <!-- تظهر فقط بعد ربط ناجح (تلقائي بمطابقة الوقت أو يدوي بالخيار الثالث) -->
+    <div class="jt-success" id="ni-match" style="display:none">
+      <div class="jt-success-check">✓</div>
+      <div class="jt-success-lbl" id="ni-match-lbl">هذا الوقت مطابق لتذكرة قائمة — تم الربط تلقائياً</div>
+      <div class="jt-success-name" id="ni-match-name">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">
+        التذكرة <span id="ni-match-serial" style="font-weight:800;direction:ltr;display:inline-block"></span>
+        — <span id="ni-match-forms"></span>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-new')">إلغاء</button>
-      <button class="btn btn-primary" onclick="createIncident()">إنشاء</button>
+
+    <div id="ni-fields">
+      <div class="field"><label>تاريخ الحادث (هجري)</label>
+        <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:8px">
+          <input id="ni-d" type="number" min="1" max="30" placeholder="اليوم" inputmode="numeric">
+          <select id="ni-m"></select>
+          <input id="ni-y" type="number" min="1400" max="1500" placeholder="السنة" inputmode="numeric">
+        </div>
+        <div style="display:flex;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap">
+          <span>يوم/شهر/سنة هجري</span><span id="ni-greg-preview"></span>
+        </div>
+      </div>
+      <div class="field"><label>وقت الحادث (٢٤ ساعة)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input id="ni-hh" type="number" min="0" max="23" placeholder="الساعة (٠-٢٣)" inputmode="numeric">
+          <input id="ni-mm" type="number" min="0" max="59" placeholder="الدقيقة (٠-٥٩)" inputmode="numeric">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ni-checking" hidden>جارٍ التحقق من تطابق التذكرة...</div>
+      </div>
+    </div>
+
+    <!-- الخيار الثالث: انضمام يدوي لحادثة أخرى — منهار افتراضياً، مستقل عن حقول التاريخ أعلاه -->
+    <div id="ni-join-block">
+      <button type="button" class="jt-toggle" id="ni-join-toggle" onclick="niToggleJoin()">
+        <span class="ico">+</span> انضمام لحادثة أخرى
+      </button>
+      <div class="jt-methods" id="ni-join-methods">
+        <div class="jt-seg">
+          <button type="button" class="jt-seg-btn on" data-tab="num" onclick="niSwitchTab('num')">رقم التذكرة</button>
+          <button type="button" class="jt-seg-btn" data-tab="qr" onclick="niSwitchTab('qr')">مسح QR</button>
+          <button type="button" class="jt-seg-btn" data-tab="code" onclick="niSwitchTab('code')">رمز ٦ أرقام</button>
+        </div>
+        <div class="jt-pane on" id="ni-pane-num">
+          <div class="jt-lbl">رقم التذكرة <span class="jt-hint">(دقيقة+ساعة+يوم+شهر+سنة هجرية)</span></div>
+          <div class="jt-row">
+            <input class="jt-in" id="ni-num" placeholder="مثال: 14480115.0930" inputmode="numeric">
+            <button class="btn btn-primary" onclick="niSearchTicket()">انضمام</button>
+          </div>
+        </div>
+        <div class="jt-pane" id="ni-pane-qr">
+          <div class="jt-video-wrap"><video id="ni-video" playsinline muted></video><div class="jt-scan-frame"></div></div>
+          <canvas id="ni-canvas" style="display:none"></canvas>
+          <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">وجّه الكاميرا نحو رمز QR الخاص بالتذكرة</p>
+        </div>
+        <div class="jt-pane" id="ni-pane-code">
+          <div class="jt-lbl">الرمز المكوَّن من ٦ أرقام</div>
+          <div class="jt-row">
+            <input class="jt-in" id="ni-code" placeholder="000000" maxlength="6" inputmode="numeric">
+            <button class="btn btn-primary" onclick="niSearchCode()">انضمام</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" id="ni-actions">
+      <button class="btn btn-ghost" onclick="closeNewIncidentModal()">إلغاء</button>
+      <button class="btn btn-primary" id="ni-create-btn" onclick="createIncident()">إنشاء</button>
     </div>
   </div>
 </div>
@@ -644,6 +707,38 @@ tr:last-child td{border-bottom:none;}
     <div class="choose-grid" id="choose-forms"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-addform')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ مشاركة/دعوة زميل لنفس التذكرة (مستقل تماماً — بادئة sh) ═══════════ -->
+<div class="modal-bg" id="modal-share">
+  <div class="modal">
+    <h3>مشاركة/دعوة زميل</h3>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 16px">
+      شارك أحد الرمزين التاليين مع زميلك المستجيب لنفس الحادثة ليربط نفسه بهذه التذكرة بدل إنشاء حادثة مكرَّرة.
+    </p>
+
+    <div class="jt-lbl">توليد QR لهذه الحادثة</div>
+    <div id="sh-qr-empty">
+      <button class="btn btn-primary btn-sm" onclick="generateShareQR()">توليد QR لهذه الحادثة</button>
+    </div>
+    <div id="sh-qr-box" style="display:none;text-align:center;margin:10px 0 18px">
+      <div id="sh-qr-canvas" style="display:inline-block;padding:12px;background:#fff;border-radius:12px"></div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">اطلب من زميلك مسح هذا الرمز للانضمام لنفس التذكرة</p>
+    </div>
+
+    <div class="jt-lbl" style="margin-top:6px">توليد رمز ٦ أرقام لربط هذه الحادثة بمشارك آخر</div>
+    <div id="sh-code-empty">
+      <button class="btn btn-primary btn-sm" onclick="generateShareCode()">توليد رمز ٦ أرقام</button>
+    </div>
+    <div id="sh-code-box" style="display:none;text-align:center;margin:10px 0 6px">
+      <div id="sh-code-val" style="font-size:32px;font-weight:800;letter-spacing:8px;color:var(--primary);direction:ltr">—</div>
+      <p style="font-size:12px;color:var(--muted);margin-top:6px">اقرأ هذا الرمز لزميلك أو اكتبه له مباشرة</p>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-share')">إغلاق</button>
     </div>
   </div>
 </div>
@@ -763,47 +858,6 @@ tr:last-child td{border-bottom:none;}
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="waCancelFeed()">إلغاء — بدون فتح أي نموذج</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ انضمام لتذكرة موجودة (مستقل تماماً) ═══════════ -->
-<div class="modal-bg" id="modal-join">
-  <div class="modal">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-      <h3 style="margin-bottom:0">انضمام إلى تذكرة موجودة</h3>
-      <button class="wa-x" onclick="closeJoinModal()" title="إغلاق">✕</button>
-    </div>
-    <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:12px 0 16px">
-      لو حادثتك تطابق بلاغاً أدخله ضابط آخر بنفس وقت البلاغ (نفس الدقيقة)، اربط نفسك بنفس التذكرة بدل إنشاء حادثة مكرَّرة.
-    </p>
-    <div class="jt-role">
-      <div class="jt-lbl">مسمّاك بهذه التذكرة <span class="jt-hint">(مثال: ضابط تحقيق، عسكري تحقيق...)</span></div>
-      <input class="jt-in" id="jt-role" style="text-align:right;letter-spacing:normal" placeholder="اكتب مسمّاك...">
-    </div>
-    <div class="jt-tabs">
-      <button type="button" class="jt-tab on" data-tab="num" onclick="joinSwitchTab('num')">رقم التذكرة</button>
-      <button type="button" class="jt-tab" data-tab="qr" onclick="joinSwitchTab('qr')">مسح QR</button>
-      <button type="button" class="jt-tab" data-tab="code" onclick="joinSwitchTab('code')">رمز ٦ أرقام</button>
-    </div>
-    <div class="jt-pane on" id="jt-pane-num">
-      <div class="jt-lbl">رقم التذكرة <span class="jt-hint">(دقيقة+ساعة+يوم+شهر+سنة هجرية)</span></div>
-      <input class="jt-in" id="jt-num" placeholder="مثال: 14480115.0930" inputmode="numeric">
-      <div class="modal-actions" style="margin-top:14px">
-        <button class="btn btn-primary" onclick="joinByTicket()">🔗 ربط بهذا الرقم</button>
-      </div>
-    </div>
-    <div class="jt-pane" id="jt-pane-qr">
-      <div class="jt-video-wrap"><video id="jt-video" playsinline muted></video><div class="jt-scan-frame"></div></div>
-      <canvas id="jt-canvas" style="display:none"></canvas>
-      <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">وجّه الكاميرا نحو رمز QR الخاص بالتذكرة</p>
-    </div>
-    <div class="jt-pane" id="jt-pane-code">
-      <div class="jt-lbl">الرمز المكوَّن من ٦ أرقام</div>
-      <input class="jt-in" id="jt-code" placeholder="000000" maxlength="6" inputmode="numeric">
-      <div class="modal-actions" style="margin-top:14px">
-        <button class="btn btn-primary" onclick="joinByCode()">🔗 ربط بهذا الرمز</button>
-      </div>
     </div>
   </div>
 </div>
@@ -1436,8 +1490,14 @@ function openNewIncident(){
   $('ni-hh').value=String(now.getHours()).padStart(2,'0');
   $('ni-mm').value=String(now.getMinutes()).padStart(2,'0');
   updateGregPreview();
-  ['ni-d','ni-m','ni-y'].forEach(id=>$(id).oninput=$(id).onchange=updateGregPreview);
+  const onFieldChange=()=>{ updateGregPreview(); niScheduleAutoCheck(); };
+  ['ni-d','ni-m','ni-y','ni-hh','ni-mm'].forEach(id=>$(id).oninput=$(id).onchange=onFieldChange);
+  niResetJoinUI();
   $('modal-new').classList.add('show');
+}
+function closeNewIncidentModal(){
+  niStopScan();
+  closeModal('modal-new');
 }
 function updateGregPreview(){
   const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
@@ -1448,6 +1508,7 @@ function updateGregPreview(){
   }catch(e){$('ni-greg-preview').textContent='';}
 }
 async function createIncident(){
+  if(niMatched){return;} // حماية إضافية: لا إنشاء حادثة منفصلة أثناء وجود تطابق مكتشَف
   const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
   const hh=parseInt($('ni-hh').value),mm=parseInt($('ni-mm').value);
   if(!d||d<1||d>30){showToast('اليوم الهجري غير صحيح','error');return;}
@@ -1458,7 +1519,7 @@ async function createIncident(){
   const g=hijriToGregorian(y,m,d);
   const date=new Date(g.year,g.month-1,g.day,hh,mm,0,0);
   const serial=`${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}.${String(hh).padStart(2,'0')}${String(mm).padStart(2,'0')}`;
-  closeModal('modal-new');
+  closeNewIncidentModal();
   showLoading(true,'جارٍ إنشاء الحادثة...');
   try{
     const ref=db.collection('incidents').doc();
@@ -2519,80 +2580,123 @@ async function waFeedTo(type){
 }
 
 /* ============================================================
-   انضمام لتذكرة موجودة (مستقل تماماً — بادئة jt)
-   ملاحظة تقنية مهمة: البحث هنا يستهدف حوادث ضباط آخرين عمداً (خارج تقييد
-   officerMilitaryNum المستخدم بـ loadIncidents)؛ هذا يتطلب أن تسمح قواعد
-   أمان Firestore بقراءة هذا الاستعلام تحديداً (serialNum== / shortCode==)
-   وإلا سيفشل بخطأ صلاحيات يُعرَض للضابط كرسالة واضحة.
+   كشف/ربط التذاكر المكررة — مدمج بالكامل داخل نافذة "حادثة جديدة" (بادئة ni)
+   لا نافذة منبثقة منفصلة. مساران يؤديان لنفس دالة الربط niJoinTicket:
+   ١) تلقائي: كشف تطابق وقت البلاغ أثناء تعبئة حقلي التاريخ/الوقت (مُقارَنة عبر
+      مجموعة ticketIndex المصغّرة: serialNum/shortCode فقط — لا بيانات أخرى).
+   ٢) يدوي: "انضمام لحادثة أخرى" — رقم التذكرة / مسح QR / رمز ٦ أرقام.
+   كلا المسارين يربطان فوراً بمجرد التطابق (بلا خيار تجاهل)، ثم تتمدد نفس نافذة
+   "حادثة جديدة" لعرض معلومات صاحب التذكرة الأصلية قبل فتح الحادثة تلقائياً.
    ============================================================ */
-let jtStream=null, jtScanning=false;
-function openJoinModal(){
-  $('jt-role').value='';
-  $('jt-num').value='';
-  $('jt-code').value='';
-  joinSwitchTab('num');
-  $('modal-join').classList.add('show');
+let niStream=null, niScanning=false, niAutoTimer=null, niLastAutoSerial=null, niMatched=false;
+
+function niResetJoinUI(){
+  niMatched=false; niLastAutoSerial=null; clearTimeout(niAutoTimer);
+  $('ni-num').value=''; $('ni-code').value='';
+  $('ni-match').style.display='none';
+  $('ni-fields').style.display='';
+  $('ni-join-block').style.display='';
+  $('ni-actions').style.display='';
+  $('ni-checking').hidden=true;
+  $('ni-join-toggle').classList.remove('open');
+  $('ni-join-methods').classList.remove('open');
+  niSwitchTab('num');
 }
-function closeJoinModal(){
-  jtStopScan();
-  closeModal('modal-join');
+function niToggleJoin(){
+  const open=$('ni-join-methods').classList.toggle('open');
+  $('ni-join-toggle').classList.toggle('open',open);
+  if(open&&document.querySelector('#ni-join-methods .jt-seg-btn.on')?.dataset.tab==='qr') niStartScan();
+  else niStopScan();
 }
-function joinSwitchTab(tab){
-  if(tab!=='qr') jtStopScan();
-  document.querySelectorAll('.jt-tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
-  document.querySelectorAll('.jt-pane').forEach(p=>p.classList.remove('on'));
-  $('jt-pane-'+tab).classList.add('on');
-  if(tab==='qr') jtStartScan();
+function niSwitchTab(tab){
+  if(tab!=='qr') niStopScan();
+  document.querySelectorAll('#ni-join-methods .jt-seg-btn').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  document.querySelectorAll('#ni-join-methods .jt-pane').forEach(p=>p.classList.remove('on'));
+  $('ni-pane-'+tab).classList.add('on');
+  if(tab==='qr'&&$('ni-join-methods').classList.contains('open')) niStartScan();
+  else niStopScan();
 }
-async function jtStartScan(){
+async function niStartScan(){
   if(!window.jsQR){showToast('تعذّر تحميل مكتبة مسح QR — تحقق من الاتصال بالإنترنت','error');return;}
   try{
-    jtStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const v=$('jt-video'); v.srcObject=jtStream; await v.play();
-    jtScanning=true; requestAnimationFrame(jtScanLoop);
+    niStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v=$('ni-video'); v.srcObject=niStream; await v.play();
+    niScanning=true; requestAnimationFrame(niScanLoop);
   }catch(e){ console.error(e); showToast('تعذّر الوصول للكاميرا','error'); }
 }
-function jtStopScan(){
-  jtScanning=false;
-  if(jtStream){ jtStream.getTracks().forEach(t=>t.stop()); jtStream=null; }
+function niStopScan(){
+  niScanning=false;
+  if(niStream){ niStream.getTracks().forEach(t=>t.stop()); niStream=null; }
 }
-function jtScanLoop(){
-  if(!jtScanning)return;
-  const v=$('jt-video'), c=$('jt-canvas');
+function niScanLoop(){
+  if(!niScanning)return;
+  const v=$('ni-video'), c=$('ni-canvas');
   if(v.readyState===v.HAVE_ENOUGH_DATA){
     c.width=v.videoWidth; c.height=v.videoHeight;
     const ctx=c.getContext('2d');
     ctx.drawImage(v,0,0,c.width,c.height);
     const img=ctx.getImageData(0,0,c.width,c.height);
     const res=jsQR(img.data,img.width,img.height);
-    if(res&&res.data){ jtStopScan(); jtResolveTicket(res.data.trim()); return; }
+    if(res&&res.data){ niStopScan(); niManualSearch('serialNum',res.data.trim()); return; }
   }
-  requestAnimationFrame(jtScanLoop);
+  requestAnimationFrame(niScanLoop);
 }
-function joinByTicket(){
-  const v=($('jt-num').value||'').trim();
+function niSearchTicket(){
+  const v=($('ni-num').value||'').trim();
   if(!v){showToast('أدخل رقم التذكرة','error');return;}
-  jtFindAndJoin('serialNum',v);
+  niManualSearch('serialNum',v);
 }
-function joinByCode(){
-  const v=($('jt-code').value||'').trim();
+function niSearchCode(){
+  const v=($('ni-code').value||'').trim();
   if(!/^\d{6}$/.test(v)){showToast('الرمز يجب أن يكون ٦ أرقام بالضبط','error');return;}
-  jtFindAndJoin('shortCode',v);
+  niManualSearch('shortCode',v);
 }
-/* مسار مسح QR يستدعي نفس المسار (رقم التذكرة المُفكوك من الرمز) */
-function jtResolveTicket(ticket){ jtFindAndJoin('serialNum',ticket); }
-/* البحث يتم فقط عبر مجموعة ticketIndex المصغّرة (serialNum/shortCode فقط، بلا اسم ضابط
-   أو أي بيانات أخرى) — لا استعلام مباشر من العميل على مجموعة incidents لضباط آخرين إطلاقاً.
-   بعد إيجاد معرّف الحادثة، الربط عبر تحديث مضبوط النطاق (انظر قاعدة الأمان: يسمح فقط
-   بإضافة الضابط نفسه لحقلي participants/participantIds دون أي حقل آخر). */
-async function jtFindAndJoin(field,value){
-  const role=($('jt-role').value||'').trim();
-  if(!role){showToast('اكتب مسمّاك أولاً','error');return;}
+async function niManualSearch(field,value){
   showLoading(true,'جارٍ البحث عن التذكرة...');
   try{
     const snap=await db.collection('ticketIndex').where(field,'==',value).limit(1).get();
-    if(snap.empty){showLoading(false);showToast('لا توجد تذكرة مطابقة','error');return;}
-    const incId=snap.docs[0].id;
+    showLoading(false);
+    if(snap.empty){showToast('لا توجد تذكرة مطابقة','error');return;}
+    await niJoinTicket(snap.docs[0].id,false);
+  }catch(e){
+    showLoading(false); console.error(e);
+    showToast('تعذّر البحث — تأكد من نشر قواعد أمان Firestore المحدَّثة','error');
+  }
+}
+/* الكشف التلقائي: يُعاد الفحص فقط عند اكتمال حقلي التاريخ/الوقت وتغيّر الرقم الناتج */
+function niComputeSerial(){
+  const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
+  const hh=parseInt($('ni-hh').value),mm=parseInt($('ni-mm').value);
+  if(!d||d<1||d>30||!m||m<1||m>12||!y||y<1400||y>1500||isNaN(hh)||hh<0||hh>23||isNaN(mm)||mm<0||mm>59) return null;
+  return `${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}.${String(hh).padStart(2,'0')}${String(mm).padStart(2,'0')}`;
+}
+function niScheduleAutoCheck(){
+  if(niMatched)return;
+  clearTimeout(niAutoTimer);
+  niAutoTimer=setTimeout(niAutoCheck,600);
+}
+async function niAutoCheck(){
+  if(niMatched)return;
+  const serial=niComputeSerial();
+  if(!serial||serial===niLastAutoSerial){ $('ni-checking').hidden=true; return; }
+  niLastAutoSerial=serial;
+  $('ni-checking').hidden=false;
+  try{
+    const snap=await db.collection('ticketIndex').where('serialNum','==',serial).limit(1).get();
+    $('ni-checking').hidden=true;
+    if(snap.empty||niMatched)return;
+    if(serial!==niComputeSerial())return; // تغيّر الإدخال أثناء انتظار الاستعلام
+    await niJoinTicket(snap.docs[0].id,true);
+  }catch(e){ $('ni-checking').hidden=true; console.error(e); }
+}
+/* الربط فوري وإجباري بمجرد التطابق (تلقائياً أو يدوياً) — لا خيار تجاهل.
+   تحديث مضبوط النطاق فقط (participants/participantIds) طبقاً لقاعدة الأمان. */
+async function niJoinTicket(incId,isAuto){
+  if(niMatched)return;
+  niMatched=true; niStopScan(); clearTimeout(niAutoTimer);
+  const role=currentUserData.rank||''; // يُسحب صمتاً من بروفايل الضابط، بلا أي حقل إدخال يدوي
+  showLoading(true,'جارٍ الربط...');
+  try{
     const entry={militaryNum:currentUserData.militaryNum,name:currentUserData.name,rank:currentUserData.rank,role};
     await db.collection('incidents').doc(incId).update({
       participants:firebase.firestore.FieldValue.arrayUnion(entry),
@@ -2600,20 +2704,77 @@ async function jtFindAndJoin(field,value){
     });
     const doc=await db.collection('incidents').doc(incId).get();
     showLoading(false);
-    if(!doc.exists){showToast('تعذّر فتح التذكرة بعد الربط','error');return;}
+    if(!doc.exists){niMatched=false;showToast('تعذّر فتح التذكرة بعد الربط','error');return;}
     const full={_id:doc.id,...doc.data()};
     const idx=incidents.findIndex(x=>x._id===full._id);
     if(idx>=0) incidents[idx]=full; else incidents.unshift(full);
-    closeJoinModal();
-    if(full.officerMilitaryNum===currentUserData.militaryNum){
-      showToast('هذه تذكرتك أنت بالفعل','ok');
-    }else{
-      showToast(`تم الربط بتذكرة الضابط: ${full.officerName||'-'}`,'ok');
-    }
-    openIncident(full._id);
+    // نفس نافذة "حادثة جديدة" تتمدد لعرض معلومات صاحب التذكرة الأصلية (بلا نافذة منبثقة إضافية)
+    $('ni-fields').style.display='none';
+    $('ni-join-block').style.display='none';
+    $('ni-actions').style.display='none';
+    const nForms=(full.formsList||[]).length;
+    const isSelf=full.officerMilitaryNum===currentUserData.militaryNum;
+    $('ni-match-lbl').textContent=isSelf?'هذه تذكرتك أنت بالفعل'
+      :(isAuto?'هذا الوقت مطابق لتذكرة قائمة — تم الربط تلقائياً':'تم العثور على تذكرة مطابقة — تم الربط');
+    $('ni-match-name').textContent=full.officerName||'-';
+    $('ni-match-serial').textContent=full.serialNum||'';
+    $('ni-match-forms').textContent=`${toAr(nForms)} ${nForms===1?'نموذج مضاف':'نماذج مضافة'}`;
+    $('ni-match').style.display='flex';
+    setTimeout(()=>{ closeNewIncidentModal(); openIncident(full._id); },1100);
+  }catch(e){
+    niMatched=false; showLoading(false); console.error(e);
+    showToast('تعذّر إتمام الربط — تأكد من نشر قواعد أمان Firestore المحدَّثة','error');
+  }
+}
+
+/* ============================================================
+   مشاركة/دعوة زميل — توليد QR ورمز ٦ أرقام لهذه الحادثة (بادئة sh)
+   الرمزان يطابقان تماماً الحقلين اللذين تبحث عنهما niManualSearch عبر
+   ticketIndex (serialNum/shortCode) — لا فرق تنسيق بين الطرفين.
+   ============================================================ */
+function openShareModal(){
+  $('sh-qr-box').style.display='none';
+  $('sh-qr-empty').style.display='';
+  $('sh-qr-canvas').innerHTML='';
+  const hasCode=!!currentIncident.shortCode;
+  $('sh-code-box').style.display=hasCode?'':'none';
+  $('sh-code-empty').style.display=hasCode?'none':'';
+  if(hasCode) $('sh-code-val').textContent=currentIncident.shortCode;
+  $('modal-share').classList.add('show');
+}
+function generateShareQR(){
+  if(!window.QRCode){showToast('تعذّر تحميل مكتبة QR — تحقق من الاتصال بالإنترنت','error');return;}
+  $('sh-qr-canvas').innerHTML='';
+  new QRCode($('sh-qr-canvas'),{text:currentIncident.serialNum,width:200,height:200});
+  $('sh-qr-empty').style.display='none';
+  $('sh-qr-box').style.display='';
+}
+/* يضمن وجود shortCode (حوادث قديمة قد تسبق هذه الميزة) ويكتبه بمستند الحادثة
+   + سجل ticketIndex المصغّر إن لم يكن موجوداً أصلاً — بنفس صيغة الإنشاء العادية */
+async function generateShareCode(){
+  if(currentIncident.shortCode){
+    $('sh-code-val').textContent=currentIncident.shortCode;
+    $('sh-code-empty').style.display='none';
+    $('sh-code-box').style.display='';
+    return;
+  }
+  showLoading(true,'جارٍ توليد الرمز...');
+  try{
+    const code=String(Math.floor(100000+Math.random()*900000));
+    await db.collection('incidents').doc(currentIncident._id).update({shortCode:code});
+    try{
+      await db.collection('ticketIndex').doc(currentIncident._id).set({serialNum:currentIncident.serialNum,shortCode:code});
+    }catch(_){ /* موجود مسبقاً غالباً — لا يمنع نجاح العملية الأساسية */ }
+    currentIncident.shortCode=code;
+    const idx=incidents.findIndex(x=>x._id===currentIncident._id);
+    if(idx>=0) incidents[idx].shortCode=code;
+    showLoading(false);
+    $('sh-code-val').textContent=code;
+    $('sh-code-empty').style.display='none';
+    $('sh-code-box').style.display='';
   }catch(e){
     showLoading(false); console.error(e);
-    showToast('تعذّر إتمام الربط — تأكد من نشر قواعد أمان Firestore المحدَّثة','error');
+    showToast('تعذّر توليد الرمز','error');
   }
 }
 

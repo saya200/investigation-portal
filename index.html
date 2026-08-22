@@ -535,7 +535,7 @@ tr:last-child td{border-bottom:none;}
         <button class="btn btn-accent btn-sm" id="btn-status" onclick="toggleStatus()">إنهاء التحقيق</button>
         <button class="btn btn-primary btn-sm" onclick="exportIncidentPDF()">📄 تصدير الحادثة كاملة</button>
         <button class="btn btn-primary btn-sm" onclick="openShareModal()">🔗 مشاركة/دعوة زميل</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteIncident()">حذف الحادثة</button>
+        <button class="btn btn-danger btn-sm" id="btn-delete-inc" onclick="deleteIncident()">حذف الحادثة</button>
       </div>
     </div>
     <div class="section-head">
@@ -1573,6 +1573,8 @@ function renderIncidentScreen(){
   b.className='badge '+(done?'done':'draft');
   b.textContent=done?'🟢 مكتملة':'🟡 تحت التحرير';
   $('btn-status').textContent=done?'إرجاع للتحرير':'إنهاء التحقيق';
+  // حذف الحادثة كاملة متاح فقط لمالكها الأصلي (أو الأدمن) — يطابق قاعدة الأمان الآن
+  $('btn-delete-inc').style.display=(currentUserData.isAdmin||i.officerMilitaryNum===currentUserData.militaryNum)?'':'none';
   renderFormsList();
 }
 function renderFormsList(){
@@ -1617,7 +1619,10 @@ async function deleteIncident(){
     incidents=incidents.filter(i=>i._id!==currentIncident._id);
     showLoading(false);showToast('نُقلت إلى المحذوفات','ok');
     backToDash();
-  }catch(e){showLoading(false);showToast('تعذّر الحذف','error');}
+  }catch(e){
+    showLoading(false);
+    showToast(e&&e.code==='permission-denied'?'حذف الحادثة متاح فقط لمالكها الأصلي':'تعذّر الحذف','error');
+  }
 }
 
 /* ============================================================
@@ -1649,15 +1654,21 @@ async function removeForm(fid){
   const list=(currentIncident.formsList||[]).filter(f=>f.id!==fid);
   showLoading(true,'جارٍ الحذف...');
   try{
+    // حذف مستند النموذج أولاً — قاعدة الأمان تسمح فقط لمنشئ النموذج نفسه (أو الأدمن) بهذا.
+    // لو رُفض (permission-denied)، نتوقف هنا ولا نلمس formsList حتى لا يختفي النموذج من
+    // القائمة المشتركة بينما لا يزال موجوداً فعلياً بقاعدة البيانات (بيانات يتيمة مخفية).
+    await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).delete();
     await db.collection('incidents').doc(currentIncident._id).update({
       formsList:list,
       ['searchByForm.'+fid]:firebase.firestore.FieldValue.delete()
     });
-    try{await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).delete();}catch(e){}
     currentIncident.formsList=list;
     if(currentIncident.searchByForm)delete currentIncident.searchByForm[fid];
     showLoading(false);renderFormsList();showToast('تم الحذف','ok');
-  }catch(e){showLoading(false);showToast('تعذّر الحذف','error');}
+  }catch(e){
+    showLoading(false);
+    showToast(e&&e.code==='permission-denied'?'لا يمكنك حذف نموذج أنشأه شخص آخر':'تعذّر الحذف','error');
+  }
 }
 
 /* ============================================================
@@ -1665,14 +1676,14 @@ async function removeForm(fid){
    ============================================================ */
 async function openForm(fid,type){
   try{
-    currentForm={id:fid,type};
+    currentForm={id:fid,type,createdBy:null};
     formValues={};sigData={};sigPaths={};
     const cfg=FORM_CONFIGS[type];
     $('form-ttl').innerHTML=cfg.label+' <span>| '+currentIncident.serialNum+'</span>';
     showLoading(true,'جارٍ تحميل النموذج...');
     try{
       const doc=await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).get();
-      if(doc.exists){const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};}
+      if(doc.exists){const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};currentForm.createdBy=d.createdBy||null;}
     }catch(e){console.error(e);}
     autoPopulate(type);
     const img=$('form-img');
@@ -1913,8 +1924,15 @@ async function saveForm(silent){
   if(!currentForm)return;
   if(!silent)showLoading(true,'جارٍ الحفظ...');
   try{
+    // createdBy تُكتب فقط أول مرة (منشئ النموذج الفعلي) ولا تُمس بعدها أبداً — merge:true
+    // يحمي هذا الحقل من الانمحاء عند كل حفظ لاحق، ويحفظ صلاحية الحذف الحصرية لصاحبه
+    const payload={type:currentForm.type,data:formValues,sigData,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    if(!currentForm.createdBy){
+      payload.createdBy=currentUserData.militaryNum;
+      currentForm.createdBy=currentUserData.militaryNum;
+    }
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id)
-      .set({type:currentForm.type,data:formValues,sigData,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      .set(payload,{merge:true});
     // فهرس البحث: كل القيم النصية لهذا النموذج
     const blob=Object.values(formValues).filter(v=>typeof v==='string'&&v.trim()).join(' · ').trim();
     const lbl=FORM_CONFIGS[currentForm.type]?FORM_CONFIGS[currentForm.type].label:'';
@@ -2566,7 +2584,7 @@ async function waFeedTo(type){
     const inst={id:uid(),type};
     const list=[...(currentIncident.formsList||[]),inst];
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(inst.id)
-      .set({type,data,sigData:{},updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      .set({type,data,sigData:{},createdBy:currentUserData.militaryNum,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
     await db.collection('incidents').doc(currentIncident._id).update({formsList:list});
     currentIncident.formsList=list;
     closeModal('modal-wa');

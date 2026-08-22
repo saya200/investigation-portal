@@ -643,19 +643,25 @@ tr:last-child td{border-bottom:none;}
 
     <div id="ni-fields">
       <div class="field"><label>تاريخ الحادث (هجري)</label>
-        <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:8px">
-          <input id="ni-d" type="number" min="1" max="30" placeholder="اليوم" inputmode="numeric">
-          <select id="ni-m"></select>
-          <input id="ni-y" type="number" min="1400" max="1500" placeholder="السنة" inputmode="numeric">
+        <div class="wa-wheels">
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-nid" data-wheel="nid"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">/</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-nim" data-wheel="nim"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">/</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-niy" data-wheel="niy"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <div class="wa-wmark"></div>
         </div>
         <div style="display:flex;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap">
           <span>يوم/شهر/سنة هجري</span><span id="ni-greg-preview"></span>
         </div>
       </div>
       <div class="field"><label>وقت الحادث (٢٤ ساعة)</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <input id="ni-hh" type="number" min="0" max="23" placeholder="الساعة (٠-٢٣)" inputmode="numeric">
-          <input id="ni-mm" type="number" min="0" max="59" placeholder="الدقيقة (٠-٥٩)" inputmode="numeric">
+        <!-- ترتيب RTL: العنصر الأول يظهر يميناً ⇒ الدقيقة أولاً (يمين) والساعة ثانياً (يسار) -->
+        <div class="wa-wheels">
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-nimin" data-wheel="nimin"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <span class="wa-wsep">:</span>
+          <div class="wa-wcol"><div class="wa-wscroll" id="wa-w-nihr" data-wheel="nihr"><div class="wa-wpad"></div><div class="wa-wcells"></div><div class="wa-wpad"></div></div></div>
+          <div class="wa-wmark"></div>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ni-checking" hidden>جارٍ التحقق من تطابق التذكرة...</div>
       </div>
@@ -1263,7 +1269,6 @@ function updateViewToggleUI(){
 function toAr(s){return String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);}
 function $(id){return document.getElementById(id);}
 
-const HIJRI_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
 function hijriToGregorian(hy,hm,hd){
   let jd=Math.floor((11*hy+3)/30)+354*hy+30*hm-Math.floor((hm-1)/2)+hd+1948440-385;
   let l=jd+68569;
@@ -1478,29 +1483,31 @@ function backToDash(){loadIncidents();showScreen('dash-screen');}
    NEW INCIDENT
    ============================================================ */
 function openNewIncident(){
-  const sel=$('ni-m');
-  if(!sel.options.length){
-    sel.innerHTML=HIJRI_MONTHS.map((m,i)=>`<option value="${i+1}">${i+1} — ${m}</option>`).join('');
-  }
   const now=new Date();
   const h=gregorianToHijri(now.getFullYear(),now.getMonth()+1,now.getDate());
-  $('ni-d').value=h.day;
-  sel.value=h.month;
-  $('ni-y').value=h.year;
-  $('ni-hh').value=String(now.getHours()).padStart(2,'0');
-  $('ni-mm').value=String(now.getMinutes()).padStart(2,'0');
-  updateGregPreview();
-  const onFieldChange=()=>{ updateGregPreview(); niScheduleAutoCheck(); };
-  ['ni-d','ni-m','ni-y','ni-hh','ni-mm'].forEach(id=>$(id).oninput=$(id).onchange=onFieldChange);
   niResetJoinUI();
   $('modal-new').classList.add('show');
+  // العجلات تُبنى بعد الظهور لضمان صحة القياسات (نفس أسلوب openWaReport)
+  setTimeout(()=>{
+    buildWheel('nid',Math.min(30,h.day));
+    buildWheel('nim',Math.min(12,h.month));
+    buildWheel('niy',Math.min(1500,Math.max(1400,h.year)));
+    buildWheel('nihr',now.getHours());
+    buildWheel('nimin',now.getMinutes());
+    updateGregPreview();
+  },60);
 }
 function closeNewIncidentModal(){
   niStopScan();
   closeModal('modal-new');
 }
+/* يُستدعى من markWheel كلما تغيّرت قيمة إحدى عجلات نافذة "حادثة جديدة" */
+function niOnWheelChange(){
+  updateGregPreview();
+  niScheduleAutoCheck();
+}
 function updateGregPreview(){
-  const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
+  const d=waWheels.nid,m=waWheels.nim,y=waWheels.niy;
   if(!d||!m||!y){$('ni-greg-preview').textContent='';return;}
   try{
     const g=hijriToGregorian(y,m,d);
@@ -1509,8 +1516,7 @@ function updateGregPreview(){
 }
 async function createIncident(){
   if(niMatched){return;} // حماية إضافية: لا إنشاء حادثة منفصلة أثناء وجود تطابق مكتشَف
-  const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
-  const hh=parseInt($('ni-hh').value),mm=parseInt($('ni-mm').value);
+  const d=waWheels.nid,m=waWheels.nim,y=waWheels.niy,hh=waWheels.nihr,mm=waWheels.nimin;
   if(!d||d<1||d>30){showToast('اليوم الهجري غير صحيح','error');return;}
   if(!m||m<1||m>12){showToast('الشهر الهجري غير صحيح','error');return;}
   if(!y||y<1400||y>1500){showToast('السنة الهجرية غير صحيحة','error');return;}
@@ -2367,49 +2373,81 @@ const WA_ENTITIES=[
 ];
 let waWheels={}, waEntSel={}, waText='';
 
-/* ── عجلات السحب ── */
+/* ── عجلات السحب (مكوّن مشترك — تقرير الواتساب ونافذة "حادثة جديدة" معاً) ──
+   circular:true يجعل العجلة بلا حد نهائي (تدوير حقيقي، لا مجرد قفز مرئي):
+   تُعرض ٣ نسخ متتالية من نفس القائمة، والتمرير يُعاد توسيطه بصمت (بلا حركة
+   مرئية) عند دخول النسخة الأولى/الثالثة، فيبقى التمرير ممكناً بلا نهاية
+   بالاتجاهين. circular:false (يوم/شهر/سنة) تسلك كما كانت تماماً: نسخة واحدة
+   محدودة النطاق. */
 const WA_WCFG={
-  hd:{from:1,to:30,pad:2}, hm:{from:1,to:12,pad:2}, hy:{from:40,to:60,pad:2},
-  reph:{from:0,to:23,pad:2}, repm:{from:0,to:59,pad:2},
-  arrh:{from:0,to:23,pad:2}, arrm:{from:0,to:59,pad:2}
+  hd:{from:1,to:30,pad:2,circular:false}, hm:{from:1,to:12,pad:2,circular:false}, hy:{from:40,to:60,pad:2,circular:false},
+  reph:{from:0,to:23,pad:2,circular:true}, repm:{from:0,to:59,pad:2,circular:true},
+  arrh:{from:0,to:23,pad:2,circular:true}, arrm:{from:0,to:59,pad:2,circular:true},
+  nid:{from:1,to:30,pad:2,circular:false}, nim:{from:1,to:12,pad:2,circular:false}, niy:{from:1400,to:1500,pad:4,circular:false},
+  nihr:{from:0,to:23,pad:2,circular:true}, nimin:{from:0,to:59,pad:2,circular:true}
 };
-function waBuildWheel(name,initVal){
+function wheelCount(cfg){ return cfg.to-cfg.from+1; }
+function wheelValueFromIndex(cfg,idx){
+  const n=wheelCount(cfg);
+  if(!cfg.circular) return Math.min(cfg.to,Math.max(cfg.from,cfg.from+idx));
+  const m=((idx%n)+n)%n;
+  return cfg.from+m;
+}
+function buildWheel(name,initVal){
   const cfg=WA_WCFG[name], sc=document.querySelector(`[data-wheel="${name}"]`);
   if(!sc)return;
   const box=sc.querySelector('.wa-wcells');
+  const n=wheelCount(cfg), copies=cfg.circular?3:1;
   let html='';
-  for(let v=cfg.from;v<=cfg.to;v++){
-    html+=`<div class="wa-wcell" data-v="${v}" onclick="waWheelTap('${name}',${v})">${toAr(String(v).padStart(cfg.pad,'0'))}</div>`;
+  for(let b=0;b<copies;b++){
+    for(let v=cfg.from;v<=cfg.to;v++){
+      const idx=b*n+(v-cfg.from);
+      html+=`<div class="wa-wcell" data-v="${v}" onclick="wheelTap('${name}',${idx})">${toAr(String(v).padStart(cfg.pad,'0'))}</div>`;
+    }
   }
   box.innerHTML=html;
   waWheels[name]=initVal;
   sc.onscroll=()=>{
     clearTimeout(sc._t);
     sc._t=setTimeout(()=>{
-      const idx=Math.round(sc.scrollTop/44);
-      const v=Math.min(cfg.to,Math.max(cfg.from,cfg.from+idx));
-      waWheels[name]=v; waMarkWheel(name);
+      const maxIdx=copies*n-1;
+      let idx=Math.min(maxIdx,Math.max(0,Math.round(sc.scrollTop/44)));
+      const v=wheelValueFromIndex(cfg,idx);
+      waWheels[name]=v; markWheel(name);
+      if(cfg.circular){
+        // إعادة توسيط صامتة (بلا behavior:'smooth') عند الاقتراب من طرفي النسخ الثلاث
+        if(idx<n) sc.scrollTo({top:(idx+n)*44,behavior:'auto'});
+        else if(idx>=2*n) sc.scrollTo({top:(idx-n)*44,behavior:'auto'});
+      }
     },90);
   };
-  waScrollWheel(name,initVal,false);
+  scrollWheel(name,initVal,false);
 }
-function waScrollWheel(name,val,smooth){
+function scrollWheel(name,val,smooth){
   const cfg=WA_WCFG[name], sc=document.querySelector(`[data-wheel="${name}"]`);
   if(!sc)return;
+  const n=wheelCount(cfg);
   waWheels[name]=val;
-  sc.scrollTo({top:(val-cfg.from)*44,behavior:smooth?'smooth':'auto'});
-  waMarkWheel(name);
+  const base=cfg.circular?n:0; // العجلات الدائرية تُستهدَف بالنسخة الوسطى لإتاحة مساحة تمرير بالاتجاهين
+  sc.scrollTo({top:(base+(val-cfg.from))*44,behavior:smooth?'smooth':'auto'});
+  markWheel(name);
 }
-function waWheelTap(name,v){waScrollWheel(name,v,true);}
-function waMarkWheel(name){
+function wheelTap(name,idx){
+  const cfg=WA_WCFG[name], sc=document.querySelector(`[data-wheel="${name}"]`);
+  waWheels[name]=wheelValueFromIndex(cfg,idx);
+  if(sc) sc.scrollTo({top:idx*44,behavior:'smooth'});
+  markWheel(name);
+}
+function markWheel(name){
   const sc=document.querySelector(`[data-wheel="${name}"]`);
   if(!sc)return;
   sc.querySelectorAll('.wa-wcell').forEach(c=>c.classList.toggle('on',+c.dataset.v===waWheels[name]));
+  if(name==='nid'||name==='nim'||name==='niy'||name==='nihr'||name==='nimin') niOnWheelChange();
 }
 function waSetNow(which){
   const n=new Date();
-  if(which==='rep'){waScrollWheel('reph',n.getHours(),true);waScrollWheel('repm',n.getMinutes(),true);}
-  else{waScrollWheel('arrh',n.getHours(),true);waScrollWheel('arrm',n.getMinutes(),true);}
+  if(which==='rep'){scrollWheel('reph',n.getHours(),true);scrollWheel('repm',n.getMinutes(),true);}
+  else{scrollWheel('arrh',n.getHours(),true);scrollWheel('arrm',n.getMinutes(),true);}
 }
 
 /* ── بحث ذاتي عام (الحي + نوع الحادث) — نص حر دائماً، والاقتراحات مساعدة فقط ── */
@@ -2477,11 +2515,11 @@ function openWaReport(){
   $('modal-wa').classList.add('show');
   // العجلات تُبنى بعد الظهور لضمان صحة القياسات
   setTimeout(()=>{
-    waBuildWheel('hd',Math.min(30,h.day));
-    waBuildWheel('hm',Math.min(12,h.month));
-    waBuildWheel('hy',+String(h.year).slice(-2)||48);
-    waBuildWheel('reph',n.getHours()); waBuildWheel('repm',n.getMinutes());
-    waBuildWheel('arrh',n.getHours()); waBuildWheel('arrm',n.getMinutes());
+    buildWheel('hd',Math.min(30,h.day));
+    buildWheel('hm',Math.min(12,h.month));
+    buildWheel('hy',+String(h.year).slice(-2)||48);
+    buildWheel('reph',n.getHours()); buildWheel('repm',n.getMinutes());
+    buildWheel('arrh',n.getHours()); buildWheel('arrm',n.getMinutes());
   },60);
 }
 
@@ -2683,8 +2721,7 @@ async function niManualSearch(field,value){
 }
 /* الكشف التلقائي: يُعاد الفحص فقط عند اكتمال حقلي التاريخ/الوقت وتغيّر الرقم الناتج */
 function niComputeSerial(){
-  const d=parseInt($('ni-d').value),m=parseInt($('ni-m').value),y=parseInt($('ni-y').value);
-  const hh=parseInt($('ni-hh').value),mm=parseInt($('ni-mm').value);
+  const d=waWheels.nid,m=waWheels.nim,y=waWheels.niy,hh=waWheels.nihr,mm=waWheels.nimin;
   if(!d||d<1||d>30||!m||m<1||m>12||!y||y<1400||y>1500||isNaN(hh)||hh<0||hh>23||isNaN(mm)||mm<0||mm>59) return null;
   return `${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}.${String(hh).padStart(2,'0')}${String(mm).padStart(2,'0')}`;
 }

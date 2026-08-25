@@ -322,6 +322,7 @@ input,textarea{font-family:inherit;}
 #form-container{position:relative;background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.4);flex-shrink:0;}
 #form-img{display:block;width:100%;height:auto;pointer-events:none;user-select:none;}
 #fields-layer{position:absolute;inset:0;}
+#fields-layer.locked{pointer-events:none;filter:grayscale(.15);opacity:.85;}
 .field-overlay{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
   color:#0a1f17;font-weight:700;padding:0 3px;outline:none;border-radius:2px;
   font-family:'Noto Naskh Arabic',sans-serif;}
@@ -363,6 +364,13 @@ input,textarea{font-family:inherit;}
   z-index:500;transition:.3s;max-width:90vw;text-align:center;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 #toast.ok{background:var(--ok);} #toast.error{background:var(--danger);}
+/* إشعار "تراجع" — منفصل عن #toast العام لأنه يحتاج مدة ١٠ ثوانٍ وزراً مضمَّناً */
+#undo-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);
+  background:var(--text);color:#fff;padding:11px 12px 11px 20px;border-radius:11px;font-size:14px;font-weight:700;
+  z-index:500;transition:.3s;max-width:90vw;display:flex;align-items:center;gap:14px;}
+#undo-toast.show{transform:translateX(-50%) translateY(0);}
+#undo-toast .u-undo{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;
+  font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;flex-shrink:0;}
 #loading{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:600;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
 #loading.show{display:flex;}
 .spinner{width:48px;height:48px;border:5px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}
@@ -560,10 +568,13 @@ tr:last-child td{border-bottom:none;}
       <button onclick="zoomFit()" title="ملائمة">⛶</button>
     </div>
     <div class="tb-actions">
-      <button class="btn btn-accent btn-sm" onclick="saveForm()">💾 حفظ</button>
+      <button class="btn btn-accent btn-sm" id="btn-save-form" onclick="saveForm()">💾 حفظ</button>
       <button class="btn btn-primary btn-sm" onclick="exportFormPDF()">📄 PDF</button>
       <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="closeForm()">رجوع</button>
     </div>
+  </div>
+  <div class="alert error" id="form-lock-banner" style="display:none;border-radius:0">
+    🔒 هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه — للتعديل، يلزم طلب إعادة فتح من الأدمن.
   </div>
   <div class="form-scroll" id="form-scroll">
     <div id="form-container">
@@ -616,6 +627,12 @@ tr:last-child td{border-bottom:none;}
       <button class="vt-btn" data-mode="list" onclick="setArchView('list')" title="عرض سطري">☰</button>
     </div>
     <div id="admin-incs" style="margin-bottom:28px"></div>
+
+    <div class="section-head"><h3>🗑️ صندوق مراجعة الحذف <span id="a-pending-count" style="opacity:.7"></span></h3></div>
+    <div class="tbl-wrap" style="margin-bottom:28px">
+      <table><thead><tr><th>النموذج</th><th>الحادثة</th><th>طلب الحذف بواسطة</th><th>تاريخ الطلب</th><th>إجراء</th></tr></thead>
+      <tbody id="admin-pending"></tbody></table>
+    </div>
 
     <div class="section-head"><h3>👥 المستخدمون</h3></div>
     <div class="tbl-wrap">
@@ -869,6 +886,10 @@ tr:last-child td{border-bottom:none;}
 </div>
 
 <div id="toast"></div>
+<div id="undo-toast">
+  <span id="undo-toast-text">تم حذف التقرير</span>
+  <button class="u-undo" onclick="undoFormDelete()">تراجع</button>
+</div>
 <div id="loading"><div class="spinner"></div><p id="loading-txt">جارٍ التحميل...</p></div>
 
 <script>
@@ -1243,6 +1264,8 @@ let db, auth;
 let currentUser=null, currentUserData=null;
 let incidents=[], allUsers=[];
 let currentIncident=null;
+/* حذف ناعم للنماذج — نافذة تراجع ١٠ ثوانٍ (بادئة form) */
+let formHiddenIds=new Set(), formUndoTimer=null, formUndoFid=null, formUndoIncId=null;
 let currentForm=null;          // {id, type}
 let formValues={}, sigData={}, sigPaths={};
 let zoom=1.0;
@@ -1557,9 +1580,17 @@ async function createIncident(){
 /* ============================================================
    INCIDENT SCREEN
    ============================================================ */
-function openIncident(id){
+async function openIncident(id){
   currentIncident=incidents.find(i=>i._id===id);
   if(!currentIncident){showToast('الحادثة غير موجودة','error');return;}
+  formHiddenIds.clear();
+  // استعلام واحد لجلب أي نماذج معلَّقة الحذف بهذه الحادثة تحديداً (لإخفائها عن غير
+  // الأدمن) — استعلام عادي على نفس المجموعة الفرعية، لا يحتاج فهرساً إضافياً
+  currentIncident._pendingIds=new Set();
+  try{
+    const snap=await db.collection('incidents').doc(id).collection('formData').where('pendingDeletion','==',true).get();
+    currentIncident._pendingIds=new Set(snap.docs.map(d=>d.id));
+  }catch(e){console.error(e);}
   renderIncidentScreen();
   showScreen('incident-screen');
 }
@@ -1584,20 +1615,28 @@ function renderIncidentScreen(){
   renderFormsList();
 }
 function renderFormsList(){
-  const forms=currentIncident.formsList||[];
+  const pendingIds=currentIncident._pendingIds||new Set();
+  // إخفاء: (أ) معلَّقة الحذف محلياً هذه اللحظة (formHiddenIds، بلا كتابة بعد)
+  // (ب) معلَّقة الحذف فعلياً بقاعدة البيانات وغير الأدمن — كما طُلب حرفياً
+  const forms=(currentIncident.formsList||[]).filter(f=>
+    !formHiddenIds.has(f.id) && (currentUserData.isAdmin || !pendingIds.has(f.id))
+  );
   const c=$('forms-list');
   if(!forms.length){c.innerHTML='<div class="empty-state"><span class="ico">📝</span><p>لا توجد نماذج. أضف نموذجاً جديداً.</p></div>';return;}
   c.innerHTML=forms.map(f=>{
     const cfg=FORM_CONFIGS[f.type];if(!cfg)return '';
+    const isPending=pendingIds.has(f.id);
+    const badge=isPending?' · <b style="color:var(--danger)">⏳ قيد مراجعة الحذف</b>':'';
+    const del=isPending?'':`<button class="btn btn-danger btn-sm" onclick="removeForm('${f.id}')">حذف</button>`;
     return `<div class="form-item">
       <div class="form-item-info">
         <div class="form-icon">${cfg.icon}</div>
         <div><div class="form-item-name">${cfg.label}</div>
-        <div class="form-item-sub">محفوظ في Firestore</div></div>
+        <div class="form-item-sub">محفوظ في Firestore${badge}</div></div>
       </div>
       <div class="form-item-actions">
         <button class="btn btn-primary btn-sm" onclick="openForm('${f.id}','${f.type}')">فتح</button>
-        <button class="btn btn-danger btn-sm" onclick="removeForm('${f.id}')">حذف</button>
+        ${del}
       </div>
     </div>`;
   }).join('');
@@ -1655,26 +1694,67 @@ async function addForm(type){
     openForm(inst.id,type);
   }catch(e){showLoading(false);showToast('تعذّر الإضافة','error');}
 }
+/* ── الحذف الناعم: إخفاء فوري محلي + نافذة تراجع ١٠ ثوانٍ، ولا كتابة فعلية
+   لقاعدة البيانات إلا بعد انتهاء الـ١٠ ثوانٍ بلا تراجع (commitPendingFormDelete).
+   لا يُستخدم .delete() هنا إطلاقاً — الحذف الفعلي أصبح حصراً لصندوق مراجعة الأدمن. ── */
 async function removeForm(fid){
-  if(!confirm('حذف هذا النموذج؟'))return;
-  const list=(currentIncident.formsList||[]).filter(f=>f.id!==fid);
-  showLoading(true,'جارٍ الحذف...');
+  // الرسالة توحي بحذف نهائي عمداً — التراجع ممكن تقنياً لكن لا يُشار له هنا صراحة
+  if(!confirm('هل أنت متأكد من حذف هذا التقرير؟\nلا يمكن التراجع.'))return;
+  const incId=currentIncident._id;
+  // فحص صلاحية مسبق (رسالة دقيقة) — بلا أي كتابة فعلية بعد؛ نفس بوابتي createdBy وformNotLocked
   try{
-    // حذف مستند النموذج أولاً — قاعدة الأمان تسمح فقط لمنشئ النموذج نفسه (أو الأدمن) بهذا.
-    // لو رُفض (permission-denied)، نتوقف هنا ولا نلمس formsList حتى لا يختفي النموذج من
-    // القائمة المشتركة بينما لا يزال موجوداً فعلياً بقاعدة البيانات (بيانات يتيمة مخفية).
-    await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).delete();
-    await db.collection('incidents').doc(currentIncident._id).update({
-      formsList:list,
-      ['searchByForm.'+fid]:firebase.firestore.FieldValue.delete()
+    const snap=await db.collection('incidents').doc(incId).collection('formData').doc(fid).get();
+    if(!snap.exists){showToast('تعذّر الحذف','error');return;}
+    const d=snap.data();
+    if(d.createdBy&&d.createdBy!==currentUserData.militaryNum){
+      showToast('لا يمكنك حذف نموذج أنشأه شخص آخر','error');return;
+    }
+    const createdAt=d.createdAt?tsToDate(d.createdAt):null;
+    if(createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000)){
+      showToast('هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه','error');return;
+    }
+  }catch(e){showToast('تعذّر الحذف','error');return;}
+  // لو كان هناك حذف آخر بنافذة تراجع مفتوحة (لعنصر مختلف)، ثبِّته فوراً أولاً —
+  // صندوق التراجع الواحد يخدم عنصراً واحداً بكل لحظة
+  if(formUndoFid&&formUndoFid!==fid) await commitPendingFormDelete();
+  formHiddenIds.add(fid);
+  if(currentIncident&&currentIncident._id===incId) renderFormsList();
+  showUndoToast(fid,incId);
+}
+function showUndoToast(fid,incId){
+  clearTimeout(formUndoTimer);
+  formUndoFid=fid; formUndoIncId=incId;
+  $('undo-toast-text').textContent='تم حذف التقرير';
+  $('undo-toast').classList.add('show');
+  formUndoTimer=setTimeout(commitPendingFormDelete,10000);
+}
+/* تثبيت الحذف الناعم فعلياً بقاعدة البيانات (pendingDeletion:true) — يحصل فقط هنا،
+   إما تلقائياً بعد ١٠ ثوانٍ أو فوراً عند بدء حذف عنصر آخر بينما توجد نافذة مفتوحة */
+async function commitPendingFormDelete(){
+  const fid=formUndoFid, incId=formUndoIncId;
+  clearTimeout(formUndoTimer);
+  $('undo-toast').classList.remove('show');
+  formUndoFid=null; formUndoIncId=null;
+  if(!fid||!incId)return;
+  try{
+    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({
+      pendingDeletion:true,
+      deletionRequestedBy:currentUserData.militaryNum,
+      deletionRequestedAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-    currentIncident.formsList=list;
-    if(currentIncident.searchByForm)delete currentIncident.searchByForm[fid];
-    showLoading(false);renderFormsList();showToast('تم الحذف','ok');
   }catch(e){
-    showLoading(false);
-    showToast(e&&e.code==='permission-denied'?'لا يمكنك حذف نموذج أنشأه شخص آخر':'تعذّر الحذف','error');
+    console.error(e);
+    formHiddenIds.delete(fid);
+    if(currentIncident&&currentIncident._id===incId)renderFormsList();
+    showToast('تعذّر حذف التقرير — أُعيد للظهور','error');
   }
+}
+function undoFormDelete(){
+  clearTimeout(formUndoTimer);
+  $('undo-toast').classList.remove('show');
+  const fid=formUndoFid;
+  formUndoFid=null; formUndoIncId=null;
+  if(fid){ formHiddenIds.delete(fid); if(currentIncident)renderFormsList(); }
 }
 
 /* ============================================================
@@ -1682,15 +1762,22 @@ async function removeForm(fid){
    ============================================================ */
 async function openForm(fid,type){
   try{
-    currentForm={id:fid,type,createdBy:null};
+    currentForm={id:fid,type,createdBy:null,locked:false};
     formValues={};sigData={};sigPaths={};
     const cfg=FORM_CONFIGS[type];
     $('form-ttl').innerHTML=cfg.label+' <span>| '+currentIncident.serialNum+'</span>';
     showLoading(true,'جارٍ تحميل النموذج...');
     try{
       const doc=await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).get();
-      if(doc.exists){const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};currentForm.createdBy=d.createdBy||null;}
+      if(doc.exists){
+        const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};currentForm.createdBy=d.createdBy||null;
+        // القفل يُحسب ديناميكياً من createdAt مقابل الوقت الحالي في كل فتح — لا اعتماد
+        // على isLocked المخزَّن. نموذج بلا createdAt إطلاقاً (سابق لهذا التحديث) = غير مقفول.
+        const createdAt=d.createdAt?tsToDate(d.createdAt):null;
+        currentForm.locked=!!createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000);
+      }
     }catch(e){console.error(e);}
+    applyFormLockUI();
     autoPopulate(type);
     const img=$('form-img');
     img.onload=()=>{showLoading(false);zoomFit();};
@@ -1698,6 +1785,14 @@ async function openForm(fid,type){
     img.src=CONFIG.formImages[type]||'';
     showScreen('form-screen');
   }catch(err){showLoading(false);showToast('خطأ: '+err.message,'error');console.error(err);}
+}
+/* تعطيل بصري/تفاعلي فقط (طبقة واجهة) — التطبيق الفعلي للقفل من قاعدة أمان Firestore.
+   لا تلمس renderFields/mkText/mkArea/mkCheck/mkSig — الحجب عبر pointer-events على
+   الحاوية الأم فقط، دون أي تعديل على منطق رسم الحقول الحرج. */
+function applyFormLockUI(){
+  $('fields-layer').classList.toggle('locked',currentForm.locked);
+  $('btn-save-form').style.display=currentForm.locked?'none':'';
+  $('form-lock-banner').style.display=currentForm.locked?'block':'none';
 }
 function autoPopulate(type){
   const d=tsToDate(currentIncident.createdAt);
@@ -1928,13 +2023,22 @@ function causeFromValues(v){
 /* ===== SAVE ===== */
 async function saveForm(silent){
   if(!currentForm)return;
+  // القفل التلقائي (٢٤ ساعة من createdAt) يُحسب ديناميكياً عند فتح النموذج (openForm) —
+  // هذا الحارس يمنع محاولة الحفظ من الواجهة أصلاً؛ قاعدة أمان Firestore هي التطبيق الفعلي.
+  if(currentForm.locked){showToast('هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه','error');return;}
   if(!silent)showLoading(true,'جارٍ الحفظ...');
   try{
-    // createdBy تُكتب فقط أول مرة (منشئ النموذج الفعلي) ولا تُمس بعدها أبداً — merge:true
-    // يحمي هذا الحقل من الانمحاء عند كل حفظ لاحق، ويحفظ صلاحية الحذف الحصرية لصاحبه
+    // createdBy/createdAt وحقول دورة الحياة (lockedAt/isLocked/reopenHistory/pendingDeletion)
+    // تُكتب فقط أول مرة (إنشاء النموذج الفعلي) ولا تُمس بعدها أبداً — merge:true يحمي هذه
+    // الحقول من الانمحاء عند كل حفظ لاحق. createdAt هو مرجع القفل التلقائي بقاعدة الأمان.
     const payload={type:currentForm.type,data:formValues,sigData,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
     if(!currentForm.createdBy){
       payload.createdBy=currentUserData.militaryNum;
+      payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+      payload.lockedAt=null;
+      payload.isLocked=false;
+      payload.reopenHistory=[];
+      payload.pendingDeletion=false;
       currentForm.createdBy=currentUserData.militaryNum;
     }
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id)
@@ -2147,7 +2251,7 @@ function loadFormForExport(f){
 /* ============================================================
    ADMIN
    ============================================================ */
-let adminIncs=[], adminFilter='all';
+let adminIncs=[], adminFilter='all', adminPending=[];
 async function openAdmin(){
   showLoading(true,'جارٍ تحميل الأرشيف...');
   try{
@@ -2156,12 +2260,75 @@ async function openAdmin(){
     const all=await db.collection('incidents').get();
     adminIncs=all.docs.map(d=>({_id:d.id,...d.data()}));
     adminIncs.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
+    await loadAdminPending();
     refreshAdminStats();
     renderAdminIncs();
+    renderAdminPending();
     renderAdminUsers();
     showLoading(false);
     showScreen('admin-screen');
   }catch(e){showLoading(false);showToast('تعذّر التحميل','error');console.error(e);}
+}
+/* صندوق مراجعة الحذف: استعلام عبر كل الحوادث دفعة واحدة (collectionGroup) —
+   قد يتطلب أول مرة إنشاء فهرس من Firebase (رسالة الخطأ تتضمن رابطاً جاهزاً). */
+async function loadAdminPending(){
+  try{
+    const snap=await db.collectionGroup('formData').where('pendingDeletion','==',true).get();
+    adminPending=snap.docs.map(d=>({_id:d.id,_incId:d.ref.parent.parent.id,...d.data()}));
+    adminPending.sort((a,b)=>tsToDate(b.deletionRequestedAt)-tsToDate(a.deletionRequestedAt));
+  }catch(e){
+    adminPending=[];
+    console.error(e);
+    showToast('تعذّر تحميل صندوق مراجعة الحذف — راجع الكونسول (قد يلزم إنشاء فهرس Firestore)','error');
+  }
+}
+function renderAdminPending(){
+  const t=$('admin-pending');
+  $('a-pending-count').textContent=adminPending.length?'('+toAr(adminPending.length)+')':'';
+  if(!adminPending.length){t.innerHTML='<tr><td colspan="5">لا توجد طلبات حذف بانتظار المراجعة</td></tr>';return;}
+  t.innerHTML=adminPending.map(p=>{
+    const inc=adminIncs.find(i=>i._id===p._incId);
+    const u=allUsers.find(x=>x.militaryNum===p.deletionRequestedBy);
+    const cfg=FORM_CONFIGS[p.type];
+    return `<tr>
+      <td>${cfg?cfg.label:p.type}</td>
+      <td>${inc?esc(inc.serialNum):'—'}</td>
+      <td>${u?esc(u.name)+' ('+esc(u.rank)+')':esc(p.deletionRequestedBy||'—')}</td>
+      <td>${fmtDate(p.deletionRequestedAt)}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-accent btn-sm" onclick="adminRestoreForm('${p._incId}','${p._id}')">↻ استرجاع</button>
+        <button class="btn btn-danger btn-sm" onclick="adminHardDeleteForm('${p._incId}','${p._id}')">حذف نهائي</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+async function adminRestoreForm(incId,fid){
+  showLoading(true,'جارٍ الاسترجاع...');
+  try{
+    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({pendingDeletion:false});
+    adminPending=adminPending.filter(p=>!(p._incId===incId&&p._id===fid));
+    renderAdminPending();refreshAdminStats();
+    showLoading(false);showToast('تم استرجاع التقرير','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الاسترجاع','error');console.error(e);}
+}
+async function adminHardDeleteForm(incId,fid){
+  if(!confirm('حذف هذا التقرير نهائياً؟\nلا يمكن التراجع عن هذا الإجراء إطلاقاً.'))return;
+  showLoading(true,'جارٍ الحذف النهائي...');
+  try{
+    await db.collection('incidents').doc(incId).collection('formData').doc(fid).delete();
+    const inc=adminIncs.find(i=>i._id===incId);
+    if(inc&&inc.formsList){
+      const list=inc.formsList.filter(f=>f.id!==fid);
+      await db.collection('incidents').doc(incId).update({
+        formsList:list,['searchByForm.'+fid]:firebase.firestore.FieldValue.delete()
+      });
+      inc.formsList=list;
+      if(currentIncident&&currentIncident._id===incId)currentIncident.formsList=list;
+    }
+    adminPending=adminPending.filter(p=>!(p._incId===incId&&p._id===fid));
+    renderAdminPending();refreshAdminStats();
+    showLoading(false);showToast('تم الحذف النهائي','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الحذف النهائي','error');console.error(e);}
 }
 function refreshAdminStats(){
   const live=adminIncs.filter(i=>!i.deleted);
@@ -2622,7 +2789,10 @@ async function waFeedTo(type){
     const inst={id:uid(),type};
     const list=[...(currentIncident.formsList||[]),inst];
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(inst.id)
-      .set({type,data,sigData:{},createdBy:currentUserData.militaryNum,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      .set({type,data,sigData:{},createdBy:currentUserData.militaryNum,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+            lockedAt:null,isLocked:false,reopenHistory:[],pendingDeletion:false,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
     await db.collection('incidents').doc(currentIncident._id).update({formsList:list});
     currentIncident.formsList=list;
     closeModal('modal-wa');

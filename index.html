@@ -1469,6 +1469,9 @@ function archCard(i,actionsHTML,onOpen){
   const dotsHTML=isDraft?`<span class="arch-dots" title="تحت التحرير">⋯</span>`:'';
   const nPart=(i.participants||[]).length;
   const partHTML=nPart?` <span class="rk">+${toAr(nPart)} ${nPart===1?'آخر':'آخرين'}</span>`:'';
+  // شارة "تذكرة مشتركة" تظهر فقط لو أكثر من مشارك واحد (participantIds.length>1،
+  // وما يعادلها هنا: وجود مشارك واحد إضافي على الأقل بمصفوفة participants)
+  const sharedHTML=nPart?`<span class="badge done">👥 تذكرة مشتركة</span>`:'';
   return `<div class="arch-card ${stClass}" onclick="${onOpen}">
     ${dotsHTML}
     <div class="arch-body">
@@ -1477,6 +1480,7 @@ function archCard(i,actionsHTML,onOpen){
         <span class="arch-row1-right">
           <span class="arch-serial">${esc(i.serialNum)}</span>
           <span class="arch-count">📎 ${toAr(nForms)}</span>
+          ${sharedHTML}
         </span>
       </div>
       ${descHTML}
@@ -1584,12 +1588,18 @@ async function openIncident(id){
   currentIncident=incidents.find(i=>i._id===id);
   if(!currentIncident){showToast('الحادثة غير موجودة','error');return;}
   formHiddenIds.clear();
-  // استعلام واحد لجلب أي نماذج معلَّقة الحذف بهذه الحادثة تحديداً (لإخفائها عن غير
-  // الأدمن) — استعلام عادي على نفس المجموعة الفرعية، لا يحتاج فهرساً إضافياً
+  // جلب واحد لكل مستندات formData (بدل استعلام مصفّى) — يُستخرَج منه معاً: (أ) معرّفات
+  // المعلَّق حذفها (لإخفائها عن غير الأدمن)، و(ب) منشئ كل نموذج (createdBy) لعرضه
+  // بقائمة النماذج عندما تكون الحادثة مشتركة، دون أي استعلام إضافي منفصل.
   currentIncident._pendingIds=new Set();
+  currentIncident._creatorMap={};
   try{
-    const snap=await db.collection('incidents').doc(id).collection('formData').where('pendingDeletion','==',true).get();
-    currentIncident._pendingIds=new Set(snap.docs.map(d=>d.id));
+    const snap=await db.collection('incidents').doc(id).collection('formData').get();
+    snap.docs.forEach(d=>{
+      const fd=d.data();
+      if(fd.pendingDeletion) currentIncident._pendingIds.add(d.id);
+      if(fd.createdBy) currentIncident._creatorMap[d.id]=fd.createdBy;
+    });
   }catch(e){console.error(e);}
   renderIncidentScreen();
   showScreen('incident-screen');
@@ -1614,8 +1624,20 @@ function renderIncidentScreen(){
   $('btn-delete-inc').style.display=(currentUserData.isAdmin||i.officerMilitaryNum===currentUserData.militaryNum)?'':'none';
   renderFormsList();
 }
+/* منشئ نموذج معيَّن كاسم/رتبة — من بيانات المالك أو مصفوفة participants الموجودة أصلاً
+   بمستند الحادثة (نفس البنية المستخدمة أصلاً لعرض الأسماء بـ"مشاركون آخرون")، بلا أي
+   استعلام إضافي لمجموعة users. */
+function resolveOfficerDisplay(mil){
+  if(!mil)return null;
+  if(mil===currentIncident.officerMilitaryNum) return {name:currentIncident.officerName,rank:currentIncident.officerRank};
+  const p=(currentIncident.participants||[]).find(x=>x.militaryNum===mil);
+  return p?{name:p.name,rank:p.rank}:null;
+}
 function renderFormsList(){
   const pendingIds=currentIncident._pendingIds||new Set();
+  const creatorMap=currentIncident._creatorMap||{};
+  // حادثة "مشتركة" = أكثر من مشارك واحد — نفس شرط شارة "تذكرة مشتركة" بالضبط
+  const isShared=(currentIncident.participants||[]).length>0;
   // إخفاء: (أ) معلَّقة الحذف محلياً هذه اللحظة (formHiddenIds، بلا كتابة بعد)
   // (ب) معلَّقة الحذف فعلياً بقاعدة البيانات وغير الأدمن — كما طُلب حرفياً
   const forms=(currentIncident.formsList||[]).filter(f=>
@@ -1628,11 +1650,13 @@ function renderFormsList(){
     const isPending=pendingIds.has(f.id);
     const badge=isPending?' · <b style="color:var(--danger)">⏳ قيد مراجعة الحذف</b>':'';
     const del=isPending?'':`<button class="btn btn-danger btn-sm" onclick="removeForm('${f.id}')">حذف</button>`;
+    const who=isShared?resolveOfficerDisplay(creatorMap[f.id]):null;
+    const whoHTML=who?` · أعدّه ${esc(who.rank||'')} ${esc(who.name||'')}`.trim():'';
     return `<div class="form-item">
       <div class="form-item-info">
         <div class="form-icon">${cfg.icon}</div>
         <div><div class="form-item-name">${cfg.label}</div>
-        <div class="form-item-sub">محفوظ في Firestore${badge}</div></div>
+        <div class="form-item-sub">محفوظ في Firestore${whoHTML}${badge}</div></div>
       </div>
       <div class="form-item-actions">
         <button class="btn btn-primary btn-sm" onclick="openForm('${f.id}','${f.type}')">فتح</button>
@@ -1694,29 +1718,40 @@ async function addForm(type){
     openForm(inst.id,type);
   }catch(e){showLoading(false);showToast('تعذّر الإضافة','error');}
 }
-/* ── الحذف الناعم: إخفاء فوري محلي + نافذة تراجع ١٠ ثوانٍ، ولا كتابة فعلية
-   لقاعدة البيانات إلا بعد انتهاء الـ١٠ ثوانٍ بلا تراجع (commitPendingFormDelete).
+/* ── الحذف الناعم: فوري ومباشر بقاعدة البيانات عند التأكيد (وليس مؤجَّلاً ١٠ ثوانٍ) —
+   هذا يضمن أن الحذف يبقى مثبَّتاً حتى لو أُغلق المتصفح قبل انتهاء نافذة التراجع.
+   التراجع نفسه كتابة فورية معاكسة (pendingDeletion:false)، وليس مجرد إلغاء مؤقّت محلي.
    لا يُستخدم .delete() هنا إطلاقاً — الحذف الفعلي أصبح حصراً لصندوق مراجعة الأدمن. ── */
 async function removeForm(fid){
   // الرسالة توحي بحذف نهائي عمداً — التراجع ممكن تقنياً لكن لا يُشار له هنا صراحة
   if(!confirm('هل أنت متأكد من حذف هذا التقرير؟\nلا يمكن التراجع.'))return;
   const incId=currentIncident._id;
-  // فحص صلاحية مسبق (رسالة دقيقة) — بلا أي كتابة فعلية بعد؛ نفس بوابتي createdBy وformNotLocked
+  showLoading(true,'جارٍ الحذف...');
   try{
-    const snap=await db.collection('incidents').doc(incId).collection('formData').doc(fid).get();
-    if(!snap.exists){showToast('تعذّر الحذف','error');return;}
+    // فحص صلاحية مسبق (رسالة دقيقة) — نفس بوابتي createdBy وformNotLocked
+    const ref=db.collection('incidents').doc(incId).collection('formData').doc(fid);
+    const snap=await ref.get();
+    if(!snap.exists){showLoading(false);showToast('تعذّر الحذف','error');return;}
     const d=snap.data();
     if(d.createdBy&&d.createdBy!==currentUserData.militaryNum){
-      showToast('لا يمكنك حذف نموذج أنشأه شخص آخر','error');return;
+      showLoading(false);showToast('لا يمكنك حذف نموذج أنشأه شخص آخر','error');return;
     }
     const createdAt=d.createdAt?tsToDate(d.createdAt):null;
     if(createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000)){
-      showToast('هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه','error');return;
+      showLoading(false);showToast('هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه','error');return;
     }
-  }catch(e){showToast('تعذّر الحذف','error');return;}
-  // لو كان هناك حذف آخر بنافذة تراجع مفتوحة (لعنصر مختلف)، ثبِّته فوراً أولاً —
-  // صندوق التراجع الواحد يخدم عنصراً واحداً بكل لحظة
-  if(formUndoFid&&formUndoFid!==fid) await commitPendingFormDelete();
+    // الكتابة الفعلية تحصل هنا فوراً — قبل أي إخفاء بالواجهة — كي لا تُفقَد النية
+    // الحقيقية للحذف لو أُغلق المتصفح أو انقطع الاتصال بعد هذه اللحظة مباشرة
+    await ref.update({
+      pendingDeletion:true,
+      deletionRequestedBy:currentUserData.militaryNum,
+      deletionRequestedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){showLoading(false);console.error(e);showToast('تعذّر الحذف','error');return;}
+  showLoading(false);
+  // لو كانت هناك نافذة تراجع مفتوحة لعنصر مختلف، اطوِها فقط (حذفه السابق يبقى
+  // مثبَّتاً كما هو — لا علاقة له بهذا الحذف الجديد)
+  if(formUndoFid&&formUndoFid!==fid) dismissUndoToast();
   formHiddenIds.add(fid);
   if(currentIncident&&currentIncident._id===incId) renderFormsList();
   showUndoToast(fid,incId);
@@ -1726,35 +1761,33 @@ function showUndoToast(fid,incId){
   formUndoFid=fid; formUndoIncId=incId;
   $('undo-toast-text').textContent='تم حذف التقرير';
   $('undo-toast').classList.add('show');
-  formUndoTimer=setTimeout(commitPendingFormDelete,10000);
+  // بعد ١٠ ثوانٍ بلا تراجع: لا كتابة إضافية مطلوبة — الحذف مثبَّت أصلاً منذ لحظة
+  // التأكيد؛ فقط نطوي التوست محلياً. هذا يبقى صحيحاً حتى لو أُغلق المتصفح فعلياً
+  // قبل بلوغ هذه اللحظة (المؤقّت لن يُنفَّذ حينها، لكن الحذف مكتوب أصلاً بقاعدة البيانات).
+  formUndoTimer=setTimeout(dismissUndoToast,10000);
 }
-/* تثبيت الحذف الناعم فعلياً بقاعدة البيانات (pendingDeletion:true) — يحصل فقط هنا،
-   إما تلقائياً بعد ١٠ ثوانٍ أو فوراً عند بدء حذف عنصر آخر بينما توجد نافذة مفتوحة */
-async function commitPendingFormDelete(){
+function dismissUndoToast(){
+  clearTimeout(formUndoTimer);
+  $('undo-toast').classList.remove('show');
+  formUndoFid=null; formUndoIncId=null;
+}
+/* التراجع: كتابة فورية معاكسة (pendingDeletion:false) — قاعدة الأمان تسمح بهذا فقط
+   لمن طلب الحذف نفسه على نفس النموذج الذي لا يزال pendingDeletion:true فعلياً */
+async function undoFormDelete(){
   const fid=formUndoFid, incId=formUndoIncId;
-  clearTimeout(formUndoTimer);
-  $('undo-toast').classList.remove('show');
-  formUndoFid=null; formUndoIncId=null;
+  dismissUndoToast();
   if(!fid||!incId)return;
+  showLoading(true,'جارٍ التراجع...');
   try{
-    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({
-      pendingDeletion:true,
-      deletionRequestedBy:currentUserData.militaryNum,
-      deletionRequestedAt:firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }catch(e){
-    console.error(e);
+    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({pendingDeletion:false});
     formHiddenIds.delete(fid);
-    if(currentIncident&&currentIncident._id===incId)renderFormsList();
-    showToast('تعذّر حذف التقرير — أُعيد للظهور','error');
+    if(currentIncident&&currentIncident._id===incId) renderFormsList();
+    showLoading(false);
+    showToast('تم التراجع عن الحذف','ok');
+  }catch(e){
+    showLoading(false); console.error(e);
+    showToast('تعذّر التراجع — التقرير لا يزال محذوفاً','error');
   }
-}
-function undoFormDelete(){
-  clearTimeout(formUndoTimer);
-  $('undo-toast').classList.remove('show');
-  const fid=formUndoFid;
-  formUndoFid=null; formUndoIncId=null;
-  if(fid){ formHiddenIds.delete(fid); if(currentIncident)renderFormsList(); }
 }
 
 /* ============================================================

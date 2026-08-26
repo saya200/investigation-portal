@@ -120,6 +120,13 @@ input,textarea{font-family:inherit;}
 .notif-item-title{font-size:13px;font-weight:700;line-height:1.5;}
 .notif-item-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
 .notif-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;}
+/* سجل الحركة الموحّد لكل نموذج */
+.tl-item{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:6px;flex-shrink:0;}
+.tl-title{font-size:13.5px;font-weight:700;}
+.tl-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.tl-reason{font-size:12px;color:var(--text);margin-top:4px;background:var(--bg);padding:6px 9px;border-radius:8px;}
 .user-chip span{display:block;font-size:10px;font-weight:400;opacity:.8;}
 
 /* ===== CONTAINER ===== */
@@ -609,6 +616,7 @@ tr:last-child td{border-bottom:none;}
       <button class="btn btn-accent btn-sm" id="btn-save-form" onclick="saveForm()">💾 حفظ</button>
       <button class="btn btn-primary btn-sm" style="display:none" id="btn-reopen-form" onclick="openReopenModal()">🔓 إعادة فتح للتعديل</button>
       <button class="btn btn-primary btn-sm" onclick="exportFormPDF()">📄 PDF</button>
+      <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="openTimelineModal()">🕓 سجل الحركة</button>
       <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="closeForm()">رجوع</button>
     </div>
   </div>
@@ -818,6 +826,17 @@ tr:last-child td{border-bottom:none;}
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-reopen')">إلغاء</button>
       <button class="btn btn-primary" onclick="confirmReopen()">تأكيد إعادة الفتح</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ سجل الحركة الموحّد لكل نموذج ═══════════ -->
+<div class="modal-bg" id="modal-timeline">
+  <div class="modal">
+    <h3>سجل الحركة</h3>
+    <div id="timeline-list"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-timeline')">إغلاق</button>
     </div>
   </div>
 </div>
@@ -1875,11 +1894,15 @@ async function removeForm(fid){
       showLoading(false);showToast('هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه','error');return;
     }
     // الكتابة الفعلية تحصل هنا فوراً — قبل أي إخفاء بالواجهة — كي لا تُفقَد النية
-    // الحقيقية للحذف لو أُغلق المتصفح أو انقطع الاتصال بعد هذه اللحظة مباشرة
+    // الحقيقية للحذف لو أُغلق المتصفح أو انقطع الاتصال بعد هذه اللحظة مباشرة.
+    // سجل الحركة يُلحَق بنفس هذه الكتابة (بلا طلب شبكة إضافي).
     await ref.update({
       pendingDeletion:true,
       deletionRequestedBy:currentUserData.militaryNum,
-      deletionRequestedAt:firebase.firestore.FieldValue.serverTimestamp()
+      deletionRequestedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      eventLog:firebase.firestore.FieldValue.arrayUnion({
+        type:'delete_requested',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()
+      })
     });
   }catch(e){showLoading(false);console.error(e);showToast('تعذّر الحذف','error');return;}
   // مزامنة علامة pendingDeletion على عنصر formsList بمستند الحادثة — هذا هو مصدر
@@ -1917,7 +1940,12 @@ async function undoFormDelete(){
   if(!fid||!incId)return;
   showLoading(true,'جارٍ التراجع...');
   try{
-    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({pendingDeletion:false});
+    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({
+      pendingDeletion:false,
+      eventLog:firebase.firestore.FieldValue.arrayUnion({
+        type:'delete_undone',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()
+      })
+    });
     try{ await setFormPendingFlagInList(incId,fid,false); }catch(e){ console.error(e); }
     formHiddenIds.delete(fid);
     if(currentIncident&&currentIncident._id===incId) renderFormsList();
@@ -1962,10 +1990,25 @@ async function openForm(fid,type){
         // نفس قاعدة الأمان بالضبط؛ أي شخص آخر (حتى الأدمن) يبقى يرى النموذج مقفولاً
         // بالواجهة لأن محاولة حفظه ستُرفَض فعلياً بقاعدة الأمان بكل الأحوال.
         currentForm.reopenActive=!!d.reopenActive;
+        currentForm.eventLog=d.eventLog||[];
+        currentForm.reopenHistory=d.reopenHistory||[];
         const isCreator=!!d.createdBy&&d.createdBy===currentUserData.militaryNum;
         const createdAt=d.createdAt?tsToDate(d.createdAt):null;
         const timeLocked=!!createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000);
         currentForm.locked=timeLocked&&!(currentForm.reopenActive&&isCreator);
+        // سجل الحركة — "قفل تلقائي" يُكتشَف سلبياً هنا (أول فتح بعد بلوغ ٢٤ ساعة)، وليس
+        // بمراقبة خلفية؛ يُسجَّل مرة واحدة فقط (lockLogged) بمن فتح النموذج أول مرة بعد
+        // القفل — لا فاعل بشري حقيقي، لذا by:null ("النظام" بالعرض).
+        if(timeLocked&&!currentForm.reopenActive&&!d.lockLogged){
+          const lockEntry={type:'locked',by:null,at:firebase.firestore.Timestamp.now(),meta:'قفل تلقائي بعد ٢٤ ساعة'};
+          try{
+            await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).update({
+              lockLogged:true,
+              eventLog:firebase.firestore.FieldValue.arrayUnion(lockEntry)
+            });
+            currentForm.eventLog.push(lockEntry);
+          }catch(e){console.error(e);}
+        }
       }
     }catch(e){console.error(e);}
     applyFormLockUI();
@@ -2011,6 +2054,7 @@ async function confirmReopen(){
     });
     currentForm.reopenActive=true;
     currentForm.locked=false;
+    currentForm.reopenHistory=[...(currentForm.reopenHistory||[]),entry];
     // إشعار تلقائي لصاحب التقرير الأصلي — فشل هذه الخطوة لا يُلغي نجاح إعادة الفتح نفسها
     if(currentForm.createdBy){
       try{
@@ -2036,6 +2080,47 @@ async function confirmReopen(){
     showLoading(false); console.error(e);
     showToast('تعذّرت إعادة الفتح','error');
   }
+}
+/* ============================================================
+   سجل الحركة الموحّد — يدمج eventLog (المُسجَّل تلقائياً من نفس دوال الحلقات
+   السابقة) مع reopenHistory الموجود أصلاً (بدل تكراره بمكان منفصل — قرار دمج
+   بسيط عند العرض فقط، بلا أي كتابة إضافية). لا كتابة من هذه الشاشة إطلاقاً.
+   ============================================================ */
+const EVENT_LABELS={
+  created:'إنشاء التقرير', updated:'حفظ/تعديل', locked:'قفل تلقائي',
+  delete_requested:'طلب حذف (ناعم)', delete_undone:'تراجع عن الحذف',
+  admin_restored:'استرجاع من الأدمن', reopened:'إعادة فتح من الإدارة'
+};
+function buildTimeline(){
+  const log=(currentForm.eventLog||[]).map(e=>({...e}));
+  const reopens=(currentForm.reopenHistory||[]).map(e=>({type:'reopened',by:e.by,at:e.at,reason:e.reason}));
+  return [...log,...reopens].sort((a,b)=>tsToDate(b.at)-tsToDate(a.at));
+}
+function openTimelineModal(){
+  if(!currentForm)return;
+  const items=buildTimeline();
+  const c=$('timeline-list');
+  if(!items.length){
+    c.innerHTML='<div class="empty-state"><span class="ico">🕓</span><p>لا توجد أحداث مسجَّلة بعد</p></div>';
+  }else{
+    c.innerHTML=items.map(e=>{
+      // أحداث الأدمن (استرجاع/إعادة فتح) تُعرَض بمسمى عام "الإدارة" — لا يقدر الضابط
+      // العادي أصلاً يقرأ ملف مستخدم آخر (users/{uid} محظور عليه بقاعدة الأمان)،
+      // فلا محاولة لحل اسم إداري محدَّد؛ فاعل معروف (منشئ/مشارك بنفس الحادثة)
+      // يُحلّ عبر resolveOfficerDisplay الموجودة أصلاً.
+      let who;
+      if(e.by===null||e.by===undefined) who='النظام (تلقائي)';
+      else if(e.type==='admin_restored'||e.type==='reopened') who='الإدارة';
+      else{ const r=resolveOfficerDisplay(e.by); who=r?`${r.rank||''} ${r.name||''}`.trim():e.by; }
+      const lbl=EVENT_LABELS[e.type]||e.type;
+      const reasonHTML=e.reason?`<div class="tl-reason">${esc(e.reason)}</div>`:'';
+      return `<div class="tl-item"><div class="tl-dot"></div>
+        <div><div class="tl-title">${esc(lbl)}</div>
+        <div class="tl-meta">${esc(who)} — ${fmtDate(e.at)}</div>
+        ${reasonHTML}</div></div>`;
+    }).join('');
+  }
+  $('modal-timeline').classList.add('show');
 }
 function autoPopulate(type){
   const d=tsToDate(currentIncident.createdAt);
@@ -2279,6 +2364,9 @@ async function saveForm(silent){
     // تُكتب فقط أول مرة (إنشاء النموذج الفعلي) ولا تُمس بعدها أبداً — merge:true يحمي هذه
     // الحقول من الانمحاء عند كل حفظ لاحق. createdAt هو مرجع القفل التلقائي بقاعدة الأمان.
     const payload={type:currentForm.type,data:formValues,sigData,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    // سجل الحركة: نُلحق الحدث(الأحداث) المناسبة ضمن نفس كتابة الحفظ هذه بالضبط —
+    // لا طلب شبكة إضافي. Timestamp.now() وليس serverTimestamp() (غير مسموح داخل arrayUnion).
+    const logEntries=[];
     if(!currentForm.createdBy){
       payload.createdBy=currentUserData.militaryNum;
       payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
@@ -2286,13 +2374,23 @@ async function saveForm(silent){
       payload.isLocked=false;
       payload.reopenHistory=[];
       payload.pendingDeletion=false;
+      payload.lockLogged=false;
+      logEntries.push({type:'created',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()});
       currentForm.createdBy=currentUserData.militaryNum;
+    }else{
+      logEntries.push({type:'updated',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()});
     }
     // إلغاء علامة "إعادة الفتح النشطة" ضمن نفس كتابة الحفظ — يعيد القفل فوراً
     // ودائماً (formNotLocked يعود لتقييمه الطبيعي القائم على createdAt المنقضي أصلاً)
-    if(willRelock) payload.reopenActive=false;
+    if(willRelock){
+      payload.reopenActive=false;
+      payload.lockLogged=true;
+      logEntries.push({type:'locked',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now(),meta:'إعادة قفل بعد التعديل'});
+    }
+    payload.eventLog=firebase.firestore.FieldValue.arrayUnion(...logEntries);
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id)
       .set(payload,{merge:true});
+    currentForm.eventLog=[...(currentForm.eventLog||[]),...logEntries];
     // فهرس البحث: كل القيم النصية لهذا النموذج
     const blob=Object.values(formValues).filter(v=>typeof v==='string'&&v.trim()).join(' · ').trim();
     const lbl=FORM_CONFIGS[currentForm.type]?FORM_CONFIGS[currentForm.type].label:'';
@@ -2560,7 +2658,12 @@ function renderAdminPending(){
 async function adminRestoreForm(incId,fid){
   showLoading(true,'جارٍ الاسترجاع...');
   try{
-    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({pendingDeletion:false});
+    await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({
+      pendingDeletion:false,
+      eventLog:firebase.firestore.FieldValue.arrayUnion({
+        type:'admin_restored',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()
+      })
+    });
     try{ await setFormPendingFlagInList(incId,fid,false); }catch(e){ console.error(e); }
     adminPending=adminPending.filter(p=>!(p._incId===incId&&p._id===fid));
     renderAdminPending();refreshAdminStats();
@@ -2574,9 +2677,16 @@ async function adminHardDeleteForm(incId,fid){
     await db.collection('incidents').doc(incId).collection('formData').doc(fid).delete();
     const inc=adminIncs.find(i=>i._id===incId);
     if(inc&&inc.formsList){
+      const delEntry=inc.formsList.find(f=>f.id===fid);
       const list=inc.formsList.filter(f=>f.id!==fid);
+      // الحدث يُسجَّل هنا (مستند الحادثة الأب) لأن مستند النموذج نفسه سيُحذَف تماماً
+      // ولن يبقى موجوداً ليُسجَّل عليه أي شيء بعد
       await db.collection('incidents').doc(incId).update({
-        formsList:list,['searchByForm.'+fid]:firebase.firestore.FieldValue.delete()
+        formsList:list,['searchByForm.'+fid]:firebase.firestore.FieldValue.delete(),
+        hardDeletedFormsLog:firebase.firestore.FieldValue.arrayUnion({
+          formId:fid,formType:delEntry?delEntry.type:null,
+          by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()
+        })
       });
       inc.formsList=list;
       if(currentIncident&&currentIncident._id===incId)currentIncident.formsList=list;

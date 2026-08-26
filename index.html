@@ -128,6 +128,21 @@ input,textarea{font-family:inherit;}
 .tl-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
 .tl-reason{font-size:12px;color:var(--text);margin-top:4px;background:var(--bg);padding:6px 9px;border-radius:8px;}
 .user-chip span{display:block;font-size:10px;font-weight:400;opacity:.8;}
+/* صندوق "تذكرة مشتركة" الموسّع — مرجع بصري: IEP Design System (ألوان/قياسات مطابقة
+   لنفس متغيرات :root الحالية، الحزمة مبنية أصلاً على نفس ألواننا) */
+.shared-box{margin-top:10px;background:rgba(13,79,60,.06);border-radius:8px;padding:10px 12px;
+  border-inline-start:3px solid var(--primary);max-width:380px;}
+.shared-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;}
+.shared-list{display:flex;flex-direction:column;gap:9px;}
+.shared-row+.shared-row{padding-top:9px;border-top:1px solid rgba(13,79,60,.1);}
+.shared-name{display:flex;align-items:baseline;gap:6px;font-size:12.5px;}
+.shared-name .nm{font-weight:700;color:var(--text);}
+.shared-name .rk{color:var(--muted);}
+.shared-actions{font-size:11.5px;color:#3f524b;margin-top:2px;line-height:1.55;}
+/* شريط العدّاد التنازلي لقفل التقرير — نص تنبيهي استباقي قبل القفل الفعلي */
+.deadline-bar{display:flex;align-items:center;gap:9px;padding:10px 14px;background:var(--bg);
+  border-radius:10px;margin:0;font-size:12.5px;color:#3f524b;}
+.deadline-bar .ico{flex-shrink:0;font-size:15px;}
 
 /* ===== CONTAINER ===== */
 .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px;}
@@ -622,6 +637,9 @@ tr:last-child td{border-bottom:none;}
   </div>
   <div class="alert error" id="form-lock-banner" style="display:none;border-radius:0">
     🔒 هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه — للتعديل، يلزم طلب إعادة فتح من الأدمن.
+  </div>
+  <div class="deadline-bar" id="form-deadline-bar" style="display:none;margin:10px 14px">
+    <span class="ico">⏱</span><span id="form-deadline-text"></span>
   </div>
   <div class="form-scroll" id="form-scroll">
     <div id="form-container">
@@ -1765,8 +1783,19 @@ function renderIncidentScreen(){
   const parts=i.participants||[];
   const pe=$('inc-participants');
   if(parts.length){
+    // صندوق موسّع (مرجع بصري IEP Design System): كل مشارك بسطر مستقل مع
+    // "الإجراءات المتخذة" الخاصة به — مبنية من createdBy الموجود أصلاً بكل نموذج
+    const all=[{militaryNum:i.officerMilitaryNum,name:i.officerName,rank:i.officerRank},...parts];
     pe.style.display='';
-    pe.innerHTML='مشاركون آخرون: '+parts.map(p=>`${esc(p.name)} (${esc(p.role||p.rank||'')})`).join('، ');
+    pe.innerHTML=`<div class="shared-box">
+      <div class="shared-head">👥 تذكرة مشتركة — ${toAr(all.length)} مشاركين</div>
+      <div class="shared-list">
+        ${all.map(p=>`<div class="shared-row">
+          <div class="shared-name"><span class="nm">${esc(p.name||'-')}</span><span class="rk">${esc(p.rank||'')}</span></div>
+          <div class="shared-actions">الإجراءات المتخذة: ${esc(participantActions(p.militaryNum))}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
   }else{ pe.style.display='none'; pe.innerHTML=''; }
   $('inc-hd-status').textContent=done?'مكتملة':'تحت التحرير';
   const b=$('inc-badge');
@@ -1785,6 +1814,16 @@ function resolveOfficerDisplay(mil){
   if(mil===currentIncident.officerMilitaryNum) return {name:currentIncident.officerName,rank:currentIncident.officerRank};
   const p=(currentIncident.participants||[]).find(x=>x.militaryNum===mil);
   return p?{name:p.name,rank:p.rank}:null;
+}
+/* "الإجراءات المتخذة" لمشارك معيّن بصندوق التذكرة المشتركة — أي أنواع النماذج
+   التي أنشأها هو تحديداً (createdBy)، من نفس خريطة _creatorMap المبنية أصلاً
+   بـopenIncident() (بلا أي استعلام إضافي) */
+function participantActions(mil){
+  const creatorMap=currentIncident._creatorMap||{};
+  const labels=(currentIncident.formsList||[])
+    .filter(f=>creatorMap[f.id]===mil)
+    .map(f=>{const cfg=FORM_CONFIGS[f.type];return cfg?cfg.label:f.type;});
+  return labels.length?labels.join(' + '):'لم يُسجَّل إجراء بعد';
 }
 function renderFormsList(){
   const pendingIds=currentIncident._pendingIds||new Set();
@@ -1975,7 +2014,7 @@ async function setFormPendingFlagInList(incId,fid,flag){
    ============================================================ */
 async function openForm(fid,type){
   try{
-    currentForm={id:fid,type,createdBy:null,locked:false,reopenActive:false};
+    currentForm={id:fid,type,createdBy:null,locked:false,reopenActive:false,createdAtMs:null};
     formValues={};sigData={};sigPaths={};
     const cfg=FORM_CONFIGS[type];
     $('form-ttl').innerHTML=cfg.label+' <span>| '+currentIncident.serialNum+'</span>';
@@ -1994,6 +2033,7 @@ async function openForm(fid,type){
         currentForm.reopenHistory=d.reopenHistory||[];
         const isCreator=!!d.createdBy&&d.createdBy===currentUserData.militaryNum;
         const createdAt=d.createdAt?tsToDate(d.createdAt):null;
+        currentForm.createdAtMs=createdAt?createdAt.getTime():null;
         const timeLocked=!!createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000);
         currentForm.locked=timeLocked&&!(currentForm.reopenActive&&isCreator);
         // سجل الحركة — "قفل تلقائي" يُكتشَف سلبياً هنا (أول فتح بعد بلوغ ٢٤ ساعة)، وليس
@@ -2030,6 +2070,18 @@ function applyFormLockUI(){
   // زر "إعادة فتح" للأدمن حصراً، وفقط على نموذج مقفول فعلاً وغير مُعاد فتحه أصلاً
   // (لا يمنح الأدمن نفسه أي صلاحية تعديل — فقط يتيح المتابعة للمنشئ الأصلي)
   $('btn-reopen-form').style.display=(currentUserData.isAdmin&&currentForm.locked&&!currentForm.reopenActive)?'':'none';
+  // عدّاد القفل التنازلي — نص استباقي قبل بلوغ القفل الفعلي؛ لقطة محسوبة عند فتح
+  // النموذج (بلا مؤقّت حي يُحدِّث نفسه، بنفس أسلوب باقي حسابات الوقت بهذا الموقع).
+  // لا يظهر إن كان مقفولاً فعلاً (البانر أعلاه يغطي تلك الحالة) أو مُعاد فتحه (بلا حد زمني).
+  const bar=$('form-deadline-bar');
+  if(!currentForm.locked&&!currentForm.reopenActive&&currentForm.createdAtMs){
+    const remainMs=24*3600*1000-(Date.now()-currentForm.createdAtMs);
+    if(remainMs>0){
+      const h=Math.floor(remainMs/3600000), m=Math.floor((remainMs%3600000)/60000);
+      $('form-deadline-text').textContent=`سيتم إنهاء هذا التحقيق تلقائياً خلال ${toAr(h)} ساعة و${toAr(m)} دقيقة إذا لم يُنهَ يدوياً`;
+      bar.style.display='flex';
+    }else{ bar.style.display='none'; }
+  }else{ bar.style.display='none'; }
 }
 function openReopenModal(){
   $('reopen-reason').value='';

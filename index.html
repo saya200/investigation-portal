@@ -96,6 +96,30 @@ input,textarea{font-family:inherit;}
 .header-user{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .user-chip{background:var(--bg);padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;text-align:center;line-height:1.4;}
 #form-screen .user-chip,#incident-screen .user-chip{background:rgba(255,255,255,.15);}
+/* الإشعارات — الحد الأدنى اللازم حالياً (نوع واحد فقط: طلب تعديل من الإدارة) */
+.notif-wrap{position:relative;flex-shrink:0;}
+.notif-btn{position:relative;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.notif-badge{display:none;position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;
+  box-sizing:border-box;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;
+  line-height:17px;text-align:center;}
+.notif-panel{display:none;position:absolute;top:100%;left:0;margin-top:8px;width:320px;max-width:88vw;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+  z-index:300;max-height:70vh;overflow-y:auto;}
+.notif-panel.show{display:block;}
+.notif-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;
+  border-bottom:1px solid var(--border);}
+.notif-head h4{font-size:14px;font-weight:800;color:var(--primary);margin:0;}
+.notif-markall{background:none;border:none;padding:0;cursor:pointer;font-family:inherit;font-size:11.5px;
+  font-weight:700;color:var(--primary);text-decoration:underline;}
+.notif-item{cursor:pointer;padding:11px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
+  align-items:flex-start;transition:.12s;}
+.notif-item:hover{background:var(--bg);}
+.notif-item.unread{background:rgba(13,79,60,.05);}
+.notif-item-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0;}
+.notif-item-title{font-size:13px;font-weight:700;line-height:1.5;}
+.notif-item-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.notif-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;}
 .user-chip span{display:block;font-size:10px;font-weight:400;opacity:.8;}
 
 /* ===== CONTAINER ===== */
@@ -146,8 +170,11 @@ input,textarea{font-family:inherit;}
   border-radius:0 0 0 10px;z-index:2;letter-spacing:1px;}
 .arch-body{padding:13px 15px 12px;display:flex;flex-direction:column;gap:9px;flex:1;}
 /* الصف العلوي: التاريخ يسار — (رقم الحادثة + عدّاد النماذج) يمين، بلا أي تراكب (تدفّق flex طبيعي) */
-.arch-row1{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.arch-row1-right{display:flex;align-items:center;gap:7px;}
+.arch-row1{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+/* السماح بالالتفاف لسطر جديد بدل الفيضان الأفقي المقصوص خلف overflow:hidden على
+   .arch-card — يحصل فقط عندما تضيق البطاقة (عرض Grid على الجوال) عن استيعاب
+   الرقم التسلسلي + عدّاد النماذج + شارة "تذكرة مشتركة" بصف واحد */
+.arch-row1-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:5px;justify-content:flex-end;}
 .arch-date{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
 .arch-serial{font-size:16px;font-weight:800;color:var(--primary);direction:ltr;letter-spacing:.5px;}
 .arch-count{background:rgba(13,79,60,.08);color:var(--primary);font-size:11px;font-weight:700;
@@ -491,6 +518,17 @@ tr:last-child td{border-bottom:none;}
       <h2>شعبة التحقيق<span>الدفاع المدني</span></h2>
     </div>
     <div class="header-user">
+      <div class="notif-wrap">
+        <button class="notif-btn" onclick="toggleNotifPanel()" title="الإشعارات">
+          🔔<span class="notif-badge" id="notif-badge"></span>
+        </button>
+        <div class="notif-panel" id="notif-panel">
+          <div class="notif-head"><h4>الإشعارات</h4>
+            <button class="notif-markall" onclick="markAllNotifsRead()">تعليم الكل كمقروء</button>
+          </div>
+          <div id="notif-list"></div>
+        </div>
+      </div>
       <div class="user-chip" id="dash-user">—<span>—</span></div>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()">خروج</button>
     </div>
@@ -569,6 +607,7 @@ tr:last-child td{border-bottom:none;}
     </div>
     <div class="tb-actions">
       <button class="btn btn-accent btn-sm" id="btn-save-form" onclick="saveForm()">💾 حفظ</button>
+      <button class="btn btn-primary btn-sm" style="display:none" id="btn-reopen-form" onclick="openReopenModal()">🔓 إعادة فتح للتعديل</button>
       <button class="btn btn-primary btn-sm" onclick="exportFormPDF()">📄 PDF</button>
       <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="closeForm()">رجوع</button>
     </div>
@@ -762,6 +801,23 @@ tr:last-child td{border-bottom:none;}
 
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn btn-ghost" onclick="closeModal('modal-share')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ إعادة فتح تقرير مقفول (أدمن حصراً — مستقل تماماً) ═══════════ -->
+<div class="modal-bg" id="modal-reopen">
+  <div class="modal">
+    <h3>إعادة فتح للتعديل</h3>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 14px">
+      سيصبح هذا التقرير قابلاً للتعديل من جديد — فقط للضابط الذي أنشأه أصلاً، وليس منك. اذكر سبباً واضحاً للمراجعة.
+    </p>
+    <div class="field"><label>سبب إعادة الفتح (إلزامي)</label>
+      <textarea id="reopen-reason" rows="3" placeholder="مثال: أضف تفاصيل المتصلين الناقصة"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reopen')">إلغاء</button>
+      <button class="btn btn-primary" onclick="confirmReopen()">تأكيد إعادة الفتح</button>
     </div>
   </div>
 </div>
@@ -1438,6 +1494,7 @@ async function enterApp(){
   $('dash-user').innerHTML=`${currentUserData.name}<span>${currentUserData.rank}</span>`;
   $('btn-admin').style.display=currentUserData.isAdmin?'inline-flex':'none';
   await loadIncidents();
+  loadNotifications();
   showScreen('dash-screen');
 }
 async function loadIncidents(){
@@ -1452,6 +1509,81 @@ async function loadIncidents(){
   showLoading(false);
   renderIncidents();
 }
+/* ============================================================
+   الإشعارات — الحد الأدنى اللازم حالياً (لا نظام إشعارات عام كان موجوداً بالكود
+   قبل هذا؛ بادئة notif، معزولة تماماً). نوع واحد فقط مدعوم الآن: "طلب تعديل من
+   الإدارة" (يُرسَل تلقائياً عند نجاح إعادة فتح الأدمن لتقرير — انظر confirmReopen).
+   ============================================================ */
+let myNotifications=[], notifUnread=0;
+async function loadNotifications(){
+  if(!currentUserData||currentUserData.isAdmin)return; // هذا النوع موجَّه للضابط صاحب التقرير فقط
+  try{
+    const snap=await db.collection('notifications').where('toMilitaryNum','==',currentUserData.militaryNum).get();
+    myNotifications=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    myNotifications.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
+    notifUnread=myNotifications.filter(n=>!n.read).length;
+    updateNotifBadge();
+  }catch(e){console.error(e);}
+}
+function updateNotifBadge(){
+  const b=$('notif-badge');
+  if(notifUnread>0){b.textContent=toAr(notifUnread);b.style.display='';}
+  else{b.style.display='none';}
+}
+function toggleNotifPanel(){
+  const open=$('notif-panel').classList.toggle('show');
+  if(open)renderNotifPanel();
+}
+function notifText(n){
+  if(n.type==='reopen_request'){
+    return {title:`طلب تعديل من الإدارة على التذكرة ${n.serialNum||''}`,
+            meta:`${n.reason||''} — ${fmtDate(n.createdAt)}`};
+  }
+  return {title:'إشعار',meta:fmtDate(n.createdAt)};
+}
+function renderNotifPanel(){
+  const c=$('notif-list');
+  if(!myNotifications.length){c.innerHTML='<div class="notif-empty">لا توجد إشعارات</div>';return;}
+  c.innerHTML=myNotifications.map(n=>{
+    const t=notifText(n);
+    return `<div class="notif-item ${n.read?'':'unread'}" onclick="openNotification('${n._id}')">
+      <span class="notif-item-dot"></span>
+      <div><div class="notif-item-title">${esc(t.title)}</div>
+      <div class="notif-item-meta">${esc(t.meta)}</div></div>
+    </div>`;
+  }).join('');
+}
+async function markAllNotifsRead(){
+  const unread=myNotifications.filter(n=>!n.read);
+  if(!unread.length)return;
+  try{
+    const batch=db.batch();
+    unread.forEach(n=>batch.update(db.collection('notifications').doc(n._id),{read:true}));
+    await batch.commit();
+    unread.forEach(n=>n.read=true);
+    notifUnread=0;
+    updateNotifBadge();renderNotifPanel();
+  }catch(e){console.error(e);showToast('تعذّر التحديث','error');}
+}
+async function openNotification(nid){
+  const n=myNotifications.find(x=>x._id===nid);
+  if(!n)return;
+  $('notif-panel').classList.remove('show');
+  if(!n.read){
+    try{
+      await db.collection('notifications').doc(nid).update({read:true});
+      n.read=true;notifUnread=Math.max(0,notifUnread-1);updateNotifBadge();
+    }catch(e){console.error(e);}
+  }
+  if(n.incidentId){
+    await openIncident(n.incidentId);
+    if(n.formId&&n.formType)openForm(n.formId,n.formType);
+  }
+}
+document.addEventListener('click',e=>{
+  const wrap=document.querySelector('.notif-wrap');
+  if(wrap&&!wrap.contains(e.target))$('notif-panel').classList.remove('show');
+});
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 /* بطاقة أرشيف موحّدة — نفس التصميم في القائمة الشخصية ولوحة الأدمن.
    opts.open/opts.actions تُمرَّر حسب السياق؛ التصميم والتقلص الديناميكي واحد في الحالتين. */
@@ -1459,7 +1591,9 @@ function archCard(i,actionsHTML,onOpen){
   const done=i.status==='completed';
   const isDraft=!i.deleted&&!done;
   const stClass=i.deleted?'st-deleted':(done?'st-done':'');
-  const nForms=(i.formsList||[]).length;
+  // يستثني النماذج قيد مراجعة الحذف لغير الأدمن — نفس منطق الفلترة المستخدم أصلاً
+  // بـrenderFormsList() كي يطابق العدد المعروض ما سيراه الضابط فعلاً عند فتح الحادثة
+  const nForms=(i.formsList||[]).filter(f=>currentUserData.isAdmin||!f.pendingDeletion).length;
   const excerpt=(i.descriptionExcerpt||'').trim();
   const cause=i.causeIndicator||'';
   // العناصر الاختيارية تُحذف بالكامل (هي وعناوينها) عند غياب البيانات ⇒ تقلص ديناميكي
@@ -1748,6 +1882,10 @@ async function removeForm(fid){
       deletionRequestedAt:firebase.firestore.FieldValue.serverTimestamp()
     });
   }catch(e){showLoading(false);console.error(e);showToast('تعذّر الحذف','error');return;}
+  // مزامنة علامة pendingDeletion على عنصر formsList بمستند الحادثة — هذا هو مصدر
+  // عدّاد "📎" على بطاقة الحادثة (archCard)؛ فشل هذه الخطوة لا يُعتبر فشل الحذف نفسه
+  // (الحذف الفعلي مكتوب أصلاً بـformData) — فقط عدّاد البطاقة قد يبقى غير محدَّث مؤقتاً.
+  try{ await setFormPendingFlagInList(incId,fid,true); }catch(e){ console.error(e); }
   showLoading(false);
   // لو كانت هناك نافذة تراجع مفتوحة لعنصر مختلف، اطوِها فقط (حذفه السابق يبقى
   // مثبَّتاً كما هو — لا علاقة له بهذا الحذف الجديد)
@@ -1780,6 +1918,7 @@ async function undoFormDelete(){
   showLoading(true,'جارٍ التراجع...');
   try{
     await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({pendingDeletion:false});
+    try{ await setFormPendingFlagInList(incId,fid,false); }catch(e){ console.error(e); }
     formHiddenIds.delete(fid);
     if(currentIncident&&currentIncident._id===incId) renderFormsList();
     showLoading(false);
@@ -1789,13 +1928,26 @@ async function undoFormDelete(){
     showToast('تعذّر التراجع — التقرير لا يزال محذوفاً','error');
   }
 }
+/* يحدّث علامة pendingDeletion على عنصر النموذج داخل formsList بمستند الحادثة —
+   هذا هو مصدر عدّاد "📎" على بطاقة الحادثة (archCard)، كي يستثني النماذج قيد
+   مراجعة الحذف دون أي قراءة إضافية عند رسم قائمة البطاقات. يبحث عن النسخة
+   المحلية المخزَّنة أياً كانت (شاشة الضابط الحالية أو قوائم الأرشيف المحمَّلة). */
+async function setFormPendingFlagInList(incId,fid,flag){
+  const inc=(currentIncident&&currentIncident._id===incId)?currentIncident
+    :(incidents.find(i=>i._id===incId)||adminIncs.find(i=>i._id===incId));
+  if(!inc||!inc.formsList)return;
+  const list=inc.formsList.map(f=>f.id===fid?{...f,pendingDeletion:flag}:f);
+  await db.collection('incidents').doc(incId).update({formsList:list});
+  inc.formsList=list;
+  if(currentIncident&&currentIncident._id===incId&&currentIncident!==inc)currentIncident.formsList=list;
+}
 
 /* ============================================================
    FORM RENDERER
    ============================================================ */
 async function openForm(fid,type){
   try{
-    currentForm={id:fid,type,createdBy:null,locked:false};
+    currentForm={id:fid,type,createdBy:null,locked:false,reopenActive:false};
     formValues={};sigData={};sigPaths={};
     const cfg=FORM_CONFIGS[type];
     $('form-ttl').innerHTML=cfg.label+' <span>| '+currentIncident.serialNum+'</span>';
@@ -1806,8 +1958,14 @@ async function openForm(fid,type){
         const d=doc.data();formValues=d.data||{};sigData=d.sigData||{};currentForm.createdBy=d.createdBy||null;
         // القفل يُحسب ديناميكياً من createdAt مقابل الوقت الحالي في كل فتح — لا اعتماد
         // على isLocked المخزَّن. نموذج بلا createdAt إطلاقاً (سابق لهذا التحديث) = غير مقفول.
+        // reopenActive:true يلغي القفل بلا حد زمني، لكن لصاحب النموذج (createdBy) حصراً —
+        // نفس قاعدة الأمان بالضبط؛ أي شخص آخر (حتى الأدمن) يبقى يرى النموذج مقفولاً
+        // بالواجهة لأن محاولة حفظه ستُرفَض فعلياً بقاعدة الأمان بكل الأحوال.
+        currentForm.reopenActive=!!d.reopenActive;
+        const isCreator=!!d.createdBy&&d.createdBy===currentUserData.militaryNum;
         const createdAt=d.createdAt?tsToDate(d.createdAt):null;
-        currentForm.locked=!!createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000);
+        const timeLocked=!!createdAt&&(Date.now()-createdAt.getTime()>24*3600*1000);
+        currentForm.locked=timeLocked&&!(currentForm.reopenActive&&isCreator);
       }
     }catch(e){console.error(e);}
     applyFormLockUI();
@@ -1826,6 +1984,58 @@ function applyFormLockUI(){
   $('fields-layer').classList.toggle('locked',currentForm.locked);
   $('btn-save-form').style.display=currentForm.locked?'none':'';
   $('form-lock-banner').style.display=currentForm.locked?'block':'none';
+  // زر "إعادة فتح" للأدمن حصراً، وفقط على نموذج مقفول فعلاً وغير مُعاد فتحه أصلاً
+  // (لا يمنح الأدمن نفسه أي صلاحية تعديل — فقط يتيح المتابعة للمنشئ الأصلي)
+  $('btn-reopen-form').style.display=(currentUserData.isAdmin&&currentForm.locked&&!currentForm.reopenActive)?'':'none';
+}
+function openReopenModal(){
+  $('reopen-reason').value='';
+  $('modal-reopen').classList.add('show');
+}
+/* يكتب reopenActive:true + عنصر جديد بـreopenHistory (إلحاق فقط) — قاعدة الأمان
+   تتحقق من أن هذا يمنح الصلاحية لمنشئ النموذج (createdBy) حصراً، وليس للأدمن نفسه. */
+async function confirmReopen(){
+  const reason=($('reopen-reason').value||'').trim();
+  if(!reason){showToast('السبب إلزامي','error');return;}
+  if(!currentForm||!currentIncident)return;
+  showLoading(true,'جارٍ إعادة الفتح...');
+  try{
+    const entry={
+      by:currentUserData.militaryNum,
+      reason,
+      at:firebase.firestore.Timestamp.now() // لا يمكن استخدام serverTimestamp() داخل arrayUnion
+    };
+    await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id).update({
+      reopenActive:true,
+      reopenHistory:firebase.firestore.FieldValue.arrayUnion(entry)
+    });
+    currentForm.reopenActive=true;
+    currentForm.locked=false;
+    // إشعار تلقائي لصاحب التقرير الأصلي — فشل هذه الخطوة لا يُلغي نجاح إعادة الفتح نفسها
+    if(currentForm.createdBy){
+      try{
+        await db.collection('notifications').add({
+          toMilitaryNum:currentForm.createdBy,
+          type:'reopen_request',
+          incidentId:currentIncident._id,
+          formId:currentForm.id,
+          formType:currentForm.type,
+          serialNum:currentIncident.serialNum,
+          reason,
+          by:currentUserData.militaryNum,
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+          read:false
+        });
+      }catch(e){console.error(e);}
+    }
+    closeModal('modal-reopen');
+    applyFormLockUI();
+    showLoading(false);
+    showToast('تمت إعادة الفتح — أصبح قابلاً للتعديل من صاحبه الأصلي فقط','ok');
+  }catch(e){
+    showLoading(false); console.error(e);
+    showToast('تعذّرت إعادة الفتح','error');
+  }
 }
 function autoPopulate(type){
   const d=tsToDate(currentIncident.createdAt);
@@ -2059,6 +2269,10 @@ async function saveForm(silent){
   // القفل التلقائي (٢٤ ساعة من createdAt) يُحسب ديناميكياً عند فتح النموذج (openForm) —
   // هذا الحارس يمنع محاولة الحفظ من الواجهة أصلاً؛ قاعدة أمان Firestore هي التطبيق الفعلي.
   if(currentForm.locked){showToast('هذا التقرير مقفول تلقائياً بعد مرور ٢٤ ساعة على إنشائه','error');return;}
+  // بعد إعادة الفتح: الحفظ الصريح (غير الصامت — ليس أتوسيف عند الرجوع/تصدير PDF)
+  // يقفل نهائياً وفوراً، فيُطلَب تأكيد صريح أولاً. الإلغاء يترك النموذج مفتوحاً كما هو.
+  const willRelock=!silent&&currentForm.reopenActive;
+  if(willRelock&&!confirm('هل أنت متأكد؟ الحفظ سيقفل هذا التقرير نهائياً.'))return;
   if(!silent)showLoading(true,'جارٍ الحفظ...');
   try{
     // createdBy/createdAt وحقول دورة الحياة (lockedAt/isLocked/reopenHistory/pendingDeletion)
@@ -2074,6 +2288,9 @@ async function saveForm(silent){
       payload.pendingDeletion=false;
       currentForm.createdBy=currentUserData.militaryNum;
     }
+    // إلغاء علامة "إعادة الفتح النشطة" ضمن نفس كتابة الحفظ — يعيد القفل فوراً
+    // ودائماً (formNotLocked يعود لتقييمه الطبيعي القائم على createdAt المنقضي أصلاً)
+    if(willRelock) payload.reopenActive=false;
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id)
       .set(payload,{merge:true});
     // فهرس البحث: كل القيم النصية لهذا النموذج
@@ -2092,7 +2309,12 @@ async function saveForm(silent){
     await db.collection('incidents').doc(currentIncident._id).update(upd);
     if(!currentIncident.searchByForm)currentIncident.searchByForm={};
     currentIncident.searchByForm[currentForm.id]=lbl+' '+blob;
-    if(!silent){showLoading(false);showToast('تم الحفظ','ok');}
+    if(willRelock){
+      currentForm.reopenActive=false;
+      currentForm.locked=true;
+      applyFormLockUI();
+    }
+    if(!silent){showLoading(false);showToast(willRelock?'تم الحفظ — أُقفل التقرير نهائياً':'تم الحفظ','ok');}
   }catch(e){if(!silent){showLoading(false);}showToast('تعذّر الحفظ','error');console.error(e);}
 }
 async function closeForm(){await saveForm(true);renderIncidentScreen();showScreen('incident-screen');}
@@ -2339,6 +2561,7 @@ async function adminRestoreForm(incId,fid){
   showLoading(true,'جارٍ الاسترجاع...');
   try{
     await db.collection('incidents').doc(incId).collection('formData').doc(fid).update({pendingDeletion:false});
+    try{ await setFormPendingFlagInList(incId,fid,false); }catch(e){ console.error(e); }
     adminPending=adminPending.filter(p=>!(p._incId===incId&&p._id===fid));
     renderAdminPending();refreshAdminStats();
     showLoading(false);showToast('تم استرجاع التقرير','ok');

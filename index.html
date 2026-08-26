@@ -2139,7 +2139,8 @@ async function confirmReopen(){
    بسيط عند العرض فقط، بلا أي كتابة إضافية). لا كتابة من هذه الشاشة إطلاقاً.
    ============================================================ */
 const EVENT_LABELS={
-  created:'إنشاء التقرير', updated:'حفظ/تعديل', locked:'قفل تلقائي',
+  created:'إنشاء التقرير', wa_fed:'تغذية تلقائية من تقرير الواتساب',
+  updated:'حفظ/تعديل', locked:'قفل تلقائي',
   delete_requested:'طلب حذف (ناعم)', delete_undone:'تراجع عن الحذف',
   admin_restored:'استرجاع من الأدمن', reopened:'إعادة فتح من الإدارة'
 };
@@ -2427,9 +2428,14 @@ async function saveForm(silent){
       payload.reopenHistory=[];
       payload.pendingDeletion=false;
       payload.lockLogged=false;
+      // الإنشاء يُسجَّل دائماً بغض النظر عن silent — هذا انتقال حالة حقيقي (أول
+      // كتابة فعلية للمستند)، وليس ضجيجاً ناتجاً عن حفظ تلقائي على مستند موجود أصلاً
       logEntries.push({type:'created',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()});
       currentForm.createdBy=currentUserData.militaryNum;
-    }else{
+    }else if(!silent){
+      // "حفظ/تعديل" يُسجَّل فقط عند ضغط زر "حفظ" الصريح — وليس الحفظ الصامت
+      // الجانبي (الرجوع عبر closeForm أو ما قبل تصدير PDF)، لتفادي إزعاج السجل
+      // بأحداث لا دلالة حقيقية لها
       logEntries.push({type:'updated',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()});
     }
     // إلغاء علامة "إعادة الفتح النشطة" ضمن نفس كتابة الحفظ — يعيد القفل فوراً
@@ -2439,7 +2445,7 @@ async function saveForm(silent){
       payload.lockLogged=true;
       logEntries.push({type:'locked',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now(),meta:'إعادة قفل بعد التعديل'});
     }
-    payload.eventLog=firebase.firestore.FieldValue.arrayUnion(...logEntries);
+    if(logEntries.length) payload.eventLog=firebase.firestore.FieldValue.arrayUnion(...logEntries);
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(currentForm.id)
       .set(payload,{merge:true});
     currentForm.eventLog=[...(currentForm.eventLog||[]),...logEntries];
@@ -3206,10 +3212,13 @@ async function waFeedTo(type){
   try{
     const inst={id:uid(),type};
     const list=[...(currentIncident.formsList||[]),inst];
+    // حدث إنشاء مختلف عن "created" العادي عمداً — يوثّق المصدر الفعلي (تغذية تلقائية
+    // من تقرير الواتساب)، وليس تعميماً لحدث إنشاء يدوي عادي عبر saveForm()
     await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(inst.id)
       .set({type,data,sigData:{},createdBy:currentUserData.militaryNum,
             createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-            lockedAt:null,isLocked:false,reopenHistory:[],pendingDeletion:false,
+            lockedAt:null,isLocked:false,reopenHistory:[],pendingDeletion:false,lockLogged:false,
+            eventLog:[{type:'wa_fed',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()}],
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
     await db.collection('incidents').doc(currentIncident._id).update({formsList:list});
     currentIncident.formsList=list;

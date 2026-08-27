@@ -2711,17 +2711,25 @@ async function openAdmin(){
     showScreen('admin-screen');
   }catch(e){showLoading(false);showToast('تعذّر التحميل','error');console.error(e);}
 }
-/* صندوق مراجعة الحذف: استعلام عبر كل الحوادث دفعة واحدة (collectionGroup) —
-   قد يتطلب أول مرة إنشاء فهرس من Firebase (رسالة الخطأ تتضمن رابطاً جاهزاً). */
+/* صندوق مراجعة الحذف: استعلام منفصل لكل حادثة (بدل collectionGroup واحد) — نفس
+   نمط المسار المتداخل incidents/{id}/formData المُثبَت عمله بكل مكان آخر بالتطبيق
+   (openIncident وغيرها)، لتفادي رفض Firestore لاستعلامات collectionGroup مع
+   قاعدة allow read التي تعتمد على get() عبر isAdmin() — تبيَّن عملياً أن هذا
+   التركيب يُرفَض بـ"Missing or insufficient permissions" على استعلامات القائمة
+   collectionGroup تحديداً رغم صحة القاعدة على المسار المباشر (لكل مستند بمفرده). */
 async function loadAdminPending(){
   try{
-    const snap=await db.collectionGroup('formData').where('pendingDeletion','==',true).get();
-    adminPending=snap.docs.map(d=>({_id:d.id,_incId:d.ref.parent.parent.id,...d.data()}));
+    const results=await Promise.all(adminIncs.map(async inc=>{
+      const snap=await db.collection('incidents').doc(inc._id).collection('formData')
+        .where('pendingDeletion','==',true).get();
+      return snap.docs.map(d=>({_id:d.id,_incId:inc._id,...d.data()}));
+    }));
+    adminPending=results.flat();
     adminPending.sort((a,b)=>tsToDate(b.deletionRequestedAt)-tsToDate(a.deletionRequestedAt));
   }catch(e){
     adminPending=[];
     console.error(e);
-    showToast('تعذّر تحميل صندوق مراجعة الحذف — راجع الكونسول (قد يلزم إنشاء فهرس Firestore)','error');
+    showToast('تعذّر تحميل صندوق مراجعة الحذف — راجع الكونسول','error');
   }
 }
 function renderAdminPending(){
@@ -2745,21 +2753,25 @@ function renderAdminPending(){
   }).join('');
 }
 /* نماذج معاد فتحها ولم تُحفَظ بعد — عرض فقط، بلا أي قفل/مؤقّت/منطق إضافي.
-   نفس أسلوب صندوق مراجعة الحذف تماماً (استعلام collectionGroup واحد). */
+   استعلام منفصل لكل حادثة (بدل collectionGroup) — نفس سبب التعديل بـloadAdminPending أعلاه. */
 async function loadAdminReopened(){
   try{
-    const snap=await db.collectionGroup('formData').where('reopenActive','==',true).get();
-    adminReopened=snap.docs.map(d=>{
-      const data=d.data();
-      const last=(data.reopenHistory||[])[((data.reopenHistory||[]).length-1)]||null;
-      return {_id:d.id,_incId:d.ref.parent.parent.id,...data,_lastReopen:last};
-    });
+    const results=await Promise.all(adminIncs.map(async inc=>{
+      const snap=await db.collection('incidents').doc(inc._id).collection('formData')
+        .where('reopenActive','==',true).get();
+      return snap.docs.map(d=>{
+        const data=d.data();
+        const last=(data.reopenHistory||[])[((data.reopenHistory||[]).length-1)]||null;
+        return {_id:d.id,_incId:inc._id,...data,_lastReopen:last};
+      });
+    }));
+    adminReopened=results.flat();
     // الأقدم أولاً (الأطول انتظاراً للتعديل بالأعلى)
     adminReopened.sort((a,b)=>tsToDate(a._lastReopen&&a._lastReopen.at)-tsToDate(b._lastReopen&&b._lastReopen.at));
   }catch(e){
     adminReopened=[];
     console.error(e);
-    showToast('تعذّر تحميل قائمة النماذج المعاد فتحها — راجع الكونسول (قد يلزم إنشاء فهرس Firestore)','error');
+    showToast('تعذّر تحميل قائمة النماذج المعاد فتحها — راجع الكونسول','error');
   }
 }
 function renderAdminReopened(){

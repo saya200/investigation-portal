@@ -711,6 +711,13 @@ tr:last-child td{border-bottom:none;}
       <tbody id="admin-pending"></tbody></table>
     </div>
 
+    <!-- عرض فقط (Read-only) — بلا أي قفل/مؤقّت/منطق إضافي، استعلام حالة حالية فقط -->
+    <div class="section-head"><h3>🔓 نماذج معاد فتحها <span id="a-reopened-count" style="opacity:.7"></span></h3></div>
+    <div class="tbl-wrap" style="margin-bottom:28px">
+      <table><thead><tr><th>النموذج</th><th>صاحبه</th><th>تاريخ إعادة الفتح</th><th>السبب</th></tr></thead>
+      <tbody id="admin-reopened"></tbody></table>
+    </div>
+
     <div class="section-head"><h3>👥 المستخدمون</h3></div>
     <div class="tbl-wrap">
       <table><thead><tr><th>الاسم</th><th>الرتبة</th><th>الرقم العسكري</th><th>الحوادث</th><th>صلاحية</th><th>إجراء</th></tr></thead>
@@ -2684,7 +2691,7 @@ function loadFormForExport(f){
 /* ============================================================
    ADMIN
    ============================================================ */
-let adminIncs=[], adminFilter='all', adminPending=[];
+let adminIncs=[], adminFilter='all', adminPending=[], adminReopened=[];
 async function openAdmin(){
   showLoading(true,'جارٍ تحميل الأرشيف...');
   try{
@@ -2694,9 +2701,11 @@ async function openAdmin(){
     adminIncs=all.docs.map(d=>({_id:d.id,...d.data()}));
     adminIncs.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
     await loadAdminPending();
+    await loadAdminReopened();
     refreshAdminStats();
     renderAdminIncs();
     renderAdminPending();
+    renderAdminReopened();
     renderAdminUsers();
     showLoading(false);
     showScreen('admin-screen');
@@ -2732,6 +2741,40 @@ function renderAdminPending(){
         <button class="btn btn-accent btn-sm" onclick="adminRestoreForm('${p._incId}','${p._id}')">↻ استرجاع</button>
         <button class="btn btn-danger btn-sm" onclick="adminHardDeleteForm('${p._incId}','${p._id}')">حذف نهائي</button>
       </div></td>
+    </tr>`;
+  }).join('');
+}
+/* نماذج معاد فتحها ولم تُحفَظ بعد — عرض فقط، بلا أي قفل/مؤقّت/منطق إضافي.
+   نفس أسلوب صندوق مراجعة الحذف تماماً (استعلام collectionGroup واحد). */
+async function loadAdminReopened(){
+  try{
+    const snap=await db.collectionGroup('formData').where('reopenActive','==',true).get();
+    adminReopened=snap.docs.map(d=>{
+      const data=d.data();
+      const last=(data.reopenHistory||[])[((data.reopenHistory||[]).length-1)]||null;
+      return {_id:d.id,_incId:d.ref.parent.parent.id,...data,_lastReopen:last};
+    });
+    // الأقدم أولاً (الأطول انتظاراً للتعديل بالأعلى)
+    adminReopened.sort((a,b)=>tsToDate(a._lastReopen&&a._lastReopen.at)-tsToDate(b._lastReopen&&b._lastReopen.at));
+  }catch(e){
+    adminReopened=[];
+    console.error(e);
+    showToast('تعذّر تحميل قائمة النماذج المعاد فتحها — راجع الكونسول (قد يلزم إنشاء فهرس Firestore)','error');
+  }
+}
+function renderAdminReopened(){
+  const t=$('admin-reopened');
+  $('a-reopened-count').textContent=adminReopened.length?'('+toAr(adminReopened.length)+')':'';
+  if(!adminReopened.length){t.innerHTML='<tr><td colspan="4">لا توجد نماذج معاد فتحها حالياً</td></tr>';return;}
+  t.innerHTML=adminReopened.map(r=>{
+    const cfg=FORM_CONFIGS[r.type];
+    const u=allUsers.find(x=>x.militaryNum===r.createdBy);
+    const who=u?esc(u.name)+' ('+esc(u.rank)+')':esc(r.createdBy||'—');
+    return `<tr>
+      <td>${cfg?cfg.label:r.type}</td>
+      <td>${who}</td>
+      <td>${r._lastReopen?fmtDate(r._lastReopen.at):'—'}</td>
+      <td>${r._lastReopen?esc(r._lastReopen.reason||'—'):'—'}</td>
     </tr>`;
   }).join('');
 }

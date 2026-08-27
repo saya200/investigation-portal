@@ -99,24 +99,36 @@ input,textarea{font-family:inherit;}
 /* الإشعارات — الحد الأدنى اللازم حالياً (نوع واحد فقط: طلب تعديل من الإدارة) */
 .notif-wrap{position:relative;flex-shrink:0;}
 .notif-btn{position:relative;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);
-  background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;
+  transition:transform .12s;}
+.notif-btn:active{transform:scale(.9);}
+/* السبب الجذري لعدم ظهور المؤشر سابقاً: كان يُتحكَّم به عبر style.display='' مباشرة
+   من JS، وهذا لا يُظهر العنصر أبداً لأن قاعدة .notif-badge نفسها display:none —
+   إفراغ الخاصية المضمَّنة يعيده لقاعدة الـCSS الافتراضية (none) لا يُظهره. الإصلاح:
+   نفس نمط .show المستخدم بكل مكان آخر بالموقع (toast/panel/modal) بدل inline style. */
 .notif-badge{display:none;position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;
   box-sizing:border-box;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;
   line-height:17px;text-align:center;}
-.notif-panel{display:none;position:absolute;top:100%;left:0;margin-top:8px;width:320px;max-width:88vw;
+.notif-badge.show{display:flex;align-items:center;justify-content:center;animation:notifPop .22s ease;}
+@keyframes notifPop{0%{transform:scale(0);}70%{transform:scale(1.18);}100%{transform:scale(1);}}
+.notif-panel{position:absolute;top:100%;left:0;margin-top:8px;width:320px;max-width:88vw;
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
-  z-index:300;max-height:70vh;overflow-y:auto;}
-.notif-panel.show{display:block;}
+  z-index:300;max-height:70vh;overflow-y:auto;
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .15s ease,transform .15s ease,visibility .15s;}
+.notif-panel.show{opacity:1;visibility:visible;transform:translateY(0);}
 .notif-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;
   border-bottom:1px solid var(--border);}
 .notif-head h4{font-size:14px;font-weight:800;color:var(--primary);margin:0;}
 .notif-markall{background:none;border:none;padding:0;cursor:pointer;font-family:inherit;font-size:11.5px;
-  font-weight:700;color:var(--primary);text-decoration:underline;}
+  font-weight:700;color:var(--primary);text-decoration:underline;transition:transform .12s;}
+.notif-markall:active{transform:scale(.94);}
 .notif-item{cursor:pointer;padding:11px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;
-  align-items:flex-start;transition:.12s;}
+  align-items:flex-start;transition:background .3s ease;}
 .notif-item:hover{background:var(--bg);}
-.notif-item.unread{background:rgba(13,79,60,.05);}
-.notif-item-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0;}
+.notif-item.unread{background:rgba(13,79,60,.09);}
+.notif-item-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0;
+  transition:opacity .3s ease,transform .3s ease;}
+.notif-item:not(.unread) .notif-item-dot{opacity:0;transform:scale(0);}
 .notif-item-title{font-size:13px;font-weight:700;line-height:1.5;}
 .notif-item-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
 .notif-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;}
@@ -1564,8 +1576,8 @@ async function loadNotifications(){
 }
 function updateNotifBadge(){
   const b=$('notif-badge');
-  if(notifUnread>0){b.textContent=toAr(notifUnread);b.style.display='';}
-  else{b.style.display='none';}
+  b.textContent=notifUnread>0?toAr(notifUnread):'';
+  b.classList.toggle('show',notifUnread>0);
 }
 function toggleNotifPanel(){
   const open=$('notif-panel').classList.toggle('show');
@@ -2107,27 +2119,37 @@ async function confirmReopen(){
     currentForm.reopenActive=true;
     currentForm.locked=false;
     currentForm.reopenHistory=[...(currentForm.reopenHistory||[]),entry];
-    // إشعار تلقائي لصاحب التقرير الأصلي — فشل هذه الخطوة لا يُلغي نجاح إعادة الفتح نفسها
+    // إشعار تلقائي لصاحب التقرير الأصلي — فشل هذه الخطوة لا يُلغي نجاح إعادة الفتح نفسها،
+    // لكن الفشل يُسجَّل بوضوح (console.error مفصّل) ويُعرَض للأدمن بصياغة الرسالة النهائية
+    // بدل أن يمر بصمت تماماً — راجع البرومبت المرتبط لمعرفة سبب فشل فعلي مُكتشَف سابقاً
+    let notifyFailed=false;
     if(currentForm.createdBy){
+      const notifPayload={
+        toMilitaryNum:currentForm.createdBy,
+        type:'reopen_request',
+        incidentId:currentIncident._id,
+        formId:currentForm.id,
+        formType:currentForm.type,
+        serialNum:currentIncident.serialNum,
+        reason,
+        by:currentUserData.militaryNum,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        read:false
+      };
       try{
-        await db.collection('notifications').add({
-          toMilitaryNum:currentForm.createdBy,
-          type:'reopen_request',
-          incidentId:currentIncident._id,
-          formId:currentForm.id,
-          formType:currentForm.type,
-          serialNum:currentIncident.serialNum,
-          reason,
-          by:currentUserData.militaryNum,
-          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          read:false
-        });
-      }catch(e){console.error(e);}
+        await db.collection('notifications').add(notifPayload);
+      }catch(e){
+        notifyFailed=true;
+        console.error('[confirmReopen] فشل إرسال إشعار إعادة الفتح — الحدث الأساسي (reopenHistory) نجح رغم ذلك.',
+          {code:e&&e.code, message:e&&e.message, payload:notifPayload});
+      }
     }
     closeModal('modal-reopen');
     applyFormLockUI();
     showLoading(false);
-    showToast('تمت إعادة الفتح — أصبح قابلاً للتعديل من صاحبه الأصلي فقط','ok');
+    showToast(notifyFailed
+      ?'تمت إعادة الفتح — لكن تعذّر إرسال إشعار للضابط (راجع الكونسول)'
+      :'تمت إعادة الفتح — أصبح قابلاً للتعديل من صاحبه الأصلي فقط','ok');
   }catch(e){
     showLoading(false); console.error(e);
     showToast('تعذّرت إعادة الفتح','error');

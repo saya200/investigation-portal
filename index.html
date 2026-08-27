@@ -425,12 +425,15 @@ input,textarea{font-family:inherit;}
   z-index:500;transition:.3s;max-width:90vw;text-align:center;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 #toast.ok{background:var(--ok);} #toast.error{background:var(--danger);}
-/* إشعار "تراجع" — منفصل عن #toast العام لأنه يحتاج مدة ١٠ ثوانٍ وزراً مضمَّناً */
-#undo-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);
+/* إشعار "تراجع" — منفصل عن #toast العام لأنه يحتاج مدة ١٠ ثوانٍ وزراً مضمَّناً.
+   class عامة (وليست معرِّفاً واحداً) كي يعاد استخدام نفس التصميم/السلوك لتراجع
+   حذف الحادثة الكاملة أيضاً — عنصر DOM وحالة JS منفصلان تماماً عن تراجع النموذج
+   الفردي (قرار واعٍ بإبقاء نظامي الحماية منفصلين، مذكور بالبرومبت). */
+.undo-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);
   background:var(--text);color:#fff;padding:11px 12px 11px 20px;border-radius:11px;font-size:14px;font-weight:700;
   z-index:500;transition:.3s;max-width:90vw;display:flex;align-items:center;gap:14px;}
-#undo-toast.show{transform:translateX(-50%) translateY(0);}
-#undo-toast .u-undo{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;
+.undo-toast.show{transform:translateX(-50%) translateY(0);}
+.undo-toast .u-undo{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;
   font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;flex-shrink:0;}
 #loading{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:600;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
 #loading.show{display:flex;}
@@ -998,9 +1001,14 @@ tr:last-child td{border-bottom:none;}
 </div>
 
 <div id="toast"></div>
-<div id="undo-toast">
+<div class="undo-toast" id="undo-toast">
   <span id="undo-toast-text">تم حذف التقرير</span>
   <button class="u-undo" onclick="undoFormDelete()">تراجع</button>
+</div>
+<!-- توست تراجع مستقل تماماً لحذف الحادثة الكاملة — منفصل عن توست النموذج أعلاه -->
+<div class="undo-toast" id="undo-toast-inc">
+  <span id="undo-toast-inc-text">تم حذف الحادثة</span>
+  <button class="u-undo" onclick="undoIncidentDelete()">تراجع</button>
 </div>
 <div id="loading"><div class="spinner"></div><p id="loading-txt">جارٍ التحميل...</p></div>
 
@@ -1454,12 +1462,39 @@ function uid(){return 'f'+Date.now()+Math.floor(Math.random()*9000+1000);}
    FIREBASE INIT
    ============================================================ */
 function isConfigured(){const f=CONFIG.firebase;return f.apiKey&&!f.apiKey.includes('ENTER_')&&f.projectId&&!f.projectId.includes('ENTER_');}
+/* تصحيح أمني عاجل — تسريب بيانات حساب سابق عند تبديل الحساب بلا تحديث كامل
+   للصفحة: لا شيء سابقاً كان يصفّر currentIncident/currentForm/formValues/
+   incidents/adminIncs/... عند تسجيل الخروج أو عند دخول حساب مختلف، فتبقى شاشة
+   أو نموذج الحساب السابق (بما فيه زر "حفظ" فعّالاً) معروضاً وقابلاً للتفاعل
+   حتى تكتمل جلب بيانات الحساب الجديد. الإصلاح: تصفير فوري تام لكل الحالة
+   المحلية، مع تفريغ حاويات DOM المعروضة مباشرة (وليس الاعتماد فقط على إعادة
+   رسم لاحقة)، في أول سطر من مستمع onAuthStateChanged — قبل أي جلب بيانات
+   للحساب الجديد وقبل أي فرصة لعرضها. */
+function resetAppState(){
+  currentUserData=null;
+  incidents=[]; currentIncident=null;
+  currentForm=null; formValues={}; sigData={}; sigPaths={};
+  adminIncs=[]; adminPending=[]; adminReopened=[]; allUsers=[];
+  myNotifications=[]; notifUnread=0;
+  formHiddenIds.clear();
+  clearTimeout(formUndoTimer); formUndoFid=null; formUndoIncId=null;
+  clearTimeout(incUndoTimer); incUndoId=null;
+  const list=$('inc-list'); if(list) list.innerHTML='';
+  const forms=$('forms-list'); if(forms) forms.innerHTML='';
+  const notifList=$('notif-list'); if(notifList) notifList.innerHTML='';
+  const dashUser=$('dash-user'); if(dashUser) dashUser.innerHTML='—<span>—</span>';
+  updateNotifBadge();
+}
 function initFirebase(){
   if(!isConfigured()){$('config-warn').style.display='block';showScreen('login-screen');return;}
   try{
     firebase.initializeApp(CONFIG.firebase);
     auth=firebase.auth(); db=firebase.firestore();
     auth.onAuthStateChanged(async u=>{
+      // أول سطر بلا استثناء: امسح أي بيانات حساب سابق فوراً قبل أي شيء آخر —
+      // يشمل هذا حالة الدخول بحساب جديد بعد خروج بلا تحديث صفحة كاملة
+      resetAppState();
+      showLoading(true,'جارٍ التحقق من الجلسة...');
       if(u){
         currentUser=u;
         let permErr=false;
@@ -1468,15 +1503,19 @@ function initFirebase(){
           currentUserData=doc.exists?doc.data():null;
         }catch(e){console.error(e);permErr=(e&&e.code==='permission-denied');}
         if(!currentUserData){
+          showLoading(false);
           await auth.signOut();
           showScreen('login-screen');
           if(permErr) showAlert('قاعدة البيانات ترفض الوصول — لم تُنشر قواعد Firestore بعد. راجع الخطوات.');
           else showAlert('لا يوجد ملف لهذا الحساب. أنشئ حساباً جديداً بالرقم العسكري.');
           return;
         }
-        enterApp();
+        await enterApp();
+        showLoading(false);
       }else{
-        currentUser=null;currentUserData=null;showScreen('login-screen');
+        currentUser=null;
+        showLoading(false);
+        showScreen('login-screen');
       }
     });
   }catch(e){console.error(e);showAlert('خطأ في الاتصال بقاعدة البيانات');showScreen('login-screen');}
@@ -1501,7 +1540,10 @@ async function doLogin(){
   showLoading(true,'جارٍ تسجيل الدخول...');
   try{
     await auth.signInWithEmailAndPassword(emailOf(num),pass);
-    showLoading(false);
+    // لا نُخفي شاشة التحميل هنا عمداً — نجاح signInWithEmailAndPassword لا يعني
+    // اكتمال onAuthStateChanged (جلب بيانات الحساب الجديد + enterApp) بعد؛ إخفاؤها
+    // هنا كان يكشف لحظياً شاشة الحساب السابق قبل اكتمال التبديل الفعلي (الثغرة
+    // الأمنية المُصحَّحة). المستمع نفسه (initFirebase) هو من يُخفيها عند الانتهاء.
   }catch(e){
     showLoading(false);
     showAlert(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found'
@@ -1524,8 +1566,9 @@ async function doRegister(){
       isAdmin:num===CONFIG.adminMilitaryNum,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-    currentUserData={name,rank,militaryNum:num,isAdmin:num===CONFIG.adminMilitaryNum};
-    showLoading(false);
+    // لا نُخفي شاشة التحميل هنا عمداً — نفس سبب doLogin(): onAuthStateChanged
+    // (الذي يُطلقه createUserWithEmailAndPassword أيضاً) هو من يُخفيها بعد اكتمال
+    // resetAppState()+enterApp() الكامل، لا قبل ذلك.
   }catch(e){
     showLoading(false);console.error(e);
     // إذا نجحت المصادقة وفشلت كتابة الملف (قواعد مرفوضة) — احذف الحساب اليتيم لتتمكن من إعادة المحاولة
@@ -1541,7 +1584,14 @@ async function doRegister(){
       :'تعذّر إنشاء الحساب');
   }
 }
-function doLogout(){auth.signOut();}
+function doLogout(){
+  // تصفير فوري ومتزامن قبل استدعاء signOut() نفسه — طبقة حماية إضافية تغطي
+  // الفجوة الزمنية بين الضغط على الزر واكتمال onAuthStateChanged(null) لاحقاً؛
+  // resetAppState() سيُستدعى مرة أخرى هناك بأي حال (غير ضار، عملية آمنة للتكرار)
+  resetAppState();
+  showScreen('login-screen');
+  auth.signOut();
+}
 
 /* ============================================================
    APP ENTRY
@@ -1887,21 +1937,66 @@ async function toggleStatus(){
     showToast(ns==='completed'?'تم إنهاء التحقيق':'أُعيدت للتحرير','ok');
   }catch(e){showLoading(false);showToast('تعذّر التحديث','error');}
 }
+/* حذف الحادثة الكاملة: رسالة توحي بحذف نهائي (بلا أي إشارة للاستعادة، كما هو
+   الحال بحذف النموذج الفردي) + كتابة فورية لـdeleted:true + نافذة تراجع ١٠ ثوانٍ.
+   نظام تراجع مستقل تماماً (عنصر DOM وحالة JS منفصلان) عن تراجع حذف النموذج
+   الفردي — قرار واعٍ بإبقاء نظامي الحماية منفصلين رغم تطابق التجربة الظاهرة. */
+let incUndoId=null, incUndoTimer=null;
 async function deleteIncident(){
-  if(!confirm('نقل الحادثة إلى المحذوفات؟\nيمكن للأدمن استعادتها لاحقاً.'))return;
-  showLoading(true,'جارٍ النقل...');
+  if(!confirm('هل أنت متأكد من حذف هذه الحادثة؟\nلا يمكن التراجع.'))return;
+  const id=currentIncident._id;
+  showLoading(true,'جارٍ الحذف...');
   try{
-    await db.collection('incidents').doc(currentIncident._id).update({
+    // الكتابة فورية عند التأكيد — بنفس فلسفة الحذف الفوري بالنموذج الفردي
+    await db.collection('incidents').doc(id).update({
       deleted:true,
       deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
       deletedBy:currentUserData.militaryNum
     });
-    incidents=incidents.filter(i=>i._id!==currentIncident._id);
-    showLoading(false);showToast('نُقلت إلى المحذوفات','ok');
-    backToDash();
   }catch(e){
     showLoading(false);
     showToast(e&&e.code==='permission-denied'?'حذف الحادثة متاح فقط لمالكها الأصلي':'تعذّر الحذف','error');
+    return;
+  }
+  incidents=incidents.filter(i=>i._id!==id);
+  showLoading(false);
+  backToDash();
+  showIncUndoToast(id);
+}
+function showIncUndoToast(id){
+  clearTimeout(incUndoTimer);
+  incUndoId=id;
+  $('undo-toast-inc').classList.add('show');
+  // بعد ١٠ ثوانٍ بلا تراجع: لا كتابة إضافية مطلوبة — الحذف مثبَّت أصلاً منذ لحظة
+  // التأكيد؛ فقط نطوي التوست محلياً (يبقى صحيحاً حتى لو أُغلق المتصفح قبل ذلك).
+  incUndoTimer=setTimeout(dismissIncUndoToast,10000);
+}
+function dismissIncUndoToast(){
+  clearTimeout(incUndoTimer);
+  $('undo-toast-inc').classList.remove('show');
+  incUndoId=null;
+}
+/* التراجع: كتابة فورية معاكسة (deleted:false)، ثم جلب المستند وإعادته لقائمة
+   الضابط المحلية كي يظهر فوراً بلوحة "الحوادث" دون انتظار إعادة تحميل كاملة */
+async function undoIncidentDelete(){
+  const id=incUndoId;
+  dismissIncUndoToast();
+  if(!id)return;
+  showLoading(true,'جارٍ التراجع...');
+  try{
+    await db.collection('incidents').doc(id).update({deleted:false});
+    const doc=await db.collection('incidents').doc(id).get();
+    if(doc.exists){
+      const full={_id:doc.id,...doc.data()};
+      const idx=incidents.findIndex(i=>i._id===id);
+      if(idx>=0) incidents[idx]=full; else incidents.unshift(full);
+      renderIncidents();
+    }
+    showLoading(false);
+    showToast('تم التراجع عن الحذف','ok');
+  }catch(e){
+    showLoading(false); console.error(e);
+    showToast('تعذّر التراجع — الحادثة لا تزال محذوفة','error');
   }
 }
 
@@ -2865,7 +2960,9 @@ function renderAdminIncs(){
   t.innerHTML=`<div class="arch-grid ${archView==='list'?'list-mode':''}">`+list.map(i=>{
     const actions = i.deleted
       ? `<button class="btn btn-accent btn-sm" onclick="adminRestoreInc('${i._id}')">↻ استعادة</button>`+
-        `<button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">عرض</button>`
+        `<button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">عرض</button>`+
+        // زر مستقل بمكانه هنا فقط — بلا أي دمج مع صندوق مراجعة حذف النماذج الفردية
+        `<button class="btn btn-danger btn-sm" onclick="adminHardDeleteInc('${i._id}')">حذف نهائي</button>`
       : `<button class="btn btn-primary btn-sm" onclick="adminOpen('${i._id}')">فتح</button>`+
         `<button class="btn btn-primary btn-sm" style="background:var(--accent)" onclick="exportIncidentPDF('${i._id}')">📄</button>`+
         `<button class="btn btn-danger btn-sm" onclick="adminDeleteInc('${i._id}')">حذف</button>`;
@@ -2935,6 +3032,28 @@ async function adminRestoreInc(id){
     renderAdminIncs();renderAdminUsers();
     showLoading(false);showToast('تمت الاستعادة','ok');
   }catch(e){showLoading(false);showToast('تعذّر الاستعادة','error');console.error(e);}
+}
+/* حذف نهائي للحادثة الكاملة — زر مستقل داخل سلة المحذوفات فقط، بلا أي علاقة
+   بصندوق مراجعة حذف النماذج الفردية (نظامان منفصلان بقرار واعٍ). يشمل حذف كل
+   مستندات formData التابعة (وإلا تبقى يتيمة بلا داعٍ بعد حذف الحادثة الأب نهائياً) —
+   لا يحذف مستند ticketIndex المقابل لأن قاعدته الحالية تمنع الحذف بشكل قاطع
+   (allow delete: if false) بصرف النظر عن صلاحية الأدمن؛ هذا قيد قائم مسبقاً لم يتغيّر. */
+async function adminHardDeleteInc(id){
+  const inc=adminIncs.find(i=>i._id===id);
+  if(!confirm(`حذف الحادثة ${inc?inc.serialNum:''} نهائياً؟\nسيُحذف معها كل نماذجها. لا يمكن التراجع عن هذا الإجراء إطلاقاً.`))return;
+  showLoading(true,'جارٍ الحذف النهائي...');
+  try{
+    const formsSnap=await db.collection('incidents').doc(id).collection('formData').get();
+    const batch=db.batch();
+    formsSnap.docs.forEach(d=>batch.delete(d.ref));
+    batch.delete(db.collection('incidents').doc(id));
+    await batch.commit();
+    adminIncs=adminIncs.filter(i=>i._id!==id);
+    incidents=incidents.filter(i=>i._id!==id);
+    refreshAdminStats();
+    renderAdminIncs();renderAdminUsers();
+    showLoading(false);showToast('تم الحذف النهائي','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الحذف النهائي','error');console.error(e);}
 }
 async function adminToggleRole(uid,makeAdmin){
   if(!confirm(makeAdmin?'منح صلاحية الأدمن لهذا المستخدم؟':'إلغاء صلاحية الأدمن؟'))return;

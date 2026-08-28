@@ -3545,31 +3545,17 @@ async function niAutoCheck(){
 }
 /* الربط فوري وإجباري بمجرد التطابق (تلقائياً أو يدوياً) — لا خيار تجاهل.
    تحديث مضبوط النطاق فقط (participants/participantIds) طبقاً لقاعدة الأمان.
-   تصحيح جذري: سجل ticketIndex غير قابل للحذف عمداً (allow delete: if false)،
-   فحادثة محذوفة نهائياً تترك سجلاً "يتيماً" يشير لمستند لم يعد موجوداً. قبل هذا
-   التصحيح، كانت محاولة update() على مستند غير موجود تفشل بخطأ NOT_FOUND، تُعرَض
-   كرسالة "تعذّر إتمام الربط" مضلِّلة (توحي بمشكلة قواعد أمان وليست بالفعل)،
-   ويستمر الضابط لإنشاء حادثة جديدة فتتراكم عدة حوادث بنفس رقم التذكرة. الحل:
-   التحقق من وجود الحادثة فعلياً أولاً؛ سجل يتيم = لا تطابق حقيقي، يُتجاهَل بصمت
-   ليكمل تدفّق الإنشاء العادي طبيعياً دون أي رسالة خطأ مربكة. */
+   تصحيح جذري: سجل ticketIndex غير قابل بالحذف من الضابط عمداً (allow delete: if
+   isAdmin() فقط)، فحادثة نُسيت من الحذف النهائي (نادراً) قد تترك سجلاً "يتيماً"
+   يشير لمستند لم يعد موجوداً. محاولة .update() على مستند غير موجود تفشل بخطأ
+   Firestore بكود 'not-found' — نميّزه صراحة عن أي خطأ آخر (صلاحيات، شبكة) لنُعامله
+   كـ"لا تطابق حقيقي" صامت، لا كرسالة خطأ مضلِّلة، فيكمل الضابط لإنشاء حادثة عادية.
+   تنبيه: لا تستبدل هذا بـ.get() استباقي على incidents قبل .update() — الضابط
+   المنضم لتذكرة ليس بعد مالكاً/مشاركاً/أدمن، فقاعدة allow read ترفض قراءته المباشرة
+   (جُرِّب هذا فعلياً وسبَّب permission-denied)؛ أما .update() فمسموح عبر فرع "انضمام
+   لتذكرة" المضبوط النطاق في القاعدة بغضّ النظر عن صلاحية القراءة. */
 async function niJoinTicket(incId,isAuto){
   if(niMatched)return 'busy';
-  showLoading(true,'جارٍ التحقق من التذكرة...');
-  let preDoc;
-  try{
-    preDoc=await db.collection('incidents').doc(incId).get();
-  }catch(e){
-    showLoading(false); console.error(e);
-    showToast('تعذّر التحقق من التذكرة — تأكد من نشر قواعد أمان Firestore المحدَّثة','error');
-    return 'error';
-  }
-  if(!preDoc.exists){
-    // سجل ticketIndex يتيم (يشير لحادثة محذوفة نهائياً) — لا تطابق فعلياً؛ الفحص
-    // التلقائي (niAutoCheck) يتجاهل هذا صامتاً، بينما الفحص اليدوي (niManualSearch)
-    // يعرض رسالة واضحة بالاعتماد على القيمة المُعادة هنا
-    showLoading(false);
-    return 'orphaned';
-  }
   niMatched=true; niStopScan(); clearTimeout(niAutoTimer);
   const role=currentUserData.rank||''; // يُسحب صمتاً من بروفايل الضابط، بلا أي حقل إدخال يدوي
   showLoading(true,'جارٍ الربط...');
@@ -3601,6 +3587,10 @@ async function niJoinTicket(incId,isAuto){
     return 'ok';
   }catch(e){
     niMatched=false; showLoading(false); console.error(e);
+    // كود Firestore 'not-found' يعني تحديداً أن مستند الحادثة غير موجود إطلاقاً
+    // (سجل ticketIndex يتيم) — وليس مشكلة صلاحيات أو شبكة. نُعامله كـ"لا تطابق
+    // حقيقي" صامت (نفس عقد القيمة المُعادة السابق)، لا كخطأ يُعرَض بشكل مربك.
+    if(e.code==='not-found') return 'orphaned';
     showToast('تعذّر إتمام الربط — تأكد من نشر قواعد أمان Firestore المحدَّثة','error');
     return 'error';
   }

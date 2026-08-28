@@ -1603,13 +1603,30 @@ async function enterApp(){
   loadNotifications();
   showScreen('dash-screen');
 }
+/* تصحيح عاجل: كانت القائمة الرئيسية تُحمَّل بشرط officerMilitaryNum==myMil() فقط،
+   فتُخفي عن الضابط أي حادثة هو مشارك (participant) فيها لا مالك أصلي لها — رغم أن
+   قاعدة الأمان (allow read) تسمح بقراءتها أصلاً عبر نفس الشرطين معاً. Firestore لا
+   يدعم OR بين حقلين مختلفين (== على officerMilitaryNum و array-contains على
+   participantIds) بنفس الاستعلام، فننفّذ استعلامين منفصلين ونُدمج النتائج محلياً
+   مع إزالة التكرار (حادثة قد يكون صاحبها مشاركاً بنفسه أيضاً بحقل participantIds). */
 async function loadIncidents(){
   showLoading(true,'جارٍ تحميل الحوادث...');
   try{
-    let q=db.collection('incidents');
-    if(!currentUserData.isAdmin) q=q.where('officerMilitaryNum','==',currentUserData.militaryNum);
-    const snap=await q.get();
-    incidents=snap.docs.map(d=>({_id:d.id,...d.data()})).filter(i=>!i.deleted);
+    let docs;
+    if(currentUserData.isAdmin){
+      docs=(await db.collection('incidents').get()).docs;
+    }else{
+      const mil=currentUserData.militaryNum;
+      const [ownedSnap,participantSnap]=await Promise.all([
+        db.collection('incidents').where('officerMilitaryNum','==',mil).get(),
+        db.collection('incidents').where('participantIds','array-contains',mil).get()
+      ]);
+      const byId=new Map();
+      ownedSnap.docs.forEach(d=>byId.set(d.id,d));
+      participantSnap.docs.forEach(d=>byId.set(d.id,d));
+      docs=[...byId.values()];
+    }
+    incidents=docs.map(d=>({_id:d.id,...d.data()})).filter(i=>!i.deleted);
     incidents.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
   }catch(e){console.error(e);showToast('تعذّر تحميل الحوادث','error');}
   showLoading(false);

@@ -2329,13 +2329,13 @@ const EVENT_LABELS={
   updated:'حفظ/تعديل', locked:'قفل تلقائي',
   delete_requested:'طلب حذف (ناعم)', delete_undone:'تراجع عن الحذف',
   admin_restored:'استرجاع من الأدمن', reopened:'إعادة فتح من الإدارة',
-  exported:'تصدير PDF'
+  exported:'تصدير PDF', exported_incident:'تصدير الحادثة كاملة'
 };
 // تصنيف كل نوع حدث تحت أحد فلاتر الواجهة الثلاثة (export/sign/edit).
 const EVENT_CATEGORY={
   created:'edit', wa_fed:'edit', updated:'edit', locked:'edit',
   delete_requested:'edit', delete_undone:'edit', admin_restored:'edit', reopened:'edit',
-  exported:'export'
+  exported:'export', exported_incident:'export'
 };
 let incTimelineFilter='all';
 // مطوي افتراضياً عند كل فتح لشاشة تفاصيل الحادثة (يُعاد ضبطه صراحة من openIncident)
@@ -2355,6 +2355,10 @@ function buildIncidentTimeline(){
     (fd.eventLog||[]).forEach(e=>items.push({...e,formLabel}));
     (fd.reopenHistory||[]).forEach(e=>items.push({type:'reopened',by:e.by,at:e.at,reason:e.reason,formLabel}));
   });
+  // أحداث مستوى الحادثة الكاملة (حالياً: تصدير الحادثة كاملة فقط) — مخزَّنة بحقل
+  // incidentEventLog على مستند الحادثة نفسها، منفصل تماماً عن eventLog كل نموذج؛
+  // تُوسَم بـ"الحادثة كاملة" بدل اسم نموذج محدَّد لتمييزها بوضوح بالقائمة الموحّدة.
+  (currentIncident.incidentEventLog||[]).forEach(e=>items.push({...e,formLabel:'الحادثة كاملة'}));
   items.sort((a,b)=>tsToDate(b.at)-tsToDate(a.at));
   return items;
 }
@@ -2858,6 +2862,20 @@ async function exportFormPDF(){
     showLoading(false);showToast('تم التصدير','ok');
   }catch(e){showLoading(false);showToast('تعذّر التصدير','error');console.error(e);}
 }
+/* تسجيل حدث "تصدير الحادثة كاملة" — منفصل تماماً عن eventLog الخاص بكل نموذج
+   فردي؛ يُكتب بحقل incidentEventLog على مستند الحادثة نفسها (incidents/{incId})
+   وليس formData، لأنه لا يخص نموذجاً بعينه بل الملف المُجمَّع (كل النماذج معاً).
+   فشل هذه الكتابة لا يُفشل التصدير نفسه — الملف صُدِّر بنجاح فعلياً بغض النظر؛
+   يُسجَّل بـconsole فقط. */
+async function logIncidentExportEvent(inc,hash){
+  try{
+    const entry={type:'exported_incident',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now(),hash};
+    await db.collection('incidents').doc(inc._id).update({
+      incidentEventLog:firebase.firestore.FieldValue.arrayUnion(entry)
+    });
+    inc.incidentEventLog=[...(inc.incidentEventLog||[]),entry];
+  }catch(e){console.error('[logIncidentExportEvent] فشل تسجيل حدث تصدير الحادثة كاملة بسجل الحركة — الملف صُدِّر بنجاح رغم ذلك.',e);}
+}
 async function exportIncidentPDF(incId){
   const inc=incId?(incidents.find(i=>i._id===incId)||adminIncs.find(i=>i._id===incId)):currentIncident;
   if(!inc){showToast('الحادثة غير موجودة','error');return;}
@@ -2884,12 +2902,19 @@ async function exportIncidentPDF(incId){
       const w=canvas.width*r,h=canvas.height*r;
       pdf.addImage(canvas.toDataURL('image/jpeg',0.9),'JPEG',(pw-w)/2,(ph-h)/2,w,h);
     }
+    // بصمة SHA-256 من محتوى ملف الحادثة كاملة (كل الصفحات معاً) — بنفس آلية
+    // exportFormPDF()، تُسجَّل كحدث مستقل بمستوى الحادثة (انظر logIncidentExportEvent
+    // أعلاه)، لا داخل eventLog أي نموذج فردي. لا تعديل على منطق بناء الصفحات نفسه.
+    const hash=await sha256Hex(pdf.output('arraybuffer'));
     pdf.save(`${inc.serialNum}_كامل.pdf`);
+    await logIncidentExportEvent(inc,hash);
     showLoading(false);showToast('تم تصدير الحادثة كاملة','ok');
   }catch(e){showLoading(false);showToast('تعذّر التصدير','error');console.error(e);}
   $('form-screen').classList.remove('active');
   if(activeScreen)activeScreen.classList.add('active');
   currentIncident=prevInc;currentForm=prevForm;formValues=pV;sigData=pS;sigPaths=pP;zoom=pZ;
+  // تحديث فوري للقسم إن كانت شاشة تفاصيل نفس الحادثة مفتوحة أصلاً وقت التصدير
+  if(currentIncident&&currentIncident._id===inc._id&&$('incident-screen').classList.contains('active')) renderIncidentTimeline();
 }
 function loadFormForExport(f){
   return new Promise(async(resolve)=>{

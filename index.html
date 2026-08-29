@@ -139,6 +139,9 @@ input,textarea{font-family:inherit;}
 .tl-title{font-size:13.5px;font-weight:700;}
 .tl-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
 .tl-reason{font-size:12px;color:var(--text);margin-top:4px;background:var(--bg);padding:6px 9px;border-radius:8px;}
+/* بصمة PDF: نص خام بلا أي تنسيق زخرفي — فقط حجم/لون متجانس مع بقية الميتاداتا،
+   وword-break ضروري وظيفياً (سلسلة hex طويلة بلا فراغات لا تلتف تلقائياً) */
+.tl-hash{font-size:11px;color:var(--muted);margin-top:3px;word-break:break-all;}
 /* سجل حركة الحادث الموحّد (مستوى الحادثة الكاملة — يجمع كل النماذج معاً) */
 .tl-beta-badge{background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.3px;}
 .tl-count{font-size:13px;color:var(--muted);font-weight:600;}
@@ -2317,23 +2320,22 @@ async function confirmReopen(){
    (محمَّلة أصلاً مرة واحدة بـ openIncident() ضمن currentIncident._formsData،
    بلا أي استعلام إضافي منفصل هنا)، ويعرضها كقسم دائم بشاشة تفاصيل الحادثة —
    لا نافذة منبثقة، ولا كتابة من هذه الشاشة إطلاقاً (سجل للقراءة فقط).
-   تنبيه صادق: فلترا "تصدير"/"توقيع" جاهزان بالواجهة (حسب البنية المطلوبة)، لكن
-   لا يوجد حالياً أي كود بالتطبيق يُسجِّل حدث eventLog عند تصدير PDF أو عند حفظ
-   توقيع — كلا الفلترين سيعرضان "لا توجد أحداث" دوماً إلى أن تُضاف كتابة eventLog
-   فعلية بنقاط التصدير/التوقيع (تغيير خارج نطاق هذا الطلب: توحيد شاشة العرض فقط).
+   تنبيه صادق متبقٍّ: فلتر "توقيع" ما زال بلا أي مصدر بيانات — لا يوجد بالتطبيق أي
+   كود يُسجِّل حدث eventLog عند حفظ توقيع، فسيعرض "لا توجد أحداث" دوماً حالياً.
+   فلتر "تصدير" أصبح يعمل فعلياً الآن (انظر حدث exported أدناه وlogExportEvent).
    ============================================================ */
 const EVENT_LABELS={
   created:'إنشاء التقرير', wa_fed:'تغذية تلقائية من تقرير الواتساب',
   updated:'حفظ/تعديل', locked:'قفل تلقائي',
   delete_requested:'طلب حذف (ناعم)', delete_undone:'تراجع عن الحذف',
-  admin_restored:'استرجاع من الأدمن', reopened:'إعادة فتح من الإدارة'
+  admin_restored:'استرجاع من الأدمن', reopened:'إعادة فتح من الإدارة',
+  exported:'تصدير PDF'
 };
-// تصنيف كل نوع حدث تحت أحد فلاتر الواجهة الثلاثة (export/sign/edit) — كل الأنواع
-// المسجَّلة فعلياً بالكود حالياً هي أحداث "تعديل/حالة" بطبيعتها، فتُصنَّف جميعها
-// edit؛ export/sign لا مصدر بيانات لهما حالياً (انظر التنبيه أعلاه).
+// تصنيف كل نوع حدث تحت أحد فلاتر الواجهة الثلاثة (export/sign/edit).
 const EVENT_CATEGORY={
   created:'edit', wa_fed:'edit', updated:'edit', locked:'edit',
-  delete_requested:'edit', delete_undone:'edit', admin_restored:'edit', reopened:'edit'
+  delete_requested:'edit', delete_undone:'edit', admin_restored:'edit', reopened:'edit',
+  exported:'export'
 };
 let incTimelineFilter='all';
 // مطوي افتراضياً عند كل فتح لشاشة تفاصيل الحادثة (يُعاد ضبطه صراحة من openIncident)
@@ -2382,10 +2384,13 @@ function renderIncidentTimeline(){
     else{ const r=resolveOfficerDisplay(e.by); who=r?`${r.rank||''} ${r.name||''}`.trim():e.by; }
     const lbl=EVENT_LABELS[e.type]||e.type;
     const reasonHTML=e.reason?`<div class="tl-reason">${esc(e.reason)}</div>`:'';
+    // البصمة الرقمية: نص خام بلا أي تنسيق زخرفي (لا "#"، لا صندوق) — طلب صريح؛
+    // الالتفاف (word-break) ضروري تقنياً فقط لمنع فيضان أفقي لسلسلة hex طويلة (٦٤ حرفاً).
+    const hashHTML=e.hash?`<div class="tl-hash">${esc(e.hash)}</div>`:'';
     return `<div class="tl-item"><div class="tl-dot"></div>
       <div><div class="tl-title">${esc(lbl)}<span class="tl-form-tag">${esc(e.formLabel)}</span></div>
       <div class="tl-meta">${esc(who)} — ${fmtDate(e.at)}</div>
-      ${reasonHTML}</div></div>`;
+      ${reasonHTML}${hashHTML}</div></div>`;
   }).join('');
 }
 function autoPopulate(type){
@@ -2806,6 +2811,31 @@ async function captureForm(type){
     renderFields();
   }
 }
+/* بصمة رقمية (SHA-256) لملف PDF وقت التصدير — Web Crypto API القياسية المدمجة
+   بالمتصفح مباشرة (crypto.subtle)، بلا أي مكتبة خارجية. SHA-256 خوارزمية معيارية
+   معتمَدة عالمياً (NIST FIPS 180-4)، مقاومة تصادم عملياً، وهي بالضبط ما تُستخدم في
+   سلاسل حفظ الأدلة الرقمية (chain of custody) — اختيار قياسي وليس اجتهادياً.
+   تنبيه تقني: crypto.subtle متاح فقط بسياق آمن (HTTPS) — متوفر دوماً على GitHub
+   Pages، لكنه سيفشل لو شُغِّل التطبيق محلياً عبر file:// مباشرة بلا خادم HTTPS/localhost. */
+async function sha256Hex(buffer){
+  const digest=await crypto.subtle.digest('SHA-256',buffer);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/* تسجيل حدث "تصدير" بسجل الحركة — بصرف النظر عن حالة قفل النموذج (التصدير نفسه
+   متاح دوماً بالواجهة سواء كان النموذج مقفولاً أم لا)؛ فرع مخصَّص بقاعدة الأمان
+   (يسمح بإلحاق حدث exported واحد فقط، هوية الكاتب=by إلزامياً، بغض النظر عن القفل)
+   — بعكس مسار الحفظ العادي المقيَّد بنافذة الـ٢٤ ساعة. فشل هذه الكتابة (شبكة/قاعدة
+   أمان غير منشورة بعد) لا يُفشل عملية التصدير نفسها — الملف صُدِّر بنجاح فعلياً
+   بغض النظر؛ يُسجَّل بـconsole فقط دون إزعاج المستخدم بخطأ مضلِّل. */
+async function logExportEvent(fid,hash){
+  try{
+    await db.collection('incidents').doc(currentIncident._id).collection('formData').doc(fid).update({
+      eventLog:firebase.firestore.FieldValue.arrayUnion({
+        type:'exported',by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now(),hash
+      })
+    });
+  }catch(e){console.error('[logExportEvent] فشل تسجيل حدث التصدير بسجل الحركة — الملف صُدِّر بنجاح رغم ذلك.',e);}
+}
 async function exportFormPDF(){
   if(!currentForm)return;
   await saveForm(true);
@@ -2818,7 +2848,13 @@ async function exportFormPDF(){
     const r=Math.min(pw/canvas.width,ph/canvas.height);
     const w=canvas.width*r,h=canvas.height*r;
     pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',(pw-w)/2,(ph-h)/2,w,h);
+    // البصمة تُحسب من نفس البايتات الثنائية الفعلية للملف (pdf.output('arraybuffer'))
+    // قبل الحفظ مباشرة — لا تعديل على مسار إنشاء الصورة/الصفحة نفسه (mkStatic/captureForm
+    // لم تُمَسّا إطلاقاً).
+    const fid=currentForm.id;
+    const hash=await sha256Hex(pdf.output('arraybuffer'));
     pdf.save(`${currentIncident.serialNum}_${FORM_CONFIGS[currentForm.type].label}.pdf`);
+    await logExportEvent(fid,hash);
     showLoading(false);showToast('تم التصدير','ok');
   }catch(e){showLoading(false);showToast('تعذّر التصدير','error');console.error(e);}
 }

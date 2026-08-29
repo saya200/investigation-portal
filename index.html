@@ -139,6 +139,18 @@ input,textarea{font-family:inherit;}
 .tl-title{font-size:13.5px;font-weight:700;}
 .tl-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
 .tl-reason{font-size:12px;color:var(--text);margin-top:4px;background:var(--bg);padding:6px 9px;border-radius:8px;}
+/* سجل حركة الحادث الموحّد (مستوى الحادثة الكاملة — يجمع كل النماذج معاً) */
+.tl-beta-badge{background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.3px;}
+.tl-count{font-size:13px;color:var(--muted);font-weight:600;}
+.tl-desc{font-size:12.5px;color:var(--muted);margin:-8px 0 14px;}
+.tl-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.tl-filter-btn{border:1.5px solid var(--border);background:var(--card);color:var(--text);
+  font-size:12.5px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;transition:.15s;}
+.tl-filter-btn:hover{border-color:var(--primary);}
+.tl-filter-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.tl-form-tag{display:inline-block;font-size:10.5px;font-weight:700;color:var(--primary);
+  background:rgba(13,79,60,.08);padding:1px 8px;border-radius:20px;margin-inline-start:6px;}
+.tl-card{background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:14px;}
 .user-chip span{display:block;font-size:10px;font-weight:400;opacity:.8;}
 /* صندوق "تذكرة مشتركة" الموسّع — مرجع بصري: IEP Design System (ألوان/قياسات مطابقة
    لنفس متغيرات :root الحالية، الحزمة مبنية أصلاً على نفس ألواننا) */
@@ -629,6 +641,20 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
     <div id="forms-list" class="forms-list"></div>
+
+    <div class="section-head" style="margin-top:26px">
+      <h3>سجل حركة الحادث <span class="tl-beta-badge">Beta</span> <span class="tl-count" id="inc-tl-count"></span></h3>
+    </div>
+    <div class="tl-desc">سجل تلقائي غير قابل للتعديل، مرئي للضابط الميداني وللإدارة على حد سواء</div>
+    <div class="tl-card">
+      <div class="tl-filters" id="inc-tl-filters">
+        <button class="tl-filter-btn active" data-f="all" onclick="setIncTimelineFilter('all')">الكل</button>
+        <button class="tl-filter-btn" data-f="export" onclick="setIncTimelineFilter('export')">تصدير</button>
+        <button class="tl-filter-btn" data-f="sign" onclick="setIncTimelineFilter('sign')">توقيع</button>
+        <button class="tl-filter-btn" data-f="edit" onclick="setIncTimelineFilter('edit')">تعديل</button>
+      </div>
+      <div id="inc-timeline-list"></div>
+    </div>
   </div>
 </div>
 
@@ -646,7 +672,6 @@ tr:last-child td{border-bottom:none;}
       <button class="btn btn-accent btn-sm" id="btn-save-form" onclick="saveForm()">💾 حفظ</button>
       <button class="btn btn-primary btn-sm" style="display:none" id="btn-reopen-form" onclick="openReopenModal()">🔓 إعادة فتح للتعديل</button>
       <button class="btn btn-primary btn-sm" onclick="exportFormPDF()">📄 PDF</button>
-      <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="openTimelineModal()">🕓 سجل الحركة</button>
       <button class="btn btn-ghost btn-sm" style="background:#fff" onclick="closeForm()">رجوع</button>
     </div>
   </div>
@@ -866,17 +891,6 @@ tr:last-child td{border-bottom:none;}
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-reopen')">إلغاء</button>
       <button class="btn btn-primary" onclick="confirmReopen()">تأكيد إعادة الفتح</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ سجل الحركة الموحّد لكل نموذج ═══════════ -->
-<div class="modal-bg" id="modal-timeline">
-  <div class="modal">
-    <h3>سجل الحركة</h3>
-    <div id="timeline-list"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-timeline')">إغلاق</button>
     </div>
   </div>
 </div>
@@ -1846,18 +1860,23 @@ async function openIncident(id){
   if(!currentIncident){showToast('الحادثة غير موجودة','error');return;}
   formHiddenIds.clear();
   // جلب واحد لكل مستندات formData (بدل استعلام مصفّى) — يُستخرَج منه معاً: (أ) معرّفات
-  // المعلَّق حذفها (لإخفائها عن غير الأدمن)، و(ب) منشئ كل نموذج (createdBy) لعرضه
-  // بقائمة النماذج عندما تكون الحادثة مشتركة، دون أي استعلام إضافي منفصل.
+  // المعلَّق حذفها (لإخفائها عن غير الأدمن)، (ب) منشئ كل نموذج (createdBy) لعرضه
+  // بقائمة النماذج عندما تكون الحادثة مشتركة، و(ج) eventLog/reopenHistory كل نموذج
+  // لبناء "سجل حركة الحادث" الموحَّد على مستوى الحادثة كاملة — دون أي استعلام إضافي
+  // منفصل عن هذا الجلب الواحد نفسه.
   currentIncident._pendingIds=new Set();
   currentIncident._creatorMap={};
+  currentIncident._formsData={};
   try{
     const snap=await db.collection('incidents').doc(id).collection('formData').get();
     snap.docs.forEach(d=>{
       const fd=d.data();
       if(fd.pendingDeletion) currentIncident._pendingIds.add(d.id);
       if(fd.createdBy) currentIncident._creatorMap[d.id]=fd.createdBy;
+      currentIncident._formsData[d.id]={eventLog:fd.eventLog||[],reopenHistory:fd.reopenHistory||[]};
     });
   }catch(e){console.error(e);}
+  incTimelineFilter='all';
   renderIncidentScreen();
   showScreen('incident-screen');
 }
@@ -1891,6 +1910,7 @@ function renderIncidentScreen(){
   // حذف الحادثة كاملة متاح فقط لمالكها الأصلي (أو الأدمن) — يطابق قاعدة الأمان الآن
   $('btn-delete-inc').style.display=(currentUserData.isAdmin||i.officerMilitaryNum===currentUserData.militaryNum)?'':'none';
   renderFormsList();
+  renderIncidentTimeline();
 }
 /* منشئ نموذج معيَّن كاسم/رتبة — من بيانات المالك أو مصفوفة participants الموجودة أصلاً
    بمستند الحادثة (نفس البنية المستخدمة أصلاً لعرض الأسماء بـ"مشاركون آخرون")، بلا أي
@@ -2275,9 +2295,15 @@ async function confirmReopen(){
   }
 }
 /* ============================================================
-   سجل الحركة الموحّد — يدمج eventLog (المُسجَّل تلقائياً من نفس دوال الحلقات
-   السابقة) مع reopenHistory الموجود أصلاً (بدل تكراره بمكان منفصل — قرار دمج
-   بسيط عند العرض فقط، بلا أي كتابة إضافية). لا كتابة من هذه الشاشة إطلاقاً.
+   سجل حركة الحادث — موحَّد على مستوى الحادثة الكاملة (وليس نموذجاً واحداً):
+   يجمع eventLog + reopenHistory من كل مستندات formData التابعة للحادثة معاً
+   (محمَّلة أصلاً مرة واحدة بـ openIncident() ضمن currentIncident._formsData،
+   بلا أي استعلام إضافي منفصل هنا)، ويعرضها كقسم دائم بشاشة تفاصيل الحادثة —
+   لا نافذة منبثقة، ولا كتابة من هذه الشاشة إطلاقاً (سجل للقراءة فقط).
+   تنبيه صادق: فلترا "تصدير"/"توقيع" جاهزان بالواجهة (حسب البنية المطلوبة)، لكن
+   لا يوجد حالياً أي كود بالتطبيق يُسجِّل حدث eventLog عند تصدير PDF أو عند حفظ
+   توقيع — كلا الفلترين سيعرضان "لا توجد أحداث" دوماً إلى أن تُضاف كتابة eventLog
+   فعلية بنقاط التصدير/التوقيع (تغيير خارج نطاق هذا الطلب: توحيد شاشة العرض فقط).
    ============================================================ */
 const EVENT_LABELS={
   created:'إنشاء التقرير', wa_fed:'تغذية تلقائية من تقرير الواتساب',
@@ -2285,36 +2311,58 @@ const EVENT_LABELS={
   delete_requested:'طلب حذف (ناعم)', delete_undone:'تراجع عن الحذف',
   admin_restored:'استرجاع من الأدمن', reopened:'إعادة فتح من الإدارة'
 };
-function buildTimeline(){
-  const log=(currentForm.eventLog||[]).map(e=>({...e}));
-  const reopens=(currentForm.reopenHistory||[]).map(e=>({type:'reopened',by:e.by,at:e.at,reason:e.reason}));
-  return [...log,...reopens].sort((a,b)=>tsToDate(b.at)-tsToDate(a.at));
+// تصنيف كل نوع حدث تحت أحد فلاتر الواجهة الثلاثة (export/sign/edit) — كل الأنواع
+// المسجَّلة فعلياً بالكود حالياً هي أحداث "تعديل/حالة" بطبيعتها، فتُصنَّف جميعها
+// edit؛ export/sign لا مصدر بيانات لهما حالياً (انظر التنبيه أعلاه).
+const EVENT_CATEGORY={
+  created:'edit', wa_fed:'edit', updated:'edit', locked:'edit',
+  delete_requested:'edit', delete_undone:'edit', admin_restored:'edit', reopened:'edit'
+};
+let incTimelineFilter='all';
+function buildIncidentTimeline(){
+  const forms=(currentIncident.formsList||[]);
+  const data=currentIncident._formsData||{};
+  const items=[];
+  forms.forEach(f=>{
+    const fd=data[f.id]; if(!fd)return;
+    const cfg=FORM_CONFIGS[f.type]; const formLabel=cfg?cfg.label:f.type;
+    (fd.eventLog||[]).forEach(e=>items.push({...e,formLabel}));
+    (fd.reopenHistory||[]).forEach(e=>items.push({type:'reopened',by:e.by,at:e.at,reason:e.reason,formLabel}));
+  });
+  items.sort((a,b)=>tsToDate(b.at)-tsToDate(a.at));
+  return items;
 }
-function openTimelineModal(){
-  if(!currentForm)return;
-  const items=buildTimeline();
-  const c=$('timeline-list');
+function setIncTimelineFilter(f){
+  incTimelineFilter=f;
+  document.querySelectorAll('#inc-tl-filters .tl-filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.f===f));
+  renderIncidentTimeline();
+}
+function renderIncidentTimeline(){
+  if(!currentIncident)return;
+  const all=buildIncidentTimeline();
+  $('inc-tl-count').textContent=all.length?`(${toAr(all.length)})`:'';
+  const items=incTimelineFilter==='all'?all:all.filter(e=>(EVENT_CATEGORY[e.type]||'edit')===incTimelineFilter);
+  const c=$('inc-timeline-list');
   if(!items.length){
     c.innerHTML='<div class="empty-state"><span class="ico">🕓</span><p>لا توجد أحداث مسجَّلة بعد</p></div>';
-  }else{
-    c.innerHTML=items.map(e=>{
-      // أحداث الأدمن (استرجاع/إعادة فتح) تُعرَض بمسمى عام "الإدارة" — لا يقدر الضابط
-      // العادي أصلاً يقرأ ملف مستخدم آخر (users/{uid} محظور عليه بقاعدة الأمان)،
-      // فلا محاولة لحل اسم إداري محدَّد؛ فاعل معروف (منشئ/مشارك بنفس الحادثة)
-      // يُحلّ عبر resolveOfficerDisplay الموجودة أصلاً.
-      let who;
-      if(e.by===null||e.by===undefined) who='النظام (تلقائي)';
-      else if(e.type==='admin_restored'||e.type==='reopened') who='الإدارة';
-      else{ const r=resolveOfficerDisplay(e.by); who=r?`${r.rank||''} ${r.name||''}`.trim():e.by; }
-      const lbl=EVENT_LABELS[e.type]||e.type;
-      const reasonHTML=e.reason?`<div class="tl-reason">${esc(e.reason)}</div>`:'';
-      return `<div class="tl-item"><div class="tl-dot"></div>
-        <div><div class="tl-title">${esc(lbl)}</div>
-        <div class="tl-meta">${esc(who)} — ${fmtDate(e.at)}</div>
-        ${reasonHTML}</div></div>`;
-    }).join('');
+    return;
   }
-  $('modal-timeline').classList.add('show');
+  c.innerHTML=items.map(e=>{
+    // أحداث الأدمن (استرجاع/إعادة فتح) تُعرَض بمسمى عام "الإدارة" — لا يقدر الضابط
+    // العادي أصلاً يقرأ ملف مستخدم آخر (users/{uid} محظور عليه بقاعدة الأمان)،
+    // فلا محاولة لحل اسم إداري محدَّد؛ فاعل معروف (منشئ/مشارك بنفس الحادثة)
+    // يُحلّ عبر resolveOfficerDisplay الموجودة أصلاً.
+    let who;
+    if(e.by===null||e.by===undefined) who='النظام (تلقائي)';
+    else if(e.type==='admin_restored'||e.type==='reopened') who='الإدارة';
+    else{ const r=resolveOfficerDisplay(e.by); who=r?`${r.rank||''} ${r.name||''}`.trim():e.by; }
+    const lbl=EVENT_LABELS[e.type]||e.type;
+    const reasonHTML=e.reason?`<div class="tl-reason">${esc(e.reason)}</div>`:'';
+    return `<div class="tl-item"><div class="tl-dot"></div>
+      <div><div class="tl-title">${esc(lbl)}<span class="tl-form-tag">${esc(e.formLabel)}</span></div>
+      <div class="tl-meta">${esc(who)} — ${fmtDate(e.at)}</div>
+      ${reasonHTML}</div></div>`;
+  }).join('');
 }
 function autoPopulate(type){
   const d=tsToDate(currentIncident.createdAt);

@@ -623,6 +623,7 @@ tr:last-child td{border-bottom:none;}
       <img src="https://i.ibb.co/LhqT0fqz/1200px-svg.png" alt="شعار">
       <h2>تفاصيل الحادثة<span id="inc-hd-status">—</span></h2>
     </div>
+    <button class="btn btn-ghost btn-sm" id="btn-back-admin" style="display:none" onclick="openAdmin()">‹ رجوع للوحة الإدارة</button>
     <button class="btn btn-ghost btn-sm" onclick="backToDash()">‹ القائمة</button>
   </header>
   <div class="wrap">
@@ -1929,6 +1930,8 @@ function renderIncidentScreen(){
   $('btn-status').textContent=done?'إرجاع للتحرير':'إنهاء التحقيق';
   // حذف الحادثة كاملة متاح فقط لمالكها الأصلي (أو الأدمن) — يطابق قاعدة الأمان الآن
   $('btn-delete-inc').style.display=(currentUserData.isAdmin||i.officerMilitaryNum===currentUserData.militaryNum)?'':'none';
+  // "رجوع للوحة الإدارة" — للأدمن فقط؛ يفتح لوحة الإدارة مباشرة بلا أي تتبّع لمصدر الدخول
+  $('btn-back-admin').style.display=currentUserData.isAdmin?'':'none';
   renderFormsList();
   renderIncidentTimeline();
 }

@@ -132,6 +132,38 @@ input,textarea{font-family:inherit;}
 .notif-item-title{font-size:13px;font-weight:700;line-height:1.5;}
 .notif-item-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
 .notif-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;}
+/* ===== الملف الشخصي — نفس نمط pop-up الإشعارات بالضبط (صندوق ينزل تحت الزر) ===== */
+.profile-wrap{position:relative;flex-shrink:0;}
+.profile-panel{position:absolute;top:100%;left:0;margin-top:8px;width:300px;max-width:88vw;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+  z-index:300;max-height:80vh;overflow-y:auto;
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .15s ease,transform .15s ease,visibility .15s;}
+.profile-panel.show{opacity:1;visibility:visible;transform:translateY(0);}
+.profile-body{padding:14px;}
+.profile-row{display:flex;align-items:center;gap:8px;}
+.profile-view-info{flex:1;min-width:0;}
+.profile-view-name{font-size:14px;font-weight:800;color:var(--text);}
+.profile-view-rank{font-size:12px;color:var(--muted);margin-top:2px;}
+.profile-edit-btn{background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;
+  font-size:14px;padding:5px 9px;transition:background .12s;flex-shrink:0;}
+.profile-edit-btn:hover{background:var(--bg);}
+#profile-edit-row{flex-direction:column;align-items:stretch;gap:8px;}
+.profile-input{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;
+  font-family:inherit;background:var(--card);color:var(--text);}
+.profile-input:focus{outline:none;border-color:var(--primary);}
+.profile-edit-actions{display:flex;gap:8px;}
+.profile-edit-actions .btn{flex:1;margin:0;}
+.profile-divider{height:1px;background:var(--border);margin:14px 0 12px;}
+.profile-sig-label{font-size:13px;font-weight:800;color:var(--primary);}
+.profile-sig-desc{font-size:11px;color:var(--muted);margin-top:2px;margin-bottom:10px;}
+.profile-sig-pad-wrap{position:relative;border:1.5px dashed var(--border);border-radius:10px;
+  background:var(--bg);overflow:hidden;}
+.profile-sig-canvas{width:100%;height:130px;display:block;cursor:crosshair;touch-action:none;}
+.profile-sig-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--muted);pointer-events:none;}
+.profile-sig-empty.hide{display:none;}
+.profile-sig-actions{display:flex;gap:8px;margin-top:10px;}
+.profile-sig-actions .btn{flex:1;margin:0;}
 /* سجل الحركة الموحّد لكل نموذج */
 .tl-item{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border);}
 .tl-item:last-child{border-bottom:none;}
@@ -588,7 +620,40 @@ tr:last-child td{border-bottom:none;}
           <div id="notif-list"></div>
         </div>
       </div>
-      <div class="user-chip" id="dash-user">—<span>—</span></div>
+      <div class="profile-wrap" id="profile-wrap">
+        <div class="user-chip" id="dash-user" onclick="toggleProfilePanel()" title="الملف الشخصي" style="cursor:pointer">—<span>—</span></div>
+        <div class="profile-panel" id="profile-panel">
+          <div class="notif-head"><h4>👤 الملف الشخصي</h4></div>
+          <div class="profile-body">
+            <div class="profile-row" id="profile-view-row">
+              <div class="profile-view-info">
+                <div class="profile-view-name" id="pf-name-view">—</div>
+                <div class="profile-view-rank" id="pf-rank-view">—</div>
+              </div>
+              <button class="profile-edit-btn" onclick="toggleProfileEdit(true)" title="تعديل الاسم/الرتبة">✏️</button>
+            </div>
+            <div class="profile-row" id="profile-edit-row" style="display:none">
+              <input type="text" class="profile-input" id="pf-name-input" placeholder="الاسم">
+              <input type="text" class="profile-input" id="pf-rank-input" placeholder="الرتبة">
+              <div class="profile-edit-actions">
+                <button class="btn btn-primary btn-sm" onclick="saveProfileNameRank()">حفظ</button>
+                <button class="btn btn-ghost btn-sm" onclick="toggleProfileEdit(false)">إلغاء</button>
+              </div>
+            </div>
+            <div class="profile-divider"></div>
+            <div class="profile-sig-label">التوقيع الشخصي</div>
+            <div class="profile-sig-desc">يُستخدم لتعبئة حقول توقيعك بالنماذج تلقائياً لاحقاً</div>
+            <div class="profile-sig-pad-wrap">
+              <canvas id="profile-sig-canvas" class="profile-sig-canvas"></canvas>
+              <div class="profile-sig-empty" id="profile-sig-empty">ارسم توقيعك هنا</div>
+            </div>
+            <div class="profile-sig-actions">
+              <button class="btn btn-ghost btn-sm" onclick="clearProfileSigPad()">🗑️ مسح</button>
+              <button class="btn btn-primary btn-sm" onclick="saveProfileSignature()">💾 حفظ التوقيع</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()">خروج</button>
     </div>
   </header>
@@ -1514,6 +1579,16 @@ function resetAppState(){
   const notifList=$('notif-list'); if(notifList) notifList.innerHTML='';
   const dashUser=$('dash-user'); if(dashUser) dashUser.innerHTML='—<span>—</span>';
   updateNotifBadge();
+  // إغلاق pop-up الملف الشخصي وتصفيره تماماً — لا يبقى اسم/رتبة/توقيع حساب سابق
+  // ظاهراً أو مرسوماً بلوحة التوقيع لحظة تبديل الحساب (نفس فلسفة بقية هذه الدالة)
+  const profilePanel=$('profile-panel'); if(profilePanel) profilePanel.classList.remove('show');
+  const pfNameView=$('pf-name-view'); if(pfNameView) pfNameView.textContent='—';
+  const pfRankView=$('pf-rank-view'); if(pfRankView) pfRankView.textContent='—';
+  const pfViewRow=$('profile-view-row'); if(pfViewRow) pfViewRow.style.display='flex';
+  const pfEditRow=$('profile-edit-row'); if(pfEditRow) pfEditRow.style.display='none';
+  profileSigReplaceConfirmed=false;
+  if(sigCtx){const cv=$('profile-sig-canvas');sigCtx.clearRect(0,0,cv.width,cv.height);}
+  const sigEmpty=$('profile-sig-empty'); if(sigEmpty) sigEmpty.classList.remove('hide');
 }
 function initFirebase(){
   if(!isConfigured()){$('config-warn').style.display='block';showScreen('login-screen');return;}
@@ -1736,8 +1811,150 @@ async function openNotification(nid){
 document.addEventListener('click',e=>{
   const wrap=document.querySelector('.notif-wrap');
   if(wrap&&!wrap.contains(e.target))$('notif-panel').classList.remove('show');
+  const pwrap=document.querySelector('.profile-wrap');
+  if(pwrap&&!pwrap.contains(e.target))$('profile-panel').classList.remove('show');
 });
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ============================================================
+   الملف الشخصي — pop-up بنفس نمط جرس الإشعارات بالضبط (صندوق أسفل الزر، لا
+   نافذة/صفحة منفصلة). يشمل: تعديل الاسم/الرتبة (نفس حقلي users/{uid} الموجودين
+   أصلاً)، ولوحة رسم توقيع محفوظة بحقل جديد users/{uid}.signature (base64، بلا
+   Firebase Storage). لا علاقة لهذا بمنطق حقن التوقيع بالنماذج نفسها — تلك خطوة
+   قادمة منفصلة، لم تُمَس هنا إطلاقاً.
+   ============================================================ */
+let profileSigCanvasInited=false, profileSigReplaceConfirmed=false;
+function toggleProfilePanel(){
+  const open=$('profile-panel').classList.toggle('show');
+  if(open)renderProfilePanel();
+}
+function renderProfilePanel(){
+  if(!currentUserData)return;
+  toggleProfileEdit(false);
+  $('pf-name-view').textContent=currentUserData.name||'—';
+  $('pf-rank-view').textContent=currentUserData.rank||'—';
+  if(!profileSigCanvasInited){initProfileSigCanvas();profileSigCanvasInited=true;}
+  loadProfileSigIntoCanvas();
+}
+function toggleProfileEdit(edit){
+  $('profile-view-row').style.display=edit?'none':'flex';
+  $('profile-edit-row').style.display=edit?'flex':'none';
+  if(edit){
+    $('pf-name-input').value=currentUserData.name||'';
+    $('pf-rank-input').value=currentUserData.rank||'';
+  }
+}
+async function saveProfileNameRank(){
+  const name=$('pf-name-input').value.trim(), rank=$('pf-rank-input').value.trim();
+  if(!name||!rank){showToast('أدخل الاسم والرتبة','error');return;}
+  showLoading(true,'جارٍ الحفظ...');
+  try{
+    await db.collection('users').doc(currentUser.uid).update({name,rank});
+    currentUserData.name=name;currentUserData.rank=rank;
+    $('dash-user').innerHTML=`${esc(name)}<span>${esc(rank)}</span>`;
+    $('pf-name-view').textContent=name;$('pf-rank-view').textContent=rank;
+    toggleProfileEdit(false);
+    showLoading(false);showToast('تم تحديث البيانات','ok');
+  }catch(e){showLoading(false);showToast('تعذّر الحفظ','error');console.error(e);}
+}
+
+/* ── لوحة رسم التوقيع — سُمك متغيّر حسب سرعة الحركة (بطيء=أعرض، سريع=أنحف) +
+   تنعيم منحنى عبر Quadratic Curve من نقاط منتصف متتالية (نفس أسلوب "smooth pen"
+   المستخدم أصلاً بأداة field_position_tool.html، مطوَّر هنا بإضافة السُمك المتغيّر
+   الذي لم يكن موجوداً بأي تنفيذ سابق — لا هنا (mkSig) ولا هناك). */
+const SIG_MIN_W=1.0, SIG_MAX_W=3.6, SIG_SMOOTH=0.35; // معايرة تجريبية لحساسية معقولة
+let sigCtx=null, sigDrawing=false, sigLast=null, sigPrevMid=null, sigLastW=(SIG_MIN_W+SIG_MAX_W)/2;
+function initProfileSigCanvas(){
+  const cv=$('profile-sig-canvas');
+  const dpr=Math.max(2,window.devicePixelRatio||1);
+  const rect=cv.getBoundingClientRect();
+  cv.width=Math.round((rect.width||280)*dpr);cv.height=Math.round((rect.height||130)*dpr);
+  sigCtx=cv.getContext('2d');
+  sigCtx.lineCap='round';sigCtx.lineJoin='round';sigCtx.strokeStyle='#0a1f3a';
+  function pos(e){
+    const r=cv.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    const cssX=t.clientX-r.left, cssY=t.clientY-r.top;
+    // إحداثيات الرسم الفعلية بمساحة canvas الداخلية (مُكبَّرة بمعامل dpr للدقة)،
+    // لكن cssX/cssY (بمساحة الشاشة الفعلية) محفوظتان بمعزل — السرعة تُحسَب منهما
+    // حصراً لتبقى متناسقة عبر أي جهاز بغض النظر عن devicePixelRatio
+    return {x:cssX*(cv.width/r.width),y:cssY*(cv.height/r.height),cssX,cssY,t:performance.now()};
+  }
+  function start(e){
+    e.preventDefault();
+    // وقفة قصد: أول ضغطة رسم فوق توقيع محفوظ مسبقاً تتطلب تأكيداً صريحاً (مرة
+    // واحدة لكل جلسة تعديل، وليس بكل ضغطة/حرف) — ليست منعاً كاملاً، فقط تنبيهاً
+    if(currentUserData.signature && !profileSigReplaceConfirmed){
+      if(!confirm('عندك توقيع محفوظ، متأكد تبي تستبدله؟'))return;
+      profileSigReplaceConfirmed=true;
+      sigCtx.clearRect(0,0,cv.width,cv.height);
+      $('profile-sig-empty').classList.add('hide');
+    }
+    sigDrawing=true;sigLast=pos(e);sigPrevMid=null;
+    $('profile-sig-empty').classList.add('hide');
+  }
+  function move(e){
+    if(!sigDrawing)return;e.preventDefault();
+    const p=pos(e);
+    // المسافة بوحدات CSS الثابتة (لا الداخلية المُكبَّرة) — لضمان سلوك سرعة متطابق
+    // على أي devicePixelRatio (جوال بدقة عالية لا يُقرأ "أسرع" زوراً من حاسوب عادي)
+    const dist=Math.hypot(p.cssX-sigLast.cssX,p.cssY-sigLast.cssY);
+    const dt=Math.max(1,p.t-sigLast.t);
+    const v=dist/dt; // بكسل CSS/مِلّي ثانية — سريع=v أكبر
+    let w=SIG_MAX_W-(v*40);
+    w=Math.max(SIG_MIN_W,Math.min(SIG_MAX_W,w));
+    w=sigLastW*(1-SIG_SMOOTH)+w*SIG_SMOOTH; // تنعيم تغيّر السُمك نفسه بين ضربة وأخرى
+    const mid={x:(p.x+sigLast.x)/2,y:(p.y+sigLast.y)/2};
+    sigCtx.lineWidth=w*(cv.width/rect_w());
+    sigCtx.beginPath();
+    sigCtx.moveTo(sigPrevMid?sigPrevMid.x:sigLast.x,sigPrevMid?sigPrevMid.y:sigLast.y);
+    sigCtx.quadraticCurveTo(sigLast.x,sigLast.y,mid.x,mid.y);
+    sigCtx.stroke();
+    sigPrevMid=mid;sigLast=p;sigLastW=w;
+  }
+  function rect_w(){return cv.getBoundingClientRect().width||1;}
+  function end(){sigDrawing=false;}
+  cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false});
+  cv.addEventListener('touchmove',move,{passive:false});
+  cv.addEventListener('touchend',end);
+}
+function loadProfileSigIntoCanvas(){
+  const cv=$('profile-sig-canvas');
+  sigCtx.clearRect(0,0,cv.width,cv.height);
+  profileSigReplaceConfirmed=false;
+  if(currentUserData.signature){
+    const im=new Image();
+    im.onload=()=>sigCtx.drawImage(im,0,0,cv.width,cv.height);
+    im.src=currentUserData.signature;
+    $('profile-sig-empty').classList.add('hide');
+  }else{
+    $('profile-sig-empty').classList.remove('hide');
+  }
+}
+function clearProfileSigPad(){
+  const cv=$('profile-sig-canvas');
+  sigCtx.clearRect(0,0,cv.width,cv.height);
+  $('profile-sig-empty').classList.remove('hide');
+}
+async function saveProfileSignature(){
+  const cv=$('profile-sig-canvas');
+  // فحص فراغ فعلي (لا نعتمد فقط على وجود سطر فارغ بالحالة) — نفس منطق التحقق
+  // البسيط الكافي هنا: أي بكسل غير شفاف يعني وجود رسم فعلي
+  const data=sigCtx.getImageData(0,0,cv.width,cv.height).data;
+  let hasInk=false;
+  for(let i=3;i<data.length;i+=4){if(data[i]!==0){hasInk=true;break;}}
+  if(!hasInk){showToast('ارسم توقيعك أولاً','error');return;}
+  showLoading(true,'جارٍ حفظ التوقيع...');
+  try{
+    const dataUrl=cv.toDataURL('image/png');
+    await db.collection('users').doc(currentUser.uid).update({signature:dataUrl});
+    currentUserData.signature=dataUrl;
+    profileSigReplaceConfirmed=true; // نفس التوقيع المحفوظ الآن معروض أصلاً، لا داعي لتأكيد فوري إضافي
+    showLoading(false);showToast('تم حفظ التوقيع','ok');
+  }catch(e){showLoading(false);showToast('تعذّر حفظ التوقيع','error');console.error(e);}
+}
 /* بطاقة أرشيف موحّدة — نفس التصميم في القائمة الشخصية ولوحة الأدمن.
    opts.open/opts.actions تُمرَّر حسب السياق؛ التصميم والتقلص الديناميكي واحد في الحالتين. */
 function archCard(i,actionsHTML,onOpen){

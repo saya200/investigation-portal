@@ -1,0 +1,212 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== دوال مساعدة =====
+    function signedIn() {
+      return request.auth != null;
+    }
+    function myDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && myDoc().isAdmin == true;
+    }
+    function myMil() {
+      return myDoc().militaryNum;
+    }
+    function incOwnerMil(incId) {
+      return get(/databases/$(database)/documents/incidents/$(incId)).data.officerMilitaryNum;
+    }
+    function incParticipantIds(incId) {
+      return get(/databases/$(database)/documents/incidents/$(incId)).data.get('participantIds', []);
+    }
+    // القفل التلقائي بعد ٢٤ ساعة من createdAt — يُحسب ديناميكياً من الوقت الفعلي
+    // للطلب، وليس من أي حقل isLocked مخزَّن (قد يكون قديماً/غير محدَّث). نماذج
+    // بلا createdAt إطلاقاً (سابقة لهذا التحديث) تُعامَل كغير مقفولة صراحة.
+    // علامة "إعادة الفتح النشطة" (reopenActive) بوابة إضافية بسيطة: طالما true،
+    // النموذج غير مقفول بغض النظر عن عمره — تُلغى تلقائياً (false) في نفس كتابة
+    // الحفظ التالية لصاحب النموذج (انظر allow update)، فيعود formNotLocked لتقييمه
+    // الطبيعي القائم على createdAt (وهو أصلاً >24h فيُقفَل فوراً من جديد بلا أي
+    // مؤقّت إضافي أو حقل توقيت ثانٍ).
+    function formNotLocked(data) {
+      return !('createdAt' in data)
+        || request.time < data.createdAt + duration.value(24,'h')
+        || data.get('reopenActive', false) == true;
+    }
+
+    // ===== المستخدمون =====
+    match /users/{uid} {
+      // كل مستخدم يقرأ ويعدّل ملفه فقط؛ الأدمن يقرأ الجميع
+      allow read:   if signedIn() && (request.auth.uid == uid || isAdmin());
+      // إنشاء الملف عند التسجيل (لنفسه فقط)
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ===== الحوادث =====
+    match /incidents/{incId} {
+      allow read:   if signedIn() && (isAdmin() || resource.data.officerMilitaryNum == myMil()
+                      || myMil() in resource.data.get('participantIds', []));
+      allow create: if signedIn() && request.resource.data.officerMilitaryNum == myMil();
+      // التعديل يشمل الحفظ والحالة لأي مشارك، لكن حذف الحادثة (soft-delete عبر
+      // الحقل deleted) محصور بالمالك الأصلي أو الأدمن فقط — مشارك غير المالك لا
+      // يقدر يغيّر deleted/deletedAt/deletedBy إطلاقاً مهما كانت رتبته.
+      allow update: if signedIn() && (
+                        isAdmin()
+                        || resource.data.officerMilitaryNum == myMil()
+                        || (
+                          myMil() in resource.data.get('participantIds', [])
+                          && !request.resource.data.diff(resource.data).affectedKeys()
+                               .hasAny(['deleted','deletedAt','deletedBy'])
+                        )
+                        // "انضمام لتذكرة" — يسمح فقط بإضافة الضابط نفسه لحقلي
+                        // participants/participantIds دون أي حقل آخر (قبل أن يصبح مشاركاً بعد)
+                        || (
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants','participantIds'])
+                          && myMil() in request.resource.data.participantIds
+                        )
+                      );
+      // الحذف النهائي (hard delete) للأدمن فقط — كان كذلك أصلاً؛ حذف الحادثة من
+      // واجهة الضابط هو soft-delete عبر allow update أعلاه (مقيَّد بالمالك/الأدمن فقط)
+      allow delete: if isAdmin();
+
+      // ===== نماذج الحادثة =====
+      // كل نموذج يحمل createdBy (رقم منشئه العسكري) — غير قابل للتزوير أو التغيير لاحقاً.
+      // القراءة/الإضافة/التعديل تبقى مشتركة بين المالك وكل المشاركين (تعاون على نفس الحادثة)،
+      // لكن الحذف محصور حصراً بمن أنشأ النموذج نفسه — لا استثناء حتى لمالك الحادثة.
+      match /formData/{fid} {
+        allow read: if signedIn() && (isAdmin() || incOwnerMil(incId) == myMil()
+                      || myMil() in incParticipantIds(incId));
+        allow create: if signedIn() && (isAdmin() || incOwnerMil(incId) == myMil()
+                        || myMil() in incParticipantIds(incId))
+                      && request.resource.data.createdBy == myMil();
+        // القفل يطبَّق على الجميع بلا استثناء (حتى الأدمن) — الاستثناء الوحيد هو
+        // "إعادة فتح" الأدمن (يمنح الصلاحية لمنشئ النموذج حصراً، وليس لنفسه).
+        allow update: if signedIn() && (
+                        // المسار العادي (ضمن نافذة الـ٢٤ ساعة الطبيعية، غير مُعاد فتحه):
+                        // أي مشارك/مالك يقدر يعدّل — تعاون كالمعتاد، كما كان تماماً
+                        (
+                          (!('createdAt' in resource.data) || request.time < resource.data.createdAt + duration.value(24,'h'))
+                          && (isAdmin() || incOwnerMil(incId) == myMil() || myMil() in incParticipantIds(incId))
+                          && (
+                            !('createdBy' in resource.data)
+                              ? request.resource.data.createdBy == myMil()
+                              : request.resource.data.createdBy == resource.data.createdBy
+                          )
+                        )
+                        // بعد إعادة الفتح (reopenActive:true): منشئ النموذج حصراً، بلا أي
+                        // حد زمني — لا أي مشارك آخر، ولا حتى مالك الحادثة إن لم يكن هو المنشئ
+                        || (
+                          resource.data.get('reopenActive', false) == true
+                          && resource.data.createdBy == myMil()
+                          && request.resource.data.createdBy == resource.data.createdBy
+                        )
+                        // طلب الحذف الناعم (فوري الآن) أو التراجع عنه: منشئ النموذج فقط،
+                        // على نموذج غير مقفول، يغيّر حصراً حقول حالة الحذف الثلاثة ولا شيء
+                        // آخر — لا حتى الأدمن هنا. باتجاهين: طلب الحذف (pendingDeletion:true،
+                        // ويجب أن يسمّي نفسه كطالب)، أو التراجع عنه (false) — وحصراً من
+                        // طلبه هو نفسه أصلاً (resource.data.deletionRequestedBy==myMil())
+                        // وحصراً وهو فعلاً true حالياً (لا تراجع عن شيء غير معلَّق أصلاً).
+                        // (eventLog مسموح بالإلحاق هنا أيضاً — سجل الحركة التلقائي، بند سجل
+                        // الحركة الموحّد؛ لا يمنح أي كتابة حرة، فقط يرافق نفس الحدث المصرَّح به)
+                        || (
+                          resource.data.createdBy == myMil()
+                          && formNotLocked(resource.data)
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['pendingDeletion','deletionRequestedBy','deletionRequestedAt','eventLog'])
+                          && (
+                            (request.resource.data.pendingDeletion == true
+                              && request.resource.data.deletionRequestedBy == myMil())
+                            || (request.resource.data.pendingDeletion == false
+                              && resource.data.pendingDeletion == true
+                              && resource.data.deletionRequestedBy == myMil())
+                          )
+                        )
+                        // استرجاع الأدمن من صندوق المراجعة: يصفّر pendingDeletion فقط —
+                        // إجراء إداري على حالة الطلب، وليس تعديل محتوى، فلا يتقيّد بالقفل
+                        || (
+                          isAdmin()
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['pendingDeletion','deletionRequestedBy','deletionRequestedAt','eventLog'])
+                          && request.resource.data.pendingDeletion == false
+                        )
+                        // إعادة الفتح: الأدمن فقط، وفقط على نموذج مقفول فعلاً بالوقت
+                        // الطبيعي (لا يمنح صلاحية لنفسه — النموذج يبقى غير قابل للتعديل
+                        // من الأدمن؛ يتيحه فقط لمنشئه عبر الفرع أعلاه). إلحاق عنصر واحد
+                        // بالضبط بـreopenHistory (لا تعديل/حذف لعناصر سابقة)، ولا حقل آخر.
+                        || (
+                          isAdmin()
+                          && ('createdAt' in resource.data)
+                          && request.time >= resource.data.createdAt + duration.value(24,'h')
+                          && resource.data.get('reopenActive', false) == false
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reopenActive','reopenHistory'])
+                          && request.resource.data.reopenActive == true
+                          && request.resource.data.reopenHistory.size() == resource.data.get('reopenHistory', []).size() + 1
+                        )
+                        // تسجيل "القفل التلقائي" بسجل الحركة: يُكتشَف بشكل سلبي عند أول
+                        // فتح للنموذج بعد بلوغ ٢٤ ساعة (لا مراقبة خلفية) — أي طرف يملك أصلاً
+                        // صلاحية فتح النموذج يقدر يسجّل هذا الحدث مرة واحدة فقط (lockLogged)
+                        || (
+                          (isAdmin() || incOwnerMil(incId) == myMil() || myMil() in incParticipantIds(incId))
+                          && ('createdAt' in resource.data)
+                          && request.time >= resource.data.createdAt + duration.value(24,'h')
+                          && resource.data.get('reopenActive', false) == false
+                          && resource.data.get('lockLogged', false) == false
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['eventLog','lockLogged'])
+                          && request.resource.data.lockLogged == true
+                        )
+                        // تسجيل حدث "تصدير" (بصمة PDF): التصدير متاح دوماً بالواجهة بصرف
+                        // النظر عن حالة القفل، فهذا الفرع غير مقيَّد بـformNotLocked عمداً —
+                        // يسمح لأي طرف يملك أصلاً صلاحية قراءة هذا النموذج بإلحاق حدث exported
+                        // واحد بالضبط لكل كتابة، وبشرط أن ينسب الحدث نفسه لهويته الحقيقية فقط
+                        // (by == myMil())، فلا يقدر أحد تسجيل حدث تصدير منتحلاً باسم غيره —
+                        // يحافظ هذا على مصداقية سجل الحركة كدليل، رغم اتساع نطاق التوقيت.
+                        || (
+                          (isAdmin() || incOwnerMil(incId) == myMil() || myMil() in incParticipantIds(incId))
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['eventLog'])
+                          && request.resource.data.eventLog.size() == resource.data.get('eventLog', []).size() + 1
+                          && request.resource.data.eventLog[request.resource.data.eventLog.size()-1].type == 'exported'
+                          && request.resource.data.eventLog[request.resource.data.eventLog.size()-1].by == myMil()
+                          && request.resource.data.eventLog[request.resource.data.eventLog.size()-1].hash is string
+                        )
+                      );
+        // الحذف الفعلي (.delete()) للأدمن فقط ومن صندوق المراجعة حصراً — الضابط
+        // لم يعد يستدعي allow delete إطلاقاً؛ حذفه الآن هو طلب pendingDeletion عبر update
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ===== فهرس التذاكر (انضمام لتذكرة) =====
+    // يحتوي حصراً على serialNum + shortCode لكل حادثة — بدون اسم الضابط أو أي بيانات أخرى؛
+    // مقروء لكل ضابط مسجَّل ليتمكن من التحقق من تطابق رقم/رمز تذكرة يملكها ضابط آخر،
+    // دون أي قدرة على قراءة محتوى حادثة ضابط آخر مباشرة عبر هذا المسار.
+    match /ticketIndex/{incId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['serialNum','shortCode'])
+        && request.resource.data.serialNum is string
+        && request.resource.data.shortCode is string;
+      allow update: if false;
+      // الحذف حصراً للأدمن — ضمن الحذف النهائي للحادثة (adminHardDeleteInc) لمنع
+      // بقاء سجل يتيم يشير لحادثة غير موجودة (كان يسبب تعارض إعادة استخدام رقم التذكرة).
+      allow delete: if isAdmin();
+    }
+
+    // ===== الإشعارات (الحد الأدنى — نوع واحد فقط حالياً: طلب تعديل من الإدارة) =====
+    // كل إشعار موجَّه لضابط واحد محدَّد (toMilitaryNum) عبر إعادة فتح الأدمن لتقرير.
+    match /notifications/{id} {
+      allow read: if signedIn() && (resource.data.toMilitaryNum == myMil() || isAdmin());
+      // الإنشاء حصراً للأدمن حالياً (المُصدِر الوحيد لهذا النوع)؛ by يجب أن يكون هويته
+      // الحقيقية — لا يمكن انتحال اسم مُصدِر آخر
+      allow create: if signedIn() && isAdmin() && request.resource.data.by == myMil();
+      // المستلم فقط يقدر يعلّم إشعاره كمقروء — حقل read فقط، لا شيء آخر
+      allow update: if signedIn() && resource.data.toMilitaryNum == myMil()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
+    }
+  }
+}

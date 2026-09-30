@@ -2895,13 +2895,17 @@ async function saveForm(silent){
     const blob=Object.values(formValues).filter(v=>typeof v==='string'&&v.trim()).join(' · ').trim();
     const lbl=FORM_CONFIGS[currentForm.type]?FORM_CONFIGS[currentForm.type].label:'';
     const upd={['searchByForm.'+currentForm.id]:lbl+' '+blob};
-    // تخزين مكرر (denormalization) لبطاقة القائمة — فقط من "تقرير حادث"
-    if(currentForm.type==='taqrir_hadith'){
+    // تخزين مكرر (denormalization) لبطاقة القائمة — الوصف المختصر من حقل
+    // incident_description الموجود بكلا النموذجين (تقرير حادث + تقرير مركبات)؛
+    // مؤشر سبب الحادث (causeIndicator) يبقى مقتصراً على "تقرير حادث" فقط عمداً
+    if(currentForm.type==='taqrir_hadith'||currentForm.type==='taqrir_markabat'){
       const excerpt=makeExcerpt(formValues.incident_description,18);
-      const cause=causeFromValues(formValues);
       upd.descriptionExcerpt=excerpt;
-      upd.causeIndicator=cause;
       currentIncident.descriptionExcerpt=excerpt;
+    }
+    if(currentForm.type==='taqrir_hadith'){
+      const cause=causeFromValues(formValues);
+      upd.causeIndicator=cause;
       currentIncident.causeIndicator=cause;
     }
     await db.collection('incidents').doc(currentIncident._id).update(upd);

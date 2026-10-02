@@ -472,6 +472,16 @@ input,textarea{font-family:inherit;}
 .sig-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;}
 .sig-clear{position:absolute;top:2px;left:2px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
   padding:3px 8px;border-radius:5px;z-index:3;}
+/* توقيع الضابط المحقون تلقائياً — عرض فقط (height:auto يحافظ على نسبة الصورة
+   الحقيقية بلا تشويه)، بلا أي تفاعل رسم (pointer-events:none) */
+.officer-sig-img{position:absolute;height:auto;pointer-events:none;}
+.officer-sig-missing{position:absolute;display:flex;flex-direction:column;gap:4px;align-items:flex-start;
+  background:rgba(254,242,242,.95);border:1.5px dashed var(--danger);border-radius:6px;padding:5px 7px;
+  font-size:10px;color:var(--danger);z-index:5;}
+.officer-sig-missing button{background:var(--primary);color:#fff;border:none;border-radius:5px;
+  padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;}
+/* يُخفى تماماً وقت تصدير PDF — لا يظهر تنبيه "لا يوجد توقيع" بالملف الناتج إطلاقاً */
+.exporting .officer-sig-missing{display:none !important;}
 
 /* ===== TOAST / LOADING ===== */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);
@@ -2672,7 +2682,10 @@ function renderFields(){
     if(f.type==='text') mkText(f,x,y,w,h,scale,layer,tabOrder.get(f));
     else if(f.type==='textarea') mkArea(f,x,y,w,h,scale,layer,tabOrder.get(f));
     else if(f.type==='checkbox') mkCheck(f,x,y,w,h,layer);
-    else if(f.type==='signature') mkSig(f,x,y,w,h,layer);
+    else if(f.type==='signature'){
+      if(isOfficerSigField(currentForm.type,f.key)) mkOfficerSig(f,x,y,layer,cw);
+      else mkSig(f,x,y,w,h,layer);
+    }
   });
 }
 /* تصغير الخط تلقائياً فقط عند فيضان النص الفعلي (يبدأ من الحجم الافتراضي المريح) */
@@ -2758,6 +2771,61 @@ function mkCheck(f,x,y,w,h,layer){
     b.classList.toggle('on',now);
   });
   layer.appendChild(b);
+}
+/* ============================================================
+   توقيع الضابط المحقون تلقائياً من بروفايله — أربعة حقول توقيع محدَّدة فقط
+   (النوع+المفتاح معاً، لا المفتاح لحاله — sig_1778279390487 مثلاً يمثّل صاحب
+   الموقع بنماذج أخرى غير mahdar_mushtarak). تحققت من هذه المطابقة مباشرة من
+   FORM_CONFIGS الفعلية قبل كتابتها هنا:
+     taqrir_hadith   + sig_1778291243846
+     taqrir_markabat + sig_1778291243846
+     iqrar_aradiya   + sig_1778844355439
+     mahdar_mushtarak+ sig_1778279390487
+   بقية حقول signature (صاحب الموقع/جهة خارجية) تمر بـmkSig() كما هي تماماً —
+   لا تغيير عليها إطلاقاً. */
+const OFFICER_SIG_FIELD={
+  taqrir_hadith:   'sig_1778291243846',
+  taqrir_markabat: 'sig_1778291243846',
+  iqrar_aradiya:   'sig_1778844355439',
+  mahdar_mushtarak:'sig_1778279390487'
+};
+function isOfficerSigField(formType,key){return OFFICER_SIG_FIELD[formType]===key;}
+/* نقطة موضع فقط (x,y بلا width/height) — تعريفات widthPct/heightPct الموجودة حالياً
+   بـFORM_CONFIGS لهذه الحقول الأربعة تحديداً قديمة (من قبل تحويلها لنقطة بأداة
+   field_position_tool.html) ولم تُحذف من الكود بعد؛ نتجاهلها هنا عمداً بعدم
+   استقبال w/h إطلاقاً من renderFields() لهذا المسار — حجم موحَّد عبر كل النماذج
+   (قرار محسوم) كنسبة ثابتة من عرض الصفحة المعروض، والارتفاع يُشتق تلقائياً من
+   النسبة الحقيقية لأبعاد صورة التوقيع نفسها (height:auto على <img> — بلا أي
+   تشويه، بلا حساب يدوي). */
+const OFFICER_SIG_WIDTH_PCT=0.16;
+function mkOfficerSig(f,x,y,layer,cw){
+  const w=Math.round(cw*OFFICER_SIG_WIDTH_PCT);
+  if(currentUserData && currentUserData.signature){
+    const img=document.createElement('img');
+    img.className='officer-sig-img';
+    img.alt='توقيع الضابط';
+    img.src=currentUserData.signature;
+    img.style.cssText=`left:${x}px;top:${y}px;width:${w}px;`;
+    layer.appendChild(img);
+  }else{
+    // لا توقيع محفوظ بعد — تنبيه + رابط مباشر لواجهة البروفايل؛ هذا الصندوق
+    // يُخفى تماماً وقت تصدير PDF (قاعدة .exporting أدناه) فلا يظهر بالملف الناتج
+    const box=document.createElement('div');
+    box.className='officer-sig-missing';
+    box.style.cssText=`left:${x}px;top:${y}px;width:${w}px;`;
+    box.innerHTML=`<span>⚠️ لا يوجد توقيع محفوظ</span>`+
+      `<button type="button" onclick="openProfileFromForm()">احفظ توقيعك الآن</button>`;
+    layer.appendChild(box);
+  }
+}
+/* فتح البروفايل من داخل شاشة النموذج — صندوق البروفايل عناصره حصراً بترويسة
+   dash-screen (غير موجودة بـform-screen)، فلازم التنقّل الكامل لها أولاً، بنفس
+   تسلسل closeForm()+backToDash() الموجودين أصلاً، ثم فتح الصندوق مباشرة. */
+async function openProfileFromForm(){
+  await saveForm(true);
+  await loadIncidents();
+  showScreen('dash-screen');
+  toggleProfilePanel();
 }
 function mkSig(f,x,y,w,h,layer){
   const wrap=document.createElement('div');
@@ -2855,6 +2923,15 @@ async function saveForm(silent){
   if(willRelock&&!confirm('هل أنت متأكد؟ الحفظ سيقفل هذا التقرير نهائياً.'))return;
   if(!silent)showLoading(true,'جارٍ الحفظ...');
   try{
+    // لقطة توقيع الضابط (قرار معماري محسوم مسبقاً — انظر الذاكرة المسجَّلة): تُنسَخ
+    // من التوقيع المحفوظ بالبروفايل إلى نفس حقل sigData المستخدم أصلاً للرسم اليدوي،
+    // بكل استدعاء لـsaveForm() (صريحاً أو صامتاً) طالما النموذج لم يُقفَل بعد — الحارس
+    // أعلى الدالة (currentForm.locked) يمنع أي كتابة بعد القفل، فيتجمّد آخر نسخة
+    // منسوخة نهائياً حينها. لا مرجع حي يُجلب وقت العرض/التصدير إطلاقاً.
+    const officerSigKey=OFFICER_SIG_FIELD[currentForm.type];
+    if(officerSigKey && currentUserData.signature){
+      sigData[officerSigKey]=currentUserData.signature;
+    }
     // createdBy/createdAt وحقول دورة الحياة (lockedAt/isLocked/reopenHistory/pendingDeletion)
     // تُكتب فقط أول مرة (إنشاء النموذج الفعلي) ولا تُمس بعدها أبداً — merge:true يحمي هذه
     // الحقول من الانمحاء عند كل حفظ لاحق. createdAt هو مرجع القفل التلقائي بقاعدة الأمان.

@@ -472,6 +472,38 @@ input,textarea{font-family:inherit;}
 .sig-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;}
 .sig-clear{position:absolute;top:2px;left:2px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
   padding:3px 8px;border-radius:5px;z-index:3;}
+/* ===== مركز الإدارة ===== */
+.ac-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.ac-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:15px 16px;box-shadow:var(--shadow);}
+.ac-card .n{font-size:26px;font-weight:800;line-height:1.1;}
+.ac-card .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5;}
+.ac-card.ok .n{color:var(--ok);} .ac-card.warn .n{color:var(--accent-dark);} .ac-card.bad .n{color:var(--danger);}
+.ac-sub{font-size:12px;color:var(--muted);}
+.ac-hint{font-size:11.5px;color:var(--muted);line-height:1.6;background:var(--bg);
+  border-radius:9px;padding:9px 12px;margin:-6px 0 12px;}
+.ac-note{font-size:12px;color:var(--accent-dark);background:var(--draft-bg,#fdf3d8);
+  border-radius:9px;padding:10px 13px;margin-top:14px;line-height:1.6;}
+.ac-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:13px 15px;margin-bottom:9px;box-shadow:var(--shadow);}
+.ac-row-main{flex:1 1 210px;min-width:0;}
+.ac-serial{font-size:14px;font-weight:800;color:var(--primary);direction:ltr;text-align:right;}
+.ac-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.ac-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.ac-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.ac-chip.miss{color:var(--danger);background:var(--danger-bg,#fdecea);}
+.ac-chip.has{color:var(--ok);background:var(--ok-bg,#eafaf0);}
+.ac-chip.time{color:var(--accent-dark);background:#fdf3d8;}
+.ac-acts{display:flex;gap:7px;align-items:center;flex-shrink:0;}
+.ac-bar-wrap{width:120px;flex-shrink:0;}
+.ac-bar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.ac-bar-pct{font-size:12px;font-weight:800;color:var(--danger);}
+.ac-bar-frac{font-size:11px;color:var(--muted);}
+.ac-bar{width:100%;height:8px;border-radius:4px;background:var(--bg);overflow:hidden;}
+.ac-bar i{display:block;height:100%;background:var(--danger);}
+.ac-empty{font-size:12.5px;color:var(--muted);background:var(--card);border:1px dashed var(--border);
+  border-radius:var(--radius);padding:16px;text-align:center;}
 /* توقيع الضابط المحقون تلقائياً — عرض فقط (height:auto يحافظ على نسبة الصورة
    الحقيقية بلا تشويه)، بلا أي تفاعل رسم (pointer-events:none) */
 .officer-sig-img{position:absolute;height:auto;pointer-events:none;}
@@ -675,6 +707,7 @@ tr:last-child td{border-bottom:none;}
     <div class="section-head">
       <h3>📋 الحوادث</h3>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" id="btn-admin-center" style="display:none" onclick="openAdminCenter()">🛡️ مركز الإدارة</button>
         <button class="btn btn-ghost btn-sm" id="btn-admin" style="display:none" onclick="openAdmin()">لوحة الإدارة</button>
         <button class="btn btn-primary" onclick="openNewIncident()">+ حادثة جديدة</button>
       </div>
@@ -807,7 +840,10 @@ tr:last-child td{border-bottom:none;}
       <div class="stat-card"><div class="num" id="a-users">0</div><div class="lbl">المستخدمون</div></div>
     </div>
 
-    <div class="section-head"><h3>📋 الأرشيف — كل الحوادث</h3></div>
+    <div class="section-head">
+      <h3>📋 الأرشيف — كل الحوادث</h3>
+      <button class="btn btn-primary btn-sm" onclick="openAdminCenter()">🛡️ مركز الإدارة</button>
+    </div>
     <div class="search-box">
       <span class="ico">🔍</span>
       <input id="a-search" type="text" placeholder="ابحث في أي محتوى: اسم صاحب الموقع، الحي، وصف الحادث، التاريخ..." oninput="renderAdminIncs()">
@@ -824,24 +860,74 @@ tr:last-child td{border-bottom:none;}
     </div>
     <div id="admin-incs" style="margin-bottom:28px"></div>
 
-    <div class="section-head"><h3>🗑️ صندوق مراجعة الحذف <span id="a-pending-count" style="opacity:.7"></span></h3></div>
-    <div class="tbl-wrap" style="margin-bottom:28px">
-      <table><thead><tr><th>النموذج</th><th>الحادثة</th><th>طلب الحذف بواسطة</th><th>تاريخ الطلب</th><th>إجراء</th></tr></thead>
-      <tbody id="admin-pending"></tbody></table>
-    </div>
-
-    <!-- عرض فقط (Read-only) — بلا أي قفل/مؤقّت/منطق إضافي، استعلام حالة حالية فقط -->
-    <div class="section-head"><h3>🔓 نماذج معاد فتحها <span id="a-reopened-count" style="opacity:.7"></span></h3></div>
-    <div class="tbl-wrap" style="margin-bottom:28px">
-      <table><thead><tr><th>النموذج</th><th>صاحبه</th><th>تاريخ إعادة الفتح</th><th>السبب</th></tr></thead>
-      <tbody id="admin-reopened"></tbody></table>
-    </div>
+    <!-- صندوق مراجعة الحذف والنماذج المعاد فتحها انتقلا لمركز الإدارة (مكان واحد
+         لكل ما ينتظر إجراءً) — لا يُكرَّران هنا عمداً -->
 
     <div class="section-head"><h3>👥 المستخدمون</h3></div>
     <div class="tbl-wrap">
       <table><thead><tr><th>الاسم</th><th>الرتبة</th><th>الرقم العسكري</th><th>الحوادث</th><th>صلاحية</th><th>إجراء</th></tr></thead>
       <tbody id="admin-users"></tbody></table>
     </div>
+  </div>
+</div>
+
+<!-- ============ ADMIN CENTER — مركز الإدارة ============ -->
+<div class="screen" id="admin-center-screen">
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="assets/logo.jpg" alt="شعار">
+      <h2>مركز الإدارة<span>كل ما ينتظر إجراءً منك</span></h2>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="openAdmin()">‹ لوحة الإدارة</button>
+      <button class="btn btn-ghost btn-sm" onclick="backToDash()">‹ القائمة</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="ac-cards" id="ac-cards"></div>
+
+    <div class="section-head" style="margin-top:22px">
+      <h3>🗑️ طلبات حذف للمراجعة <span id="a-pending-count" style="opacity:.7"></span></h3>
+      <span class="ac-sub">نماذج فردية طلب أصحابها حذفها</span>
+    </div>
+    <div class="tbl-wrap" style="margin-bottom:28px">
+      <table><thead><tr><th>النموذج</th><th>الحادثة</th><th>طلب الحذف بواسطة</th><th>تاريخ الطلب</th><th>إجراء</th></tr></thead>
+      <tbody id="admin-pending"></tbody></table>
+    </div>
+
+    <!-- عرض فقط (Read-only) — بلا أي قفل/مؤقّت/منطق إضافي، استعلام حالة حالية فقط -->
+    <div class="section-head">
+      <h3>🔓 نماذج أُعيد فتحها <span id="a-reopened-count" style="opacity:.7"></span></h3>
+      <span class="ac-sub">الأقدم أولاً · للعرض فقط</span>
+    </div>
+    <div class="tbl-wrap" style="margin-bottom:28px">
+      <table><thead><tr><th>النموذج</th><th>صاحبه</th><th>تاريخ إعادة الفتح</th><th>السبب</th></tr></thead>
+      <tbody id="admin-reopened"></tbody></table>
+    </div>
+
+    <div class="section-head">
+      <h3>📄 حوادث ناقصة الأوراق <span id="ac-papers-count" style="opacity:.7"></span></h3>
+      <span class="ac-sub">الحد الأدنى: سند استلام + تقرير حادث</span>
+    </div>
+    <div class="ac-hint">يعتمد على وجود نموذجَي سند استلام موقع حادث وتقرير حادث معاً — لا يشمل تقرير مركبات أو إقرار عرضية أو محضر مشترك.</div>
+    <div id="ac-papers" style="margin-bottom:28px"></div>
+
+    <div class="section-head">
+      <h3>⚠️ نماذج بحقول مهمة ناقصة <span id="ac-fields-count" style="opacity:.7"></span></h3>
+      <span class="ac-sub">سبب الحادث · التاريخ · الوقت</span>
+    </div>
+    <div class="ac-hint">يفحص تقرير حادث وتقرير مركبات فقط. الحوادث المسلَّمة لجهة الاختصاص تُستثنى من فحص «سبب الحادث» تحديداً.</div>
+    <div id="ac-fields" style="margin-bottom:28px"></div>
+
+    <div class="section-head">
+      <h3>📉 تقارير ضعيفة التفاصيل <span id="ac-weak-count" style="opacity:.7"></span></h3>
+      <span class="ac-sub">اكتمال الحقول المهمة أقل من ٣٠٪</span>
+    </div>
+    <div class="ac-hint">نسبة اكتمال حقول مختارة (لا كل الخانات)، بلا أوزان — حقل المجموعة (نوع الموقع، سبب الحادث…) يكتمل بتفعيل أي خيار منه.</div>
+    <div id="ac-weak" style="margin-bottom:28px"></div>
+
+    <div class="section-head"><h3>👁️ متابعة</h3></div>
+    <div class="ac-cards" id="ac-followup"></div>
   </div>
 </div>
 
@@ -1576,6 +1662,9 @@ function isConfigured(){const f=CONFIG.firebase;return f.apiKey&&!f.apiKey.inclu
    رسم لاحقة)، في أول سطر من مستمع onAuthStateChanged — قبل أي جلب بيانات
    للحساب الجديد وقبل أي فرصة لعرضها. */
 function resetAppState(){
+  // إيقاف المستمع الحي أولاً وقبل أي شيء — وإلا بقي بثّ بيانات كل الحوادث جارياً
+  // بعد الخروج أو عند الدخول بحساب آخر (ثغرة من نفس عائلة الثغرة التي عُولجت هنا)
+  stopAdminLive();
   currentUserData=null;
   incidents=[]; currentIncident=null;
   currentForm=null; formValues={}; sigData={}; sigPaths={};
@@ -1597,6 +1686,9 @@ function resetAppState(){
   const pfViewRow=$('profile-view-row'); if(pfViewRow) pfViewRow.style.display='flex';
   const pfEditRow=$('profile-edit-row'); if(pfEditRow) pfEditRow.style.display='none';
   profileSigReplaceConfirmed=false;
+  // مركز الإدارة — تفريغ أقسامه كاملة عند تبديل الحساب (نفس فلسفة بقية هذه الدالة)
+  ['ac-cards','ac-papers','ac-fields','ac-weak','ac-followup','admin-pending','admin-reopened']
+    .forEach(id=>{const el=$(id); if(el)el.innerHTML='';});
   if(sigCtx){const cv=$('profile-sig-canvas');sigCtx.clearRect(0,0,cv.width,cv.height);}
   const sigEmpty=$('profile-sig-empty'); if(sigEmpty) sigEmpty.classList.remove('hide');
 }
@@ -1714,6 +1806,7 @@ function doLogout(){
 async function enterApp(){
   $('dash-user').innerHTML=`${currentUserData.name}<span>${currentUserData.rank}</span>`;
   $('btn-admin').style.display=currentUserData.isAdmin?'inline-flex':'none';
+  $('btn-admin-center').style.display=currentUserData.isAdmin?'inline-flex':'none';
   await loadIncidents();
   loadNotifications();
   showScreen('dash-screen');
@@ -2404,7 +2497,22 @@ async function setFormPendingFlagInList(incId,fid,flag){
   const inc=(currentIncident&&currentIncident._id===incId)?currentIncident
     :(incidents.find(i=>i._id===incId)||adminIncs.find(i=>i._id===incId));
   if(!inc||!inc.formsList)return;
-  const list=inc.formsList.map(f=>f.id===fid?{...f,pendingDeletion:flag}:f);
+  // مرآة بيانات طلب الحذف داخل نفس هذه الكتابة الموجودة أصلاً (بلا أي طلب إضافي) —
+  // تُغني صندوق المراجعة عن استعلام formData لكل حادثة عند كل فتح للوحة
+  const list=inc.formsList.map(f=>f.id===fid?{...f,pendingDeletion:flag,
+    pendBy:flag?currentUserData.militaryNum:null,
+    pendAt:flag?firebase.firestore.Timestamp.now():null}:f);
+  await db.collection('incidents').doc(incId).update({formsList:list});
+  inc.formsList=list;
+  if(currentIncident&&currentIncident._id===incId&&currentIncident!==inc)currentIncident.formsList=list;
+}
+/* مرآة حالة "إعادة الفتح" على عنصر النموذج بمستند الحادثة — نفس نمط المرآة أعلاه.
+   تُستدعى عند إعادة الفتح (كائن) وعند إعادة القفل بالحفظ (null). */
+async function setFormReopenInList(incId,fid,reopen){
+  const inc=(currentIncident&&currentIncident._id===incId)?currentIncident
+    :(incidents.find(i=>i._id===incId)||adminIncs.find(i=>i._id===incId));
+  if(!inc||!inc.formsList)return;
+  const list=inc.formsList.map(f=>f.id===fid?{...f,reopen:reopen||null}:f);
   await db.collection('incidents').doc(incId).update({formsList:list});
   inc.formsList=list;
   if(currentIncident&&currentIncident._id===incId&&currentIncident!==inc)currentIncident.formsList=list;
@@ -2508,6 +2616,10 @@ async function confirmReopen(){
     currentForm.reopenActive=true;
     currentForm.locked=false;
     currentForm.reopenHistory=[...(currentForm.reopenHistory||[]),entry];
+    // مرآة على مستند الحادثة — كتابة إضافية واحدة بإجراء إداري نادر، مقابل إلغاء
+    // استعلام formData لكل حادثة عند كل فتح للوحة. فشلها لا يُبطل إعادة الفتح نفسها.
+    try{ await setFormReopenInList(currentIncident._id,currentForm.id,
+      {at:entry.at,reason,owner:currentForm.createdBy||null}); }catch(e){ console.error(e); }
     // إشعار تلقائي لصاحب التقرير الأصلي — فشل هذه الخطوة لا يُلغي نجاح إعادة الفتح نفسها،
     // لكن الفشل يُسجَّل بوضوح (console.error مفصّل) ويُعرَض للأدمن بصياغة الرسالة النهائية
     // بدل أن يمر بصمت تماماً — راجع البرومبت المرتبط لمعرفة سبب فشل فعلي مُكتشَف سابقاً
@@ -2911,6 +3023,88 @@ function causeFromValues(v){
   return '';
 }
 
+/* ============================================================
+   طبقة التدقيق (Audit) — أساس "مركز الإدارة"
+   تُشتق وقت حفظ النموذج وتُخزَّن مُلخَّصةً بمستند الحادثة نفسه، لا بـformData —
+   حتى يقرأ الأدمن كل ما يحتاجه من استعلام الحوادث الواحد الموجود أصلاً، بلا أي
+   استعلام لكل حادثة (القيد الصلب: الخطة المجانية). نفس نمط causeIndicator.
+   تطبيع الأسماء المتعارضة بين النموذجين يتم هنا داخل الاشتقاق، بلا إعادة تسمية
+   أي حقل بـFORM_CONFIGS (cause_undetermined/cause_unknown،
+   handover_after_ops/handover_specialty).
+   ============================================================ */
+const AUDIT_CAUSE_ANY=['cause_accidental','cause_criminal','cause_undetermined','cause_unknown'];
+const AUDIT_HANDOVER_ANY=['handover_to_owner','handover_after_ops','handover_specialty','investigation_ongoing'];
+const AUDIT_ENTITY_ANY=['entity_red_crescent','entity_electricity','entity_security_patrol',
+  'entity_forensics','entity_municipality','entity_police','entity_traffic','entity_health_affairs','entity_other'];
+const AUDIT_LOC_ANY=['loc_residential','loc_commercial','loc_industrial','loc_other'];
+/* الحقول الثلاثة الحرجة (القسم ٤) — تنبيه عند غياب أيٍّ منها */
+const AUDIT_CRITICAL=[
+  {code:'cause',label:'سبب الحادث',any:AUDIT_CAUSE_ANY},
+  {code:'date', label:'التاريخ',   all:['dd','mm','yy']},
+  {code:'time', label:'الوقت',     all:['hour','min']}
+];
+/* الحقول "المهمة" لنسبة الاكتمال (القسم ٥) — مختارة لا كل الخانات، وبلا أوزان:
+   all = عدة حقول نصية تُعدّ بنداً واحداً · any = مجموعة يكفي تفعيل خيار واحد منها */
+const AUDIT_IMPORTANT={
+  taqrir_hadith:[
+    {label:'التاريخ',        all:['dd','mm','yy']},
+    {label:'اسم المبلغ',      text:'reporter_name'},
+    {label:'رقم المبلغ',      text:'reporter_phone'},
+    {label:'مستلم البلاغ',    text:'operator_name'},
+    {label:'رتبة المستلم',    text:'operator_rank'},
+    {label:'الحي',           text:'district'},
+    {label:'الشارع',         text:'street'},
+    {label:'نوع الموقع',      any:AUDIT_LOC_ANY},
+    {label:'سبب الحادث',      any:AUDIT_CAUSE_ANY},
+    {label:'الجهات المشاركة', any:AUDIT_ENTITY_ANY},
+    {label:'جهة التسليم',     any:AUDIT_HANDOVER_ANY}
+  ],
+  taqrir_markabat:[
+    {label:'وضع السير/الوقوف', any:['status_moving','status_stationary']},
+    {label:'وصف سير العمليات', text:'ops_description'},
+    {label:'وصف الحادث',      text:'incident_description'},
+    {label:'سبب الحادث',      any:AUDIT_CAUSE_ANY},
+    {label:'الجهات المشاركة', any:AUDIT_ENTITY_ANY},
+    {label:'جهة التسليم',     any:AUDIT_HANDOVER_ANY}
+  ]
+};
+function auditFilled(item,v){
+  if(item.text) return !!String(v[item.text]==null?'':v[item.text]).trim();
+  if(item.all)  return item.all.every(k=>String(v[k]==null?'':v[k]).trim()!=='');
+  if(item.any)  return item.any.some(k=>v[k]===true);
+  return false;
+}
+/* الإعفاء من فحص "سبب الحادث": تسليم الحادث لجهة الاختصاص يعني أننا جهة مشاركة لا
+   مختصة بالتحقيق، فلا سبب مطلوب منّا. اعتمدت على هذا الخيار الموجود فعلاً بالنموذجين
+   بدل استنتاج "حادثة مرورية" من وجود تقرير مركبات (تقرير المركبات له حقول سبب خاصة
+   به فعلاً، فإعفاؤه كلياً كان سيُسقط فجوات حقيقية) ولا من نص handover_other الحر. */
+function auditExempt(v){return v.handover_after_ops===true||v.handover_specialty===true;}
+function buildFormAudit(type,v){
+  if(type!=='taqrir_hadith'&&type!=='taqrir_markabat')return null;
+  const exempt=auditExempt(v);
+  const missing=[];
+  AUDIT_CRITICAL.forEach(c=>{
+    if(c.code==='cause'&&exempt)return;
+    if(!auditFilled(c,v))missing.push(c.code);
+  });
+  const items=AUDIT_IMPORTANT[type]||[];
+  return {type,missing,filled:items.filter(it=>auditFilled(it,v)).length,total:items.length,exempt};
+}
+/* توقيع حالة التدقيق — أساس زر "تم": الأدمن يعتمد حالةً بعينها، فإن تغيّرت لاحقاً
+   (نقص جديد أو اكتمال مختلف) يعود التنبيه تلقائياً؛ وإن عدّل الضابط شيئاً لا يمسّ
+   التدقيق يبقى مخفياً. أدق من إخفاء أبدي، وأبسط من تتبّع تاريخ كامل. */
+function auditSig(a){return a?(a.missing.join(',')+'|'+a.filled+'/'+a.total):'';}
+/* مفاتيح التحديث بصيغة النقاط — تُدمج داخل حقل audit دون مسح ackSig الذي يكتبه الأدمن */
+function auditUpdateKeys(fid,a,isFirstSave){
+  const p='audit.'+fid+'.', o={};
+  o[p+'type']=a.type; o[p+'missing']=a.missing;
+  o[p+'filled']=a.filled; o[p+'total']=a.total; o[p+'exempt']=a.exempt;
+  // مرآة تقريبية لزمن إنشاء النموذج (مرجع عدّاد "يُقفل خلال ٢٤ ساعة" بمركز الإدارة
+  // بلا قراءة formData). المرجع المُلزِم للقفل يبقى formData.createdAt وقاعدة الأمان.
+  if(isFirstSave)o[p+'createdAt']=firebase.firestore.Timestamp.now();
+  return o;
+}
+
 /* ===== SAVE ===== */
 async function saveForm(silent){
   if(!currentForm)return;
@@ -2939,6 +3133,7 @@ async function saveForm(silent){
     // سجل الحركة: نُلحق الحدث(الأحداث) المناسبة ضمن نفس كتابة الحفظ هذه بالضبط —
     // لا طلب شبكة إضافي. Timestamp.now() وليس serverTimestamp() (غير مسموح داخل arrayUnion).
     const logEntries=[];
+    const isFirstSave=!currentForm.createdBy; // يُلتقط قبل أن يضبطه الفرع التالي
     if(!currentForm.createdBy){
       payload.createdBy=currentUserData.militaryNum;
       payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
@@ -2985,13 +3180,31 @@ async function saveForm(silent){
       upd.causeIndicator=cause;
       currentIncident.causeIndicator=cause;
     }
+    // إعادة القفل تُصفّر مرآة "أُعيد فتحه" — ضمن نفس كتابة الحادثة أدناه، بلا كتابة
+    // ثالثة منفصلة (وإلا بقي النموذج ظاهراً بقائمة "أُعيد فتحها" بعد حفظه)
+    if(willRelock){
+      const relocked=(currentIncident.formsList||[]).map(f=>f.id===currentForm.id?{...f,reopen:null}:f);
+      upd.formsList=relocked;
+      currentIncident.formsList=relocked;
+      const li=incidents.find(x=>x._id===currentIncident._id);
+      if(li&&li!==currentIncident)li.formsList=relocked;
+    }
+    // ملخّص التدقيق لمركز الإدارة — ضمن نفس كتابة الحادثة هذه، بلا أي طلب إضافي
+    const fAudit=buildFormAudit(currentForm.type,formValues);
+    if(fAudit){
+      Object.assign(upd,auditUpdateKeys(currentForm.id,fAudit,isFirstSave));
+      if(!currentIncident.audit)currentIncident.audit={};
+      const prev=currentIncident.audit[currentForm.id]||{};
+      currentIncident.audit[currentForm.id]={...prev,...fAudit,
+        createdAt:isFirstSave?firebase.firestore.Timestamp.now():prev.createdAt};
+    }
     await db.collection('incidents').doc(currentIncident._id).update(upd);
     if(!currentIncident.searchByForm)currentIncident.searchByForm={};
     currentIncident.searchByForm[currentForm.id]=lbl+' '+blob;
     if(willRelock){
       currentForm.reopenActive=false;
       currentForm.locked=true;
-      applyFormLockUI();
+      applyFormLockUI();   // تصفير مرآة إعادة الفتح تم ضمن upd أعلاه، بلا كتابة إضافية
     }
     if(!silent){showLoading(false);showToast(willRelock?'تم الحفظ — أُقفل التقرير نهائياً':'تم الحفظ','ok');}
   }catch(e){if(!silent){showLoading(false);}showToast('تعذّر الحفظ','error');console.error(e);}
@@ -3238,17 +3451,53 @@ function loadFormForExport(f){
    ADMIN
    ============================================================ */
 let adminIncs=[], adminFilter='all', adminPending=[], adminReopened=[];
+/* ============================================================
+   التحديث الحي للأدمن — مستمع واحد على مجموعة incidents
+   اخترت onSnapshot بدل عدّادات مجمّعة تُزاد وتُنقَص وقت الحفظ: العدّادات تحتاج
+   معاملة لكل حفظة ومنطقاً عكسياً عند التصحيح (ضابط يعدّل حادثة ⇒ يجب إنقاص القديم
+   وزيادة الجديد) وتنحرف عن الواقع عند أي فشل جزئي. المستمع لا يحتاج أياً من ذلك:
+   • الاتصال الأول = N قراءة — نفس تكلفة get() التي كانت تُدفع أصلاً، بلا زيادة.
+   • بعدها كل حفظة ضابط = قراءة واحدة فقط للمستند المتغيّر (لا إعادة قراءة للكل).
+   • صحيح بالبناء دائماً، فلا احتمال انحراف عدّاد.
+   وبما أن كل ما يحتاجه مركز الإدارة صار على مستند الحادثة (audit + مرايا formsList)،
+   هذا المستمع وحده يُحدّث كل الأقسام — وصفر استعلامات formData. */
+let adminUnsub=null;
+function stopAdminLive(){ if(adminUnsub){try{adminUnsub();}catch(e){} adminUnsub=null;} }
+function applyAdminSnapshot(snap){
+  adminIncs=snap.docs.map(d=>({_id:d.id,...d.data()}));
+  adminIncs.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
+  loadAdminPending();
+  loadAdminReopened();
+  refreshAdminStats();
+  // لا نُعيد رسم إلا الشاشة المعروضة فعلاً
+  if($('admin-screen').classList.contains('active')){
+    renderAdminIncs();renderAdminPending();renderAdminReopened();renderAdminUsers();
+  }
+  if($('admin-center-screen').classList.contains('active'))renderAdminCenter();
+}
+function startAdminLive(){
+  if(adminUnsub)return Promise.resolve();          // مستمع واحد فقط لا غير
+  return new Promise((resolve,reject)=>{
+    let first=true;
+    adminUnsub=db.collection('incidents').onSnapshot(snap=>{
+      applyAdminSnapshot(snap);
+      if(first){first=false;resolve();}
+    },err=>{
+      console.error('[adminLive]',err);
+      stopAdminLive();
+      if(first){first=false;reject(err);}
+      else showToast('انقطع التحديث الحي — أعد فتح اللوحة','error');
+    });
+  });
+}
 async function openAdmin(){
   showLoading(true,'جارٍ تحميل الأرشيف...');
   try{
-    const us=await db.collection('users').get();
-    allUsers=us.docs.map(d=>({_uid:d.id,...d.data()}));
-    const all=await db.collection('incidents').get();
-    adminIncs=all.docs.map(d=>({_id:d.id,...d.data()}));
-    adminIncs.sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt));
-    await loadAdminPending();
-    await loadAdminReopened();
-    refreshAdminStats();
+    if(!allUsers.length){
+      const us=await db.collection('users').get();
+      allUsers=us.docs.map(d=>({_uid:d.id,...d.data()}));
+    }
+    await startAdminLive();   // يحمّل الحوادث أول مرة ثم يبقى يتابعها حياً
     renderAdminIncs();
     renderAdminPending();
     renderAdminReopened();
@@ -3263,20 +3512,21 @@ async function openAdmin(){
    قاعدة allow read التي تعتمد على get() عبر isAdmin() — تبيَّن عملياً أن هذا
    التركيب يُرفَض بـ"Missing or insufficient permissions" على استعلامات القائمة
    collectionGroup تحديداً رغم صحة القاعدة على المسار المباشر (لكل مستند بمفرده). */
-async function loadAdminPending(){
-  try{
-    const results=await Promise.all(adminIncs.map(async inc=>{
-      const snap=await db.collection('incidents').doc(inc._id).collection('formData')
-        .where('pendingDeletion','==',true).get();
-      return snap.docs.map(d=>({_id:d.id,_incId:inc._id,...d.data()}));
-    }));
-    adminPending=results.flat();
-    adminPending.sort((a,b)=>tsToDate(b.deletionRequestedAt)-tsToDate(a.deletionRequestedAt));
-  }catch(e){
-    adminPending=[];
-    console.error(e);
-    showToast('تعذّر تحميل صندوق مراجعة الحذف — راجع الكونسول','error');
-  }
+/* تحديث جذري: لم تعد تستعلم شيئاً. كل ما يحتاجه الصندوق صار مُمَرّأً على عنصر
+   النموذج داخل formsList بمستند الحادثة (pendingDeletion/pendBy/pendAt) وقت طلب
+   الحذف نفسه — فالاشتقاق محلي بالكامل من adminIncs المحمَّلة أصلاً:
+   صفر استعلامات بدل استعلام لكل حادثة عند كل فتح. شكل المصفوفة لم يتغيّر إطلاقاً
+   فدالة العرض renderAdminPending تعمل كما هي بلا أي تعديل. */
+function loadAdminPending(){
+  adminPending=[];
+  adminIncs.filter(i=>!i.deleted).forEach(inc=>{
+    (inc.formsList||[]).forEach(f=>{
+      if(!f.pendingDeletion)return;
+      adminPending.push({_id:f.id,_incId:inc._id,type:f.type,
+        deletionRequestedBy:f.pendBy||null,deletionRequestedAt:f.pendAt||null});
+    });
+  });
+  adminPending.sort((a,b)=>tsToDate(b.deletionRequestedAt)-tsToDate(a.deletionRequestedAt));
 }
 function renderAdminPending(){
   const t=$('admin-pending');
@@ -3300,25 +3550,18 @@ function renderAdminPending(){
 }
 /* نماذج معاد فتحها ولم تُحفَظ بعد — عرض فقط، بلا أي قفل/مؤقّت/منطق إضافي.
    استعلام منفصل لكل حادثة (بدل collectionGroup) — نفس سبب التعديل بـloadAdminPending أعلاه. */
-async function loadAdminReopened(){
-  try{
-    const results=await Promise.all(adminIncs.map(async inc=>{
-      const snap=await db.collection('incidents').doc(inc._id).collection('formData')
-        .where('reopenActive','==',true).get();
-      return snap.docs.map(d=>{
-        const data=d.data();
-        const last=(data.reopenHistory||[])[((data.reopenHistory||[]).length-1)]||null;
-        return {_id:d.id,_incId:inc._id,...data,_lastReopen:last};
-      });
-    }));
-    adminReopened=results.flat();
-    // الأقدم أولاً (الأطول انتظاراً للتعديل بالأعلى)
-    adminReopened.sort((a,b)=>tsToDate(a._lastReopen&&a._lastReopen.at)-tsToDate(b._lastReopen&&b._lastReopen.at));
-  }catch(e){
-    adminReopened=[];
-    console.error(e);
-    showToast('تعذّر تحميل قائمة النماذج المعاد فتحها — راجع الكونسول','error');
-  }
+/* نفس التحديث الجذري أعلاه: اشتقاق محلي من مرآة formsList[].reopen، بلا أي استعلام */
+function loadAdminReopened(){
+  adminReopened=[];
+  adminIncs.filter(i=>!i.deleted).forEach(inc=>{
+    (inc.formsList||[]).forEach(f=>{
+      if(!f.reopen)return;
+      adminReopened.push({_id:f.id,_incId:inc._id,type:f.type,
+        createdBy:f.reopen.owner||null,_lastReopen:f.reopen});
+    });
+  });
+  // الأقدم أولاً (الأطول انتظاراً للتعديل بالأعلى)
+  adminReopened.sort((a,b)=>tsToDate(a._lastReopen&&a._lastReopen.at)-tsToDate(b._lastReopen&&b._lastReopen.at));
 }
 function renderAdminReopened(){
   const t=$('admin-reopened');
@@ -3335,6 +3578,197 @@ function renderAdminReopened(){
       <td>${r._lastReopen?esc(r._lastReopen.reason||'—'):'—'}</td>
     </tr>`;
   }).join('');
+}
+
+/* ============================================================
+   مركز الإدارة — كل ما ينتظر إجراءً، بمكان واحد
+   كل أقسامه تُحسب من adminIncs المحمَّلة أصلاً (formsList + audit المشتق وقت
+   الحفظ) — صفر استعلامات إضافية، وصفر قراءة لمجموعة formData. التنبيهات الزمنية
+   تُحسب لحظة العرض من createdAt، فلا تُخزَّن ولا تحتاج مهمة مجدولة.
+   ============================================================ */
+const AC_MIN_FORMS=['sand_istilam','taqrir_hadith']; // الحد الأدنى لأوراق الحادثة
+const AC_WEAK_PCT=0.30;                              // عتبة "ضعيف التفاصيل"
+const AC_MISS_LABEL={cause:'سبب الحادث',date:'التاريخ',time:'الوقت'};
+const DAY_MS=86400000;
+function acAgo(ts){
+  const d=tsToDate(ts); if(!d||isNaN(d))return '';
+  const diff=Date.now()-d.getTime();
+  if(diff<3600000)return 'منذ '+toAr(Math.max(1,Math.round(diff/60000)))+' دقيقة';
+  if(diff<DAY_MS)return 'منذ '+toAr(Math.round(diff/3600000))+' ساعة';
+  return 'منذ '+toAr(Math.round(diff/DAY_MS))+' يوم';
+}
+function acLive(){return adminIncs.filter(i=>!i.deleted);}
+/* صفوف التدقيق: نمر على formsList (لا على مفاتيح audit) حتى لا يظهر نموذج محذوف
+   أو معلَّق الحذف؛ والنماذج بلا سجل تدقيق تُعدّ "لم تُفحص" لا "سليمة" */
+function acAuditRows(){
+  const rows=[];
+  acLive().forEach(inc=>{
+    const a=inc.audit||{};
+    (inc.formsList||[]).forEach(f=>{
+      if(f.pendingDeletion)return;
+      if(f.type!=='taqrir_hadith'&&f.type!=='taqrir_markabat')return;
+      const e=a[f.id];
+      if(!e)return; // نموذج قديم بلا سجل تدقيق — يُتجاهل بصمت (قرار صاحب المشروع)
+      rows.push({inc,fid:f.id,type:e.type||f.type,missing:e.missing||[],
+        filled:e.filled||0,total:e.total||0,exempt:!!e.exempt,
+        ackSig:e.ackSig||'',createdAt:e.createdAt||null});
+    });
+  });
+  return rows;
+}
+function acNotAcked(r){return auditSig(r)!==r.ackSig;}
+function acOfficer(inc){return esc((inc.officerRank?inc.officerRank+' ':'')+(inc.officerName||inc.officerMilitaryNum||'—'));}
+function acRowHead(inc,extra){
+  return `<div class="ac-row-main">
+    <div class="ac-serial">${esc(inc.serialNum||'—')}</div>
+    <div class="ac-meta">${acOfficer(inc)}${extra?' · '+esc(extra):''}</div>
+  </div>`;
+}
+function acOpenIncident(incId){openAdminCenterTarget(incId,null,null);}
+function acOpenForm(incId,fid,type){openAdminCenterTarget(incId,fid,type);}
+async function openAdminCenterTarget(incId,fid,type){
+  // نفس مسار فتح الإشعار الموجود أصلاً: الحادثة أولاً ثم النموذج إن طُلب
+  await openIncident(incId);
+  if(fid&&type)openForm(fid,type);
+}
+/* زر "تم": يخزّن توقيع الحالة المعتمَدة — التنبيه يعود تلقائياً إن تغيّر التدقيق
+   لاحقاً، ويبقى مخفياً إن كان التعديل لا يمسّه. لا يحذف أي بيانات. */
+async function acAck(incId,fid){
+  const inc=adminIncs.find(x=>x._id===incId); if(!inc||!inc.audit||!inc.audit[fid])return;
+  const sig=auditSig(inc.audit[fid]);
+  try{
+    await db.collection('incidents').doc(incId).update({['audit.'+fid+'.ackSig']:sig});
+    inc.audit[fid].ackSig=sig;
+    const li=incidents.find(x=>x._id===incId);
+    if(li&&li.audit&&li.audit[fid])li.audit[fid].ackSig=sig;
+    renderAdminCenter();
+    showToast('أُخفي التنبيه','ok');
+  }catch(e){console.error(e);showToast('تعذّر إخفاء التنبيه','error');}
+}
+function acBtnAck(incId,fid){
+  return `<button class="btn btn-ghost btn-sm" title="تم الاطلاع — إخفاء هذا التنبيه"
+    onclick="acAck('${incId}','${fid}')">✓ تم</button>`;
+}
+function acBtnOpenForm(incId,fid,type){
+  return `<button class="btn btn-ghost btn-sm" onclick="acOpenForm('${incId}','${fid}','${type}')">فتح النموذج</button>`;
+}
+/* ── القسم: حوادث ناقصة الأوراق ──
+   مهلة سماح ٦ ساعات من إنشاء الحادثة (لهذا القسم وحده) — الحادثة الجديدة تكون
+   بطبيعتها بلا أوراق، فإظهارها فوراً ضجيج لا تنبيه. */
+const AC_PAPERS_GRACE_MS=6*3600000;
+function acPapersList(){
+  const now=Date.now();
+  return acLive().map(inc=>{
+    if((now-tsToDate(inc.createdAt))<AC_PAPERS_GRACE_MS)return null;
+    const types=new Set((inc.formsList||[]).filter(f=>!f.pendingDeletion).map(f=>f.type));
+    const missing=AC_MIN_FORMS.filter(t=>!types.has(t));
+    return missing.length?{inc,missing,types}:null;
+  }).filter(Boolean).sort((a,b)=>tsToDate(a.inc.createdAt)-tsToDate(b.inc.createdAt));
+}
+function renderAcPapers(list){
+  $('ac-papers-count').textContent=list.length?'('+toAr(list.length)+')':'';
+  const c=$('ac-papers');
+  if(!list.length){c.innerHTML='<div class="ac-empty">كل الحوادث مستوفية الحد الأدنى من الأوراق ✅</div>';return;}
+  c.innerHTML=list.map(({inc,types})=>{
+    const chips=AC_MIN_FORMS.map(t=>{
+      const has=types.has(t), lbl=FORM_CONFIGS[t]?FORM_CONFIGS[t].label:t;
+      return `<span class="ac-chip ${has?'has':'miss'}">${has?'✓':'✕'} ${esc(lbl)}</span>`;
+    }).join('');
+    return `<div class="ac-row">
+      ${acRowHead(inc,acAgo(inc.createdAt))}
+      <div class="ac-chips">${chips}</div>
+      <div class="ac-acts"><button class="btn btn-ghost btn-sm" onclick="acOpenIncident('${inc._id}')">فتح الحادثة</button></div>
+    </div>`;
+  }).join('');
+}
+/* ── القسم: نماذج بحقول مهمة ناقصة ── */
+function renderAcFields(rows){
+  $('ac-fields-count').textContent=rows.length?'('+toAr(rows.length)+')':'';
+  const c=$('ac-fields');
+  if(!rows.length){c.innerHTML='<div class="ac-empty">لا توجد حقول مهمة ناقصة ✅</div>';return;}
+  c.innerHTML=rows.map(r=>{
+    const lbl=FORM_CONFIGS[r.type]?FORM_CONFIGS[r.type].label:r.type;
+    const chips=r.missing.map(m=>`<span class="ac-chip miss">${esc(AC_MISS_LABEL[m]||m)}</span>`).join('');
+    return `<div class="ac-row">
+      ${acRowHead(r.inc,lbl)}
+      <div class="ac-chips">${chips}</div>
+      <div class="ac-acts">${acBtnAck(r.inc._id,r.fid)}${acBtnOpenForm(r.inc._id,r.fid,r.type)}</div>
+    </div>`;
+  }).join('');
+}
+/* ── القسم: تقارير ضعيفة التفاصيل ── */
+function renderAcWeak(rows){
+  $('ac-weak-count').textContent=rows.length?'('+toAr(rows.length)+')':'';
+  const c=$('ac-weak');
+  if(!rows.length){c.innerHTML='<div class="ac-empty">لا توجد تقارير دون عتبة الاكتمال ✅</div>';return;}
+  c.innerHTML=rows.map(r=>{
+    const lbl=FORM_CONFIGS[r.type]?FORM_CONFIGS[r.type].label:r.type;
+    const pct=r.total?Math.round(r.filled/r.total*100):0;
+    return `<div class="ac-row">
+      ${acRowHead(r.inc,lbl)}
+      <div class="ac-bar-wrap">
+        <div class="ac-bar-top"><span class="ac-bar-pct">${toAr(pct)}٪</span>
+          <span class="ac-bar-frac">${toAr(r.filled)} من ${toAr(r.total)}</span></div>
+        <div class="ac-bar"><i style="width:${pct}%"></i></div>
+      </div>
+      <div class="ac-acts">${acBtnAck(r.inc._id,r.fid)}${acBtnOpenForm(r.inc._id,r.fid,r.type)}</div>
+    </div>`;
+  }).join('');
+}
+function acCard(n,label,tone){
+  return `<div class="ac-card ${tone||''}"><div class="n">${toAr(n)}</div><div class="l">${label}</div></div>`;
+}
+function renderAdminCenter(){
+  const rows=acAuditRows();
+  const papers=acPapersList();
+  const fieldRows=rows.filter(r=>r.missing.length&&acNotAcked(r));
+  const weakRows=rows.filter(r=>r.total&&(r.filled/r.total)<AC_WEAK_PCT&&acNotAcked(r))
+                     .sort((a,b)=>(a.filled/a.total)-(b.filled/b.total));
+  $('ac-cards').innerHTML=
+    acCard(papers.length,'حوادث ناقصة الأوراق',papers.length?'bad':'ok')+
+    acCard(fieldRows.length,'نماذج بحقول ناقصة',fieldRows.length?'warn':'ok')+
+    acCard(weakRows.length,'تقارير ضعيفة التفاصيل',weakRows.length?'bad':'ok')+
+    acCard(adminPending.length,'طلبات حذف',adminPending.length?'warn':'ok')+
+    acCard(adminReopened.length,'نماذج أُعيد فتحها',adminReopened.length?'warn':'ok');
+  renderAcPapers(papers);
+  renderAcFields(fieldRows);
+  renderAcWeak(weakRows);
+  renderAcFollowup(rows);
+  renderAdminPending();
+  renderAdminReopened();
+}
+/* ── متابعة: تُحسب لحظياً من createdAt (بلا تخزين، بلا مهام مجدولة) ──
+   قيّمت العدّادات الثلاثة المقترحة: أبقيت الأول والثاني، واستبدلت الثالث —
+   "نماذج تُقفل خلال ٢٤ ساعة" يصف حرفياً كل نموذج حُفظ اليوم، ولا إجراء للأدمن
+   حياله (لا هو ولا الضابط يقدران على منع القفل). البديل قابل للتصرف فعلاً:
+   نموذج ناقص + بقي على قفله أقل من ٦ ساعات = آخر فرصة لإصلاحه. */
+function renderAcFollowup(rows){
+  const now=Date.now();
+  const staleDrafts=acLive().filter(i=>i.status!=='completed'&&(now-tsToDate(i.createdAt))>3*DAY_MS).length;
+  const noCauseIncs=new Set(rows.filter(r=>r.missing.includes('cause')&&
+    (now-tsToDate(r.inc.createdAt))>7*DAY_MS).map(r=>r.inc._id)).size;
+  const urgent=rows.filter(r=>{
+    if(!r.missing.length||!r.createdAt)return false;
+    const left=DAY_MS-(now-tsToDate(r.createdAt));
+    return left>0&&left<6*3600000;
+  }).length;
+  $('ac-followup').innerHTML=
+    acCard(staleDrafts,'مسودات مفتوحة أكثر من ٣ أيام',staleDrafts?'warn':'')+
+    acCard(noCauseIncs,'حوادث بلا سبب محدَّد أكثر من ٧ أيام',noCauseIncs?'warn':'')+
+    acCard(urgent,'نماذج ناقصة يُقفل تعديلها خلال ٦ ساعات',urgent?'bad':'');
+}
+async function openAdminCenter(){
+  showLoading(true,'جارٍ التحميل...');
+  try{
+    if(!allUsers.length){
+      const us=await db.collection('users').get();
+      allUsers=us.docs.map(d=>({_uid:d.id,...d.data()}));
+    }
+    await startAdminLive();  // نفس المستمع المشترك — لا يُنشأ مرتين
+    renderAdminCenter();
+    showLoading(false);
+    showScreen('admin-center-screen');
+  }catch(e){showLoading(false);showToast('تعذّر التحميل','error');console.error(e);}
 }
 async function adminRestoreForm(incId,fid){
   showLoading(true,'جارٍ الاسترجاع...');
@@ -3364,12 +3798,15 @@ async function adminHardDeleteForm(incId,fid){
       // ولن يبقى موجوداً ليُسجَّل عليه أي شيء بعد
       await db.collection('incidents').doc(incId).update({
         formsList:list,['searchByForm.'+fid]:firebase.firestore.FieldValue.delete(),
+        // ملخّص التدقيق يُحذف مع النموذج وإلا بقي تنبيهاً يتيماً بمركز الإدارة
+        ['audit.'+fid]:firebase.firestore.FieldValue.delete(),
         hardDeletedFormsLog:firebase.firestore.FieldValue.arrayUnion({
           formId:fid,formType:delEntry?delEntry.type:null,
           by:currentUserData.militaryNum,at:firebase.firestore.Timestamp.now()
         })
       });
       inc.formsList=list;
+      if(inc.audit)delete inc.audit[fid];
       if(currentIncident&&currentIncident._id===incId)currentIncident.formsList=list;
     }
     adminPending=adminPending.filter(p=>!(p._incId===incId&&p._id===fid));

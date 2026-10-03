@@ -13,3 +13,6 @@ field_position_tool.html
 
 # ملفات Word المرجعية (نفس فئة PDF أعلاه — مصدر أصلي، ليست جزءاً من الكود)
 *.docx
+
+# ملفات اختبار محلية مؤقتة (_audit_test.html وغيرها)
+_*.html

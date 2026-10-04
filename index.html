@@ -451,6 +451,13 @@ input,textarea{font-family:inherit;}
 .exporting .field-overlay::placeholder{color:transparent !important;}
 .exporting .chk-overlay{background:transparent !important;border-color:transparent !important;}
 .exporting .sig-clear{display:none !important;}
+/* حقل "الحي" — select.field-overlay يرث مظهر field-overlay القياسي تلقائياً؛
+   فقط ضبط cursor/appearance، وزر الرجوع للقائمة (وضع النص الحر فقط) */
+select.field-overlay{cursor:pointer;appearance:none;-webkit-appearance:none;}
+.district-back{position:absolute;background:rgba(255,247,200,.65);border:1px dashed rgba(201,162,39,.6);
+  border-radius:2px;color:#6e5614;font-size:10px;line-height:1;cursor:pointer;padding:0;}
+.district-back:hover{background:rgba(255,247,200,.95);}
+.exporting .district-back{display:none !important;}
 .exporting .sig-overlay{background:transparent !important;border:none !important;}
 /* حقل نص متعدد الأسطر */
 .field-area{position:absolute;background:rgba(255,247,200,.45);border:1px dashed rgba(201,162,39,.6);
@@ -504,6 +511,65 @@ input,textarea{font-family:inherit;}
 .ac-bar i{display:block;height:100%;background:var(--danger);}
 .ac-empty{font-size:12.5px;color:var(--muted);background:var(--card);border:1px dashed var(--border);
   border-radius:var(--radius);padding:16px;text-align:center;}
+
+/* ===== داشبوردي (الضابط) ===== */
+.od-empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.od-empty .ico{font-size:48px;opacity:.4;display:block;margin-bottom:10px;}
+.od-note{background:linear-gradient(90deg,var(--primary),var(--primary-light));border-radius:var(--radius);
+  padding:14px 18px;display:flex;align-items:flex-start;gap:12px;color:#eafaf0;font-size:13px;line-height:1.7;
+  margin-bottom:18px;}
+.od-note svg{flex-shrink:0;margin-top:2px;}
+.od-note b{color:#fff;}
+.od-sub{font-size:11px;font-weight:700;color:var(--muted);margin-top:6px;line-height:1.5;}
+.od-sub.ok{color:var(--ok);}
+.od-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow);}
+.od-card-title{font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:14px;}
+.od-section{margin-top:18px;}
+.od-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media (max-width:680px){.od-grid2{grid-template-columns:1fr;}}
+.od-grid2 .od-card{margin:0;}
+/* اتجاه ٦ أشهر */
+.od-trend-row{display:flex;align-items:flex-end;gap:10px;height:100px;}
+.od-trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;}
+.od-trend-n{font-size:10.5px;font-weight:700;color:var(--text);}
+.od-trend-bar{width:100%;max-width:30px;background:var(--border);border-radius:4px 4px 0 0;transition:height .2s;}
+.od-trend-bar.hi{background:var(--primary);}
+.od-trend-lbl{font-size:9.5px;color:var(--muted);white-space:nowrap;}
+.od-trend-lbl.hi{color:var(--primary);font-weight:800;}
+/* أيام الأسبوع */
+.od-day-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.od-day-row:last-child{margin-bottom:0;}
+.od-day-lbl{width:38px;font-size:11px;color:var(--text);flex-shrink:0;}
+.od-day-track{flex:1;height:14px;border-radius:4px;background:var(--bg);overflow:hidden;}
+.od-day-fill{height:100%;background:var(--primary-light);border-radius:4px;}
+.od-day-n{width:18px;font-size:10.5px;color:var(--muted);text-align:left;flex-shrink:0;}
+/* الجهات */
+.od-ent-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.od-ent-row:last-child{margin-bottom:0;}
+.od-ent-lbl{width:88px;font-size:11.5px;font-weight:700;color:var(--text);flex-shrink:0;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;}
+.od-ent-track{flex:1;height:8px;border-radius:4px;background:var(--bg);overflow:hidden;}
+.od-ent-fill{height:100%;background:var(--primary);}
+.od-ent-n{width:18px;font-size:11px;color:var(--muted);flex-shrink:0;}
+/* نسبة مئوية (نوع المواقع) */
+.od-pctrow{margin-bottom:10px;}
+.od-pctrow:last-child{margin-bottom:0;}
+.od-pctrow-top{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.od-pctrow-top span:first-child{font-weight:700;color:var(--text);}
+.od-pctrow-top span:last-child{color:var(--muted);}
+.od-pctbar{width:100%;height:7px;border-radius:4px;background:var(--bg);overflow:hidden;}
+.od-pctbar i{display:block;height:100%;background:var(--accent);}
+/* العمليات */
+.od-pills{display:flex;flex-wrap:wrap;gap:8px;}
+.od-pill{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);
+  border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--text);}
+.od-pill b{color:var(--primary);}
+/* جهة التسليم */
+.od-stack{display:flex;width:100%;height:10px;border-radius:5px;overflow:hidden;background:var(--bg);}
+.od-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;}
+.od-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text);}
+.od-legend-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0;}
 /* توقيع الضابط المحقون تلقائياً — عرض فقط (height:auto يحافظ على نسبة الصورة
    الحقيقية بلا تشويه)، بلا أي تفاعل رسم (pointer-events:none) */
 .officer-sig-img{position:absolute;height:auto;pointer-events:none;}
@@ -707,6 +773,7 @@ tr:last-child td{border-bottom:none;}
     <div class="section-head">
       <h3>📋 الحوادث</h3>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="openOfficerDashboard()">📊 داشبوردي</button>
         <button class="btn btn-ghost btn-sm" id="btn-admin-center" style="display:none" onclick="openAdminCenter()">🛡️ مركز الإدارة</button>
         <button class="btn btn-ghost btn-sm" id="btn-admin" style="display:none" onclick="openAdmin()">لوحة الإدارة</button>
         <button class="btn btn-primary" onclick="openNewIncident()">+ حادثة جديدة</button>
@@ -928,6 +995,65 @@ tr:last-child td{border-bottom:none;}
 
     <div class="section-head"><h3>👁️ متابعة</h3></div>
     <div class="ac-cards" id="ac-followup"></div>
+  </div>
+</div>
+
+<!-- ============ OFFICER DASHBOARD — داشبوردي ============ -->
+<div class="screen" id="officer-dash-screen">
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="assets/logo.jpg" alt="شعار">
+      <h2>داشبوردي<span>نظرة عامة على حوادثك</span></h2>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="backToDash()">‹ القائمة</button>
+  </header>
+  <div class="wrap">
+    <div class="od-empty" id="od-empty" style="display:none">
+      <span class="ico">📊</span><p>لا توجد حوادث بعد — الداشبورد يُبنى تلقائياً بمجرد إنشاء أول حادثة.</p>
+    </div>
+
+    <div class="od-note" id="od-note" style="display:none"></div>
+
+    <div class="od-section" id="od-sec-cards">
+      <div class="ac-cards" id="od-cards"></div>
+    </div>
+
+    <div class="od-section od-card" id="od-sec-trend">
+      <div class="od-card-title">اتجاه حوادثي — آخر ٦ أشهر هجرية</div>
+      <div id="od-trend"></div>
+    </div>
+
+    <div class="od-section od-grid2">
+      <div class="od-card">
+        <div class="od-card-title">أي أيام تكثر فيها حوادثي؟</div>
+        <div id="od-days"></div>
+      </div>
+      <div class="od-card">
+        <div class="od-card-title">الجهات الحكومية الأكثر تعاملاً معي</div>
+        <div id="od-entities"></div>
+      </div>
+    </div>
+
+    <div class="od-section od-grid2">
+      <div class="od-card">
+        <div class="od-card-title">نوع المواقع التي حضرتها</div>
+        <div id="od-loc"></div>
+      </div>
+      <div class="od-card">
+        <div class="od-card-title">نوع العمليات التي نفّذتها</div>
+        <div id="od-ops"></div>
+      </div>
+    </div>
+
+    <div class="od-section od-card" id="od-sec-handover">
+      <div class="od-card-title">كيف انتهت حوادثي — جهة التسليم</div>
+      <div id="od-handover"></div>
+    </div>
+
+    <div class="od-section" id="od-sec-recent">
+      <div class="section-head"><h3>آخر حوادثي</h3></div>
+      <div id="od-recent"></div>
+    </div>
   </div>
 </div>
 
@@ -1686,9 +1812,11 @@ function resetAppState(){
   const pfViewRow=$('profile-view-row'); if(pfViewRow) pfViewRow.style.display='flex';
   const pfEditRow=$('profile-edit-row'); if(pfEditRow) pfEditRow.style.display='none';
   profileSigReplaceConfirmed=false;
-  // مركز الإدارة — تفريغ أقسامه كاملة عند تبديل الحساب (نفس فلسفة بقية هذه الدالة)
-  ['ac-cards','ac-papers','ac-fields','ac-weak','ac-followup','admin-pending','admin-reopened']
+  // مركز الإدارة وداشبورد الضابط — تفريغ أقسامهما كاملة عند تبديل الحساب (نفس فلسفة بقية هذه الدالة)
+  ['ac-cards','ac-papers','ac-fields','ac-weak','ac-followup','admin-pending','admin-reopened',
+   'od-cards','od-trend','od-days','od-entities','od-loc','od-ops','od-handover','od-recent']
     .forEach(id=>{const el=$(id); if(el)el.innerHTML='';});
+  const odNote=$('od-note'); if(odNote){odNote.style.display='none';odNote.innerHTML='';}
   if(sigCtx){const cv=$('profile-sig-canvas');sigCtx.clearRect(0,0,cv.width,cv.height);}
   const sigEmpty=$('profile-sig-empty'); if(sigEmpty) sigEmpty.classList.remove('hide');
 }
@@ -2112,6 +2240,192 @@ function renderIncidents(){
   }).join('')+'</div>';
 }
 function backToDash(){loadIncidents();showScreen('dash-screen');}
+
+/* ============================================================
+   داشبوردي — إحصائيات الضابط
+   كل الحسابات محلية 100% من incidents المحمَّلة أصلاً بـloadIncidents() (حوادثه
+   + ما شارك فيه — نفس المجموعة المعروضة بالقائمة الرئيسية، قرار ٢)، مبنية حصراً
+   على المؤشرات المُشتقة وقت الحفظ (طبقة indicators). صفر استعلامات إضافية عند
+   فتح الشاشة. نفس هذه الدوال/المؤشرات أساس "لوحة الشعبة" لاحقاً.
+   ============================================================ */
+const HIJRI_MONTHS=['محرم','صفر','ربيع١','ربيع٢','جمادى١','جمادى٢','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+const LOC_LABELS={residential:'سكني',commercial:'تجاري',industrial:'صناعي',other:'موقع آخر'};
+const OPS_LABELS={extinguish:'إطفاء',rescue:'إنقاذ',evacuate:'إخلاء',shelter:'إيواء',ambulance:'إسعاف'};
+const ENTITY_LABELS={red_crescent:'الهلال الأحمر',electricity:'الكهرباء',security_patrol:'الدوريات الأمنية',
+  forensics:'الأدلة الجنائية',municipality:'الأمانة',other:'جهة أخرى',police:'الشرطة',traffic:'المرور',
+  health_affairs:'الشؤون الصحية'};
+const HANDOVER_LABELS={owner:'سُلّم لصاحبه',specialty:'سُلّم لجهة الاختصاص',ongoing:'لا يزال التحقيق جارياً'};
+const HANDOVER_SENT={owner:'لصاحب الموقع مباشرة',specialty:'لجهة الاختصاص',ongoing:'لا تزال جارية غالباً'};
+const HANDOVER_COLORS={owner:'var(--primary)',specialty:'var(--accent)',ongoing:'var(--border)'};
+function odHijri(d){
+  const h=gregorianToHijri(d.getFullYear(),d.getMonth()+1,d.getDate());
+  return {y:h.year,m:h.month,key:h.year*100+h.month,label:HIJRI_MONTHS[h.month-1]};
+}
+function odPct(n,total){return total?Math.round(n/total*100):0;}
+function odEmpty(){return '<div class="ac-empty">لا توجد بيانات كافية بعد</div>';}
+function odCard(n,label,sub,tone,subOk){
+  return `<div class="ac-card ${tone||''}"><div class="n">${n}</div><div class="l">${esc(label)}</div>`+
+    (sub?`<div class="od-sub${subOk?' ok':''}">${esc(sub)}</div>`:'')+`</div>`;
+}
+function openOfficerDashboard(){renderOfficerDashboard();showScreen('officer-dash-screen');}
+function renderOfficerDashboard(){
+  const mine=incidents.filter(i=>!i.deleted);
+  document.getElementById('od-empty').style.display=mine.length?'none':'';
+  document.querySelectorAll('#officer-dash-screen .od-section').forEach(s=>s.style.display=mine.length?'':'none');
+  document.getElementById('od-note').style.display='none';
+  if(!mine.length)return;
+  renderOdCards(mine);
+  renderOdNote(mine);
+  renderOdTrend(mine);
+  renderOdDays(mine);
+  renderOdEntities(mine);
+  renderOdLoc(mine);
+  renderOdOps(mine);
+  renderOdHandover(mine);
+  renderOdRecent(mine);
+}
+function renderOdCards(mine){
+  const now=Date.now(),D=86400000,total=mine.length;
+  const inProgress=mine.filter(i=>i.status!=='completed');
+  const stale=inProgress.filter(i=>!i.updatedAt||(now-tsToDate(i.updatedAt).getTime())>7*D).length;
+  const criminal=mine.filter(i=>i.causeIndicator==='criminal').length;
+  const invCalled=mine.filter(i=>i.investigatorCalledIndicator==='yes');
+  const invCriminalPct=invCalled.length?odPct(invCalled.filter(i=>i.causeIndicator==='criminal').length,invCalled.length):0;
+  // مقارنة بالفترة السابقة لنفس الضابط فقط (لا متوسط الشعبة — قرار ٤، غير مقروء أصلاً)
+  const W=180*D;
+  const curWin=mine.filter(i=>(now-tsToDate(i.createdAt).getTime())<=W).length;
+  const prevWin=mine.filter(i=>{const a=now-tsToDate(i.createdAt).getTime();return a>W&&a<=2*W;}).length;
+  const delta=curWin-prevWin;
+  const trendTxt=delta>0?`↑ ${toAr(delta)} عن الفترة السابقة`:delta<0?`↓ ${toAr(Math.abs(delta))} عن الفترة السابقة`:'بلا تغيير عن الفترة السابقة';
+  document.getElementById('od-cards').innerHTML=
+    odCard(toAr(total),'إجمالي حوادثي',trendTxt,'',delta>0)+
+    odCard(toAr(inProgress.length),'قيد التحقيق',stale?`${toAr(stale)} منها لم تُحدَّث منذ أسبوع`:'',inProgress.length?'warn':'')+
+    odCard(toAr(criminal),'حوادث جنائية',total?`${toAr(odPct(criminal,total))}٪ من إجمالي حوادثي`:'',criminal?'bad':'')+
+    odCard(toAr(invCalled.length),'استُدعي لها ضابط تحقيق',invCalled.length?`${toAr(invCriminalPct)}٪ منها جنائية`:'');
+}
+/* ملاحظة تلقائية بديلة عن مقارنات "متوسط الشعبة" غير المقروءة أمنياً (قرار ٤) —
+   حقائق محسوبة حصراً من بيانات الضابط نفسه. عتبة عيّنة صغيرة (٣ حوادث فأكثر)
+   ونسبة غالبة (٥٠٪ فأكثر) حتى لا تُستخلَص ملاحظة مضلِّلة من عيّنة تافهة — قرار
+   اتخذته بنفسي، لم يُحدَّد بالبرومبت. */
+function renderOdNote(mine){
+  const note=document.getElementById('od-note');
+  const frags=[];
+  const criminalList=mine.filter(i=>i.causeIndicator==='criminal');
+  if(criminalList.length>=3){
+    const eve=odPct(criminalList.filter(i=>tsToDate(i.createdAt).getHours()>=18).length,criminalList.length);
+    if(eve>=50)frags.push(`${toAr(eve)}٪ من حوادثك الجنائية سُجّلت مساءً بعد الساعة ٦`);
+  }
+  const locKnown=mine.filter(i=>i.locIndicator);
+  if(locKnown.length>=3){
+    const counts={};locKnown.forEach(i=>counts[i.locIndicator]=(counts[i.locIndicator]||0)+1);
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    const pct=odPct(top[1],locKnown.length);
+    if(pct>=50)frags.push(`${toAr(pct)}٪ من مواقعك ${LOC_LABELS[top[0]]||top[0]}`);
+  }
+  const hoKnown=mine.filter(i=>i.handoverIndicator);
+  if(hoKnown.length>=3){
+    const counts={};hoKnown.forEach(i=>counts[i.handoverIndicator]=(counts[i.handoverIndicator]||0)+1);
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    if(odPct(top[1],hoKnown.length)>=50)frags.push(`غالب تسليماتك ${HANDOVER_SENT[top[0]]||''}`);
+  }
+  if(!frags.length){note.style.display='none';return;}
+  note.style.display='';
+  note.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#c9a227" stroke-width="2" `+
+    `stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path>`+
+    `<path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg>`+
+    `<div><b>ملاحظة:</b> ${frags.map(esc).join('، و')}.</div>`;
+}
+function renderOdTrend(mine){
+  const now=new Date(),cur=gregorianToHijri(now.getFullYear(),now.getMonth()+1,now.getDate());
+  const months=[];let y=cur.year,m=cur.month;
+  for(let i=0;i<6;i++){months.unshift({y,m,key:y*100+m,label:HIJRI_MONTHS[m-1],count:0});m--;if(m<1){m=12;y--;}}
+  const byKey={};months.forEach(mo=>byKey[mo.key]=mo);
+  mine.forEach(i=>{const h=odHijri(tsToDate(i.createdAt));if(byKey[h.key])byKey[h.key].count++;});
+  const max=Math.max(1,...months.map(mo=>mo.count));
+  document.getElementById('od-trend').innerHTML=`<div class="od-trend-row">`+months.map((mo,idx)=>{
+    const hpx=mo.count?Math.round((mo.count/max)*74)+8:4;
+    const hi=idx===months.length-1;
+    return `<div class="od-trend-col"><div class="od-trend-n">${toAr(mo.count)}</div>`+
+      `<div class="od-trend-bar${hi?' hi':''}" style="height:${hpx}px"></div>`+
+      `<div class="od-trend-lbl${hi?' hi':''}">${mo.label}</div></div>`;
+  }).join('')+`</div>`;
+}
+function renderOdDays(mine){
+  const counts=[0,0,0,0,0,0,0];
+  mine.forEach(i=>counts[tsToDate(i.createdAt).getDay()]++);
+  const max=Math.max(1,...counts);
+  document.getElementById('od-days').innerHTML=DAYS_AR.map((lbl,idx)=>{
+    const pct=Math.round(counts[idx]/max*100);
+    return `<div class="od-day-row"><div class="od-day-lbl">${esc(lbl)}</div>`+
+      `<div class="od-day-track"><div class="od-day-fill" style="width:${pct}%"></div></div>`+
+      `<div class="od-day-n">${toAr(counts[idx])}</div></div>`;
+  }).join('');
+}
+function renderOdEntities(mine){
+  const counts={};
+  mine.forEach(i=>(i.entitiesIndicator||[]).forEach(e=>counts[e]=(counts[e]||0)+1));
+  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const c=document.getElementById('od-entities');
+  if(!entries.length){c.innerHTML=odEmpty();return;}
+  const max=entries[0][1];
+  c.innerHTML=entries.map(([k,n])=>{
+    const pct=Math.round(n/max*100);
+    return `<div class="od-ent-row"><div class="od-ent-lbl">${esc(ENTITY_LABELS[k]||k)}</div>`+
+      `<div class="od-ent-track"><div class="od-ent-fill" style="width:${pct}%"></div></div>`+
+      `<div class="od-ent-n">${toAr(n)}</div></div>`;
+  }).join('');
+}
+function renderOdLoc(mine){
+  const known=mine.filter(i=>i.locIndicator);
+  const c=document.getElementById('od-loc');
+  if(!known.length){c.innerHTML=odEmpty();return;}
+  const counts={};known.forEach(i=>counts[i.locIndicator]=(counts[i.locIndicator]||0)+1);
+  c.innerHTML=['residential','commercial','industrial','other'].filter(k=>counts[k]).map(k=>{
+    const n=counts[k],pct=odPct(n,known.length);
+    return `<div class="od-pctrow"><div class="od-pctrow-top"><span>${esc(LOC_LABELS[k])}</span>`+
+      `<span>${toAr(n)} (${toAr(pct)}٪)</span></div><div class="od-pctbar"><i style="width:${pct}%"></i></div></div>`;
+  }).join('');
+}
+function renderOdOps(mine){
+  const counts={};
+  mine.forEach(i=>(i.opsIndicator||[]).forEach(o=>counts[o]=(counts[o]||0)+1));
+  const entries=Object.entries(counts);
+  const c=document.getElementById('od-ops');
+  if(!entries.length){c.innerHTML=odEmpty();return;}
+  c.innerHTML=`<div class="od-pills">`+entries.map(([k,n])=>
+    `<span class="od-pill">${esc(OPS_LABELS[k]||k)} <b>${toAr(n)}</b></span>`).join('')+`</div>`;
+}
+function renderOdHandover(mine){
+  const known=mine.filter(i=>i.handoverIndicator);
+  const c=document.getElementById('od-handover');
+  if(!known.length){c.innerHTML=odEmpty();return;}
+  const counts={};known.forEach(i=>counts[i.handoverIndicator]=(counts[i.handoverIndicator]||0)+1);
+  const order=['owner','specialty','ongoing'].filter(k=>counts[k]);
+  const segs=order.map(k=>`<div style="width:${odPct(counts[k],known.length)}%;background:${HANDOVER_COLORS[k]}"></div>`).join('');
+  const legend=order.map(k=>`<span class="od-legend-item"><span class="od-legend-dot" `+
+    `style="background:${HANDOVER_COLORS[k]}"></span>${esc(HANDOVER_LABELS[k])} (${toAr(counts[k])})</span>`).join('');
+  c.innerHTML=`<div class="od-stack">${segs}</div><div class="od-legend">${legend}</div>`;
+}
+function renderOdRecent(mine){
+  const list=[...mine].sort((a,b)=>tsToDate(b.createdAt)-tsToDate(a.createdAt)).slice(0,6);
+  const c=document.getElementById('od-recent');
+  if(!list.length){c.innerHTML=odEmpty();return;}
+  c.innerHTML=list.map(i=>{
+    const cause=i.causeIndicator;
+    // "لم يحدد بعد" تُعامِل القيمتين '' و'undetermined' كحالة واحدة — كلاهما
+    // يعني عملياً "لا سبب مُحدَّد بعد" من منظور الضابط المستعرِض، بصرف النظر
+    // عن كون السبب الفعلي هو "عدم وجود تقرير محفوظ" أو "تقرير محفوظ بلا تحديد"
+    const causeBadge=cause==='accidental'?`<span class="ac-chip" style="color:var(--accent-dark);background:#fdf3d8">عرضي</span>`
+      :cause==='criminal'?`<span class="ac-chip miss">جنائي</span>`
+      :`<span class="ac-chip" style="color:var(--muted);background:var(--bg)">لم يحدد بعد</span>`;
+    const invBadge=i.investigatorCalledIndicator==='yes'?`<span class="ac-chip has">ضابط تحقيق مستدعى</span>`:'';
+    const desc=(i.descriptionExcerpt||'').trim();
+    return `<div class="ac-row" onclick="openIncident('${i._id}')" style="cursor:pointer">`+
+      `<div class="ac-row-main"><div class="ac-serial">${esc(i.serialNum||'—')}</div>`+
+      `<div class="ac-meta">${desc?esc(desc):fmtDate(i.createdAt)}</div></div>`+
+      `<div class="ac-chips">${causeBadge}${invBadge}</div></div>`;
+  }).join('');
+}
 
 /* ============================================================
    NEW INCIDENT
@@ -2791,7 +3105,12 @@ function renderFields(){
   cfg.fields.forEach(f=>{
     const x=f.xPct/100*cw, y=f.yPct/100*ch;
     const w=f.widthPct/100*cw, h=f.heightPct/100*ch;
-    if(f.type==='text') mkText(f,x,y,w,h,scale,layer,tabOrder.get(f));
+    if(f.type==='text'){
+      // الحي: قائمة اختيار ثابتة بدل النص الحر (قرار ٣) — نفس موضع/حجم الحقل
+      // المطبوع بالضبط بكلتا الحالتين، فلا يتأثر شكل النموذج المطبوع إطلاقاً
+      if(f.key==='district') mkDistrict(f,x,y,w,h,scale,layer,tabOrder.get(f));
+      else mkText(f,x,y,w,h,scale,layer,tabOrder.get(f));
+    }
     else if(f.type==='textarea') mkArea(f,x,y,w,h,scale,layer,tabOrder.get(f));
     else if(f.type==='checkbox') mkCheck(f,x,y,w,h,layer);
     else if(f.type==='signature'){
@@ -2837,6 +3156,73 @@ function mkText(f,x,y,w,h,scale,layer,tabIdx){
     });
   });
   layer.appendChild(inp);
+  if(inp.value)autoShrink(inp,baseFs,false);
+}
+/* حقل "الحي" — قائمة اختيار ثابتة (WA_DISTRICTS نفسها المستخدمة بتقرير الواتساب)
+   بدل نص حر، مع "غير ذلك" يفتح نصاً حراً صريحاً لا يدخل الإحصاء (قرار ٣). نفس
+   الموضع/الحجم بكلتا الحالتين، وكلاهما <select>/<input> حقيقيان يحملان
+   .field-overlay بإحداثيات inline صريحة — فمسار التصدير (captureForm/mkStatic)
+   يعمل عليهما بلا أي تعديل إطلاقاً (أضفنا فقط تجاهل العنصر المخفي من الزوج،
+   انظر captureForm). القيمة المطبوعة نهائياً دائماً نص عادي بـformValues[key]
+   بالضبط كما كانت — الشكل المطبوع (PDF) لا يتأثر بهذا التغيير مطلقاً. */
+const DISTRICT_OTHER='__other__';
+function mkDistrict(f,x,y,w,h,scale,layer,tabIdx){
+  const raw=Math.round((f.fontSize||14)*scale);
+  const fitCap=Math.max(6,Math.floor(h*0.82));
+  const baseFs=Math.max(6,Math.min(raw,fitCap));
+  const geom=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${baseFs}px;`;
+  const cur=formValues[f.key]||'';
+  const isListVal=WA_DISTRICTS.includes(cur);
+  let inOther=cur!==''&&!isListVal; // بيانات قديمة لا تطابق القائمة تُعامَل كـ"غير ذلك" بلا فقدانها
+
+  const sel=document.createElement('select');
+  sel.className='field-overlay district-select';
+  sel.dataset.key=f.key;
+  sel.style.cssText=geom;
+  if(tabIdx)sel.tabIndex=tabIdx;
+  sel.innerHTML='<option value="">— اختر الحي —</option>'+
+    WA_DISTRICTS.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('')+
+    `<option value="${DISTRICT_OTHER}">غير ذلك</option>`;
+
+  // مساحة إضافية لزر "رجوع للقائمة" الظاهر فقط بوضع النص الحر — لا يُحتسب من
+  // عرض الحقل الأصلي (w) حتى لا يتغيّر شكل الصندوق المطبوع لحقل الاختيار نفسه
+  const backW=Math.min(18,Math.max(14,Math.round(h*0.9)));
+  const inp=document.createElement('input');
+  inp.type='text';
+  inp.className='field-overlay '+(f.direction==='ltr'?'ltr':'rtl');
+  inp.dataset.key=f.key;
+  inp.placeholder=f.label||'';
+  inp.style.cssText=`left:${x}px;top:${y}px;width:${Math.max(10,w-backW)}px;height:${h}px;font-size:${baseFs}px;`;
+
+  const back=document.createElement('button');
+  back.type='button'; back.className='district-back'; back.title='رجوع لقائمة الأحياء'; back.textContent='⌄';
+  back.style.cssText=`left:${x+w-backW}px;top:${y}px;width:${backW}px;height:${h}px;`;
+
+  function showList(){sel.style.display='';inp.style.display='none';back.style.display='none';}
+  function showOther(focus){
+    sel.style.display='none';inp.style.display='';back.style.display='';
+    if(focus)inp.focus();
+  }
+  sel.value=inOther?DISTRICT_OTHER:(isListVal?cur:'');
+  inp.value=inOther?cur:'';
+  inp.classList.toggle('export-empty',!inp.value);
+  if(inOther)showOther(false);else showList();
+
+  sel.addEventListener('change',()=>{
+    if(sel.value===DISTRICT_OTHER){
+      formValues[f.key]='';inp.value='';showOther(true);
+    }else{
+      formValues[f.key]=sel.value;
+    }
+  });
+  inp.addEventListener('input',()=>{
+    formValues[f.key]=inp.value;
+    inp.classList.toggle('export-empty',!inp.value);
+    autoShrink(inp,baseFs,false);
+  });
+  back.addEventListener('click',()=>{formValues[f.key]='';sel.value='';showList();});
+
+  layer.appendChild(sel);layer.appendChild(inp);layer.appendChild(back);
   if(inp.value)autoShrink(inp,baseFs,false);
 }
 function mkArea(f,x,y,w,h,scale,layer,tabIdx){
@@ -3015,12 +3401,105 @@ function makeExcerpt(txt,maxWords){
   const lim=maxWords||18;
   return words.slice(0,lim).join(' ')+(words.length>lim?' …':'');
 }
-/* مؤشر سبب الحادث من خانات تقرير حادث */
-function causeFromValues(v){
+/* ============================================================
+   طبقة المؤشرات (Indicators) — أساس داشبورد الضابط (ولاحقاً لوحة الشعبة)
+   نفس نمط causeIndicator/audit تماماً: تُشتق وقت الحفظ، تُخزَّن على مستند
+   الحادثة. لكل حقل: نسخة خام لكل نموذج (indicators.<fid>) + قيمة مُجمَّعة
+   واحدة للحادثة كاملة على جذر المستند، تُعاد حسابها بالكامل من كل النسخ الخام
+   المتوفرة بكل حفظة — صحيحة دائماً بصرف النظر عن ترتيب حفظ النماذج (لا تعتمد
+   على كون هذا الحفظ هو "الأخير").
+   قرار التعارض (رقم ١ المتفق عليه): حادثة فيها تقرير حادث وتقرير مركبات بقيمتين
+   مختلفتين لحقل فردي واحد ⇒ تقرير حادث يغلب. عمَّمت نفس المبدأ على كل الحقول
+   الفردية الأخرى (جهة التسليم، نوع الموقع، استدعاء المحقق، الحي) لعدم وجود سبب
+   منطقي للتفريق بينها وبين السبب تحديداً — **قرار اتخذته أنا بالقياس، لم
+   يُطلَب صراحة لغير السبب، فأفصح عنه هنا بوضوح**.
+   المجموعات متعددة الاختيار (الجهات المشاركة، العمليات) تُدمَج بالاتحاد لا
+   بالغلبة: كل نموذج يسجّل حقائق مستقلة حقيقية (جهات/عمليات مختلفة فعلاً)،
+   وليس تعارضاً على نفس الحقيقة كما بالسبب. */
+function causeFromValuesAny(v){
   if(v.cause_accidental)return 'accidental';
   if(v.cause_criminal)return 'criminal';
-  if(v.cause_undetermined)return 'undetermined';
+  if(v.cause_undetermined||v.cause_unknown)return 'undetermined'; // تطبيع cause_unknown
   return '';
+}
+function pickFromGroup(v,pairs){for(const[val,key]of pairs)if(v[key]===true)return val;return '';}
+function handoverFromValues(v){
+  return pickFromGroup(v,[
+    ['owner','handover_to_owner'],
+    ['specialty','handover_after_ops'],    // تطبيع: نفس معنى handover_specialty
+    ['specialty','handover_specialty'],
+    ['ongoing','investigation_ongoing']
+  ]);
+}
+function locFromValues(v){
+  return pickFromGroup(v,[
+    ['residential','loc_residential'],['commercial','loc_commercial'],
+    ['industrial','loc_industrial'],['other','loc_other']
+  ]);
+}
+function investigatorFromValues(v){
+  if(v.investigator_called_yes)return 'yes';
+  if(v.investigator_called_no)return 'no';
+  return '';
+}
+/* توحيد مسمّيات الجهات المتقاربة بين النماذج الثلاثة (مثال: entity_electricity
+   تحمل تسميات نصية مختلفة قليلاً — "شركة الكهرباء"/"الشركة السعودية للطاقة" —
+   لكنها نفس المفتاح البرمجي فعلاً، فلا حاجة تطبيع هنا؛ أما entity_police/
+   entity_traffic/entity_health_affairs فحصرية بمحضر مشترك، تُحسب بقيمتها كما هي) */
+const ENTITY_NORMALIZE={
+  entity_red_crescent:'red_crescent', entity_electricity:'electricity',
+  entity_security_patrol:'security_patrol', entity_forensics:'forensics',
+  entity_municipality:'municipality', entity_other:'other',
+  entity_police:'police', entity_traffic:'traffic', entity_health_affairs:'health_affairs'
+};
+function entitiesFromValues(v){return Object.keys(ENTITY_NORMALIZE).filter(k=>v[k]===true).map(k=>ENTITY_NORMALIZE[k]);}
+const OPS_KEYS=['ops_extinguish','ops_rescue','ops_evacuate','ops_shelter','ops_ambulance'];
+function opsFromValues(v){return OPS_KEYS.filter(k=>v[k]===true).map(k=>k.replace('ops_',''));}
+/* الحي: نص حر لا يدخل الإحصاء إلا لو طابق قائمة WA_DISTRICTS الثابتة بالضبط —
+   قرار ٣. لا حاجة لحقل علامة إضافي بـformValues: التحقق هنا وقت الحفظ كافٍ
+   ودقيق (لا فرق بين "كتب حرفياً نص مطابق" و"اختاره من القائمة" — النتيجة
+   للإحصاء واحدة، والقيمة المطبوعة بالنموذج تبقى كما هي بكل الحالتين). */
+function districtFromValues(v){
+  const d=(v.district||'').trim();
+  return WA_DISTRICTS.includes(d)?d:'';
+}
+/* أولوية الحقول الفردية عند التعارض — تقرير حادث أولاً، ثم مركبات، ثم إقرار
+   العرضية (يساهم بالحي فقط أصلاً — لا يحمل بقية حقول المؤشرات إطلاقاً) */
+const INDICATOR_FORM_PRIORITY=['taqrir_hadith','taqrir_markabat','iqrar_aradiya'];
+function buildFormIndicators(type,v){
+  const isIncidentForm=type==='taqrir_hadith'||type==='taqrir_markabat';
+  const hasDistrict=isIncidentForm||type==='iqrar_aradiya';
+  if(!hasDistrict)return null; // sand_istilam/mahdar_mushtarak: لا حقول مؤشرات لديهما إطلاقاً
+  return {
+    type,
+    cause: isIncidentForm?causeFromValuesAny(v):'',
+    handover: isIncidentForm?handoverFromValues(v):'',
+    loc: type==='taqrir_hadith'?locFromValues(v):'', // نوع الموقع بتقرير حادث فقط أصلاً
+    investigatorCalled: isIncidentForm?investigatorFromValues(v):'',
+    entities: isIncidentForm?entitiesFromValues(v):[],
+    ops: isIncidentForm?opsFromValues(v):[],
+    district: districtFromValues(v)
+  };
+}
+/* يجمع كل النسخ الخام (indicators.<fid>) لحادثة واحدة إلى قيم موحَّدة تُكتب
+   على جذر المستند — قراءة مباشرة رخيصة لداشبورد الضابط بلا أي اشتقاق وقت العرض */
+function combineIncidentIndicators(byForm){
+  const entries=Object.values(byForm||{}).filter(Boolean);
+  const byType=t=>entries.find(e=>e.type===t);
+  const pickSingle=field=>{
+    for(const t of INDICATOR_FORM_PRIORITY){const e=byType(t);if(e&&e[field])return e[field];}
+    return '';
+  };
+  const union=field=>[...new Set(entries.flatMap(e=>e[field]||[]))];
+  return {
+    causeIndicator:pickSingle('cause'),
+    handoverIndicator:pickSingle('handover'),
+    locIndicator:pickSingle('loc'),
+    investigatorCalledIndicator:pickSingle('investigatorCalled'),
+    districtIndicator:pickSingle('district'),
+    entitiesIndicator:union('entities'),
+    opsIndicator:union('ops')
+  };
 }
 
 /* ============================================================
@@ -3175,11 +3654,27 @@ async function saveForm(silent){
       upd.descriptionExcerpt=excerpt;
       currentIncident.descriptionExcerpt=excerpt;
     }
-    if(currentForm.type==='taqrir_hadith'){
-      const cause=causeFromValues(formValues);
-      upd.causeIndicator=cause;
-      currentIncident.causeIndicator=cause;
+    // طبقة المؤشرات لداشبورد الضابط — تُدمَج مع نسخ المؤشرات الخام لبقية نماذج
+    // نفس الحادثة المحفوظة سابقاً (محمَّلة أصلاً بـcurrentIncident.indicators)،
+    // فتبقى صحيحة بصرف النظر عن ترتيب حفظ النماذج
+    const fIndicators=buildFormIndicators(currentForm.type,formValues);
+    if(fIndicators){
+      const ip='indicators.'+currentForm.id+'.';
+      upd[ip+'type']=fIndicators.type; upd[ip+'cause']=fIndicators.cause;
+      upd[ip+'handover']=fIndicators.handover; upd[ip+'loc']=fIndicators.loc;
+      upd[ip+'investigatorCalled']=fIndicators.investigatorCalled;
+      upd[ip+'entities']=fIndicators.entities; upd[ip+'ops']=fIndicators.ops;
+      upd[ip+'district']=fIndicators.district;
+      const mergedByForm={...(currentIncident.indicators||{}),[currentForm.id]:fIndicators};
+      Object.assign(upd,combineIncidentIndicators(mergedByForm));
+      if(!currentIncident.indicators)currentIncident.indicators={};
+      currentIncident.indicators[currentForm.id]=fIndicators;
+      Object.assign(currentIncident,combineIncidentIndicators(currentIncident.indicators));
     }
+    // لحظة آخر لمسة فعلية للحادثة — حقل جديد بمستوى الحادثة (لم يكن موجوداً من
+    // قبل)، ضمن نفس هذه الكتابة بلا أي تكلفة إضافية؛ أساس "لم يُحدَّث منذ..."
+    // بالداشبورد (formData.updatedAt موجود أصلاً لكل نموذج بمفرده، لا للحادثة ككل)
+    upd.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
     // إعادة القفل تُصفّر مرآة "أُعيد فتحه" — ضمن نفس كتابة الحادثة أدناه، بلا كتابة
     // ثالثة منفصلة (وإلا بقي النموذج ظاهراً بقائمة "أُعيد فتحها" بعد حفظه)
     if(willRelock){
@@ -3303,7 +3798,10 @@ async function captureForm(type){
     zoom=EXPORT_ZOOM;
     renderFields(); // يُعاد البناء من formValues/sigData في الذاكرة — لا فقدان للقيم
     cont.classList.add('exporting');
-    cont.querySelectorAll('input.field-overlay,textarea.field-area').forEach(el=>{
+    cont.querySelectorAll('input.field-overlay,textarea.field-area,select.field-overlay').forEach(el=>{
+      // زوج select/input حقل "الحي": العنصر المخفي من الزوج (display:none) يُتجاهل —
+      // الظاهر فعلياً وحده هو من يُحوَّل لنص ثابت، تماماً كأي حقل عادي آخر
+      if(getComputedStyle(el).display==='none')return;
       const isArea=el.tagName==='TEXTAREA';
       // الحقل الأصلي يُخفى دائماً ⇒ يستحيل طبع الـ placeholder
       el.style.visibility='hidden';

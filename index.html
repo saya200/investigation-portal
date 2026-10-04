@@ -512,7 +512,7 @@ select.field-overlay{cursor:pointer;appearance:none;-webkit-appearance:none;}
 .ac-empty{font-size:12.5px;color:var(--muted);background:var(--card);border:1px dashed var(--border);
   border-radius:var(--radius);padding:16px;text-align:center;}
 
-/* ===== داشبوردي (الضابط) ===== */
+/* ===== داشبورد (الضابط) ===== */
 .od-empty{text-align:center;padding:50px 20px;color:var(--muted);}
 .od-empty .ico{font-size:48px;opacity:.4;display:block;margin-bottom:10px;}
 .od-note{background:linear-gradient(90deg,var(--primary),var(--primary-light));border-radius:var(--radius);
@@ -773,7 +773,7 @@ tr:last-child td{border-bottom:none;}
     <div class="section-head">
       <h3>📋 الحوادث</h3>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="openOfficerDashboard()">📊 داشبوردي</button>
+        <button class="btn btn-ghost btn-sm" onclick="openOfficerDashboard()">📊 داشبورد</button>
         <button class="btn btn-ghost btn-sm" id="btn-admin-center" style="display:none" onclick="openAdminCenter()">🛡️ مركز الإدارة</button>
         <button class="btn btn-ghost btn-sm" id="btn-admin" style="display:none" onclick="openAdmin()">لوحة الإدارة</button>
         <button class="btn btn-primary" onclick="openNewIncident()">+ حادثة جديدة</button>
@@ -998,12 +998,12 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<!-- ============ OFFICER DASHBOARD — داشبوردي ============ -->
+<!-- ============ OFFICER DASHBOARD — داشبورد ============ -->
 <div class="screen" id="officer-dash-screen">
   <header class="app-header">
     <div class="header-logo">
       <img src="assets/logo.jpg" alt="شعار">
-      <h2>داشبوردي<span>نظرة عامة على حوادثك</span></h2>
+      <h2>داشبورد<span>نظرة عامة على حوادثك</span></h2>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="backToDash()">‹ القائمة</button>
   </header>
@@ -2242,7 +2242,7 @@ function renderIncidents(){
 function backToDash(){loadIncidents();showScreen('dash-screen');}
 
 /* ============================================================
-   داشبوردي — إحصائيات الضابط
+   داشبورد — إحصائيات الضابط
    كل الحسابات محلية 100% من incidents المحمَّلة أصلاً بـloadIncidents() (حوادثه
    + ما شارك فيه — نفس المجموعة المعروضة بالقائمة الرئيسية، قرار ٢)، مبنية حصراً
    على المؤشرات المُشتقة وقت الحفظ (طبقة indicators). صفر استعلامات إضافية عند

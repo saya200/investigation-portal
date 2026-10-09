@@ -476,9 +476,29 @@ select.field-overlay{cursor:pointer;appearance:none;-webkit-appearance:none;}
 .chk-overlay.rd{border-radius:50%;}
 .chk-overlay.on{background:rgba(30,132,73,.08);border-color:rgba(30,132,73,.65);}
 .sig-overlay{position:absolute;background:rgba(220,235,255,.35);border:1px dashed rgba(60,110,200,.5);border-radius:3px;overflow:hidden;}
-.sig-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;}
+.sig-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+/* زر شفاف يغطي كامل الحقل الصغير — فتح النافذة الكبيرة فقط، لا رسم مباشر هنا بعد الآن */
+.sig-open-btn{position:absolute;inset:0;width:100%;height:100%;background:transparent;z-index:2;padding:0;}
+.sig-edit-hint{position:absolute;bottom:2px;right:3px;font-size:10px;opacity:.55;pointer-events:none;z-index:2;}
 .sig-clear{position:absolute;top:2px;left:2px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
   padding:3px 8px;border-radius:5px;z-index:3;}
+.exporting .sig-edit-hint{display:none !important;}
+/* ===== نافذة التوقيع الكبيرة (ملء الشاشة) ===== */
+.sig-modal-bg{padding:0;}
+.sig-modal{background:var(--card);width:100%;height:100%;max-width:none;max-height:none;border-radius:0;
+  display:flex;flex-direction:column;padding:14px;box-sizing:border-box;}
+.sig-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;}
+.sig-modal-head span{font-size:15px;font-weight:800;color:var(--text);}
+.sig-modal-close{background:var(--bg);border-radius:50%;width:34px;height:34px;font-size:16px;line-height:1;
+  color:var(--muted);flex-shrink:0;}
+.sig-modal-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;}
+#sig-modal-canvas{background:#fff;border:1.5px dashed rgba(60,110,200,.5);border-radius:8px;touch-action:none;
+  cursor:crosshair;max-width:100%;max-height:100%;}
+.sig-modal-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11.5px;color:var(--muted);
+  pointer-events:none;}
+.sig-modal-actions{display:flex;gap:10px;margin-top:12px;flex-shrink:0;}
+.sig-modal-actions .btn{flex:1;}
+#sig-modal-confirm:disabled{opacity:.45;pointer-events:none;}
 /* ===== مركز الإدارة ===== */
 .ac-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
 .ac-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
@@ -1317,6 +1337,25 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- نافذة توقيع كبيرة بملء الشاشة — لحقول توقيع المواطن/الجهة المشاركة حصراً
+     (كل ما يمر عبر mkSig؛ توقيع الضابط محقون تلقائياً ولا علاقة له بهذه النافذة) -->
+<div class="modal-bg sig-modal-bg" id="modal-sig">
+  <div class="sig-modal">
+    <div class="sig-modal-head">
+      <span id="sig-modal-title">توقيع</span>
+      <button type="button" class="sig-modal-close" onclick="closeSigModal(false)">✕</button>
+    </div>
+    <div class="sig-modal-canvas-wrap" id="sig-modal-canvas-wrap">
+      <canvas id="sig-modal-canvas"></canvas>
+      <div class="sig-modal-hint">وقّع هنا — دوّر الجوال للوضع العرضي لمساحة أكبر</div>
+    </div>
+    <div class="sig-modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="clearSigModal()">🗑️ مسح</button>
+      <button type="button" class="btn btn-primary" id="sig-modal-confirm" onclick="closeSigModal(true)" disabled>✓ اعتماد</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 <div class="undo-toast" id="undo-toast">
   <span id="undo-toast-text">تم حذف التقرير</span>
@@ -1791,6 +1830,7 @@ function resetAppState(){
   // إيقاف المستمع الحي أولاً وقبل أي شيء — وإلا بقي بثّ بيانات كل الحوادث جارياً
   // بعد الخروج أو عند الدخول بحساب آخر (ثغرة من نفس عائلة الثغرة التي عُولجت هنا)
   stopAdminLive();
+  if($('modal-sig')&&$('modal-sig').classList.contains('show'))closeSigModal(false);
   currentUserData=null;
   incidents=[]; currentIncident=null;
   currentForm=null; formValues={}; sigData={}; sigPaths={};
@@ -3325,6 +3365,12 @@ async function openProfileFromForm(){
   showScreen('dash-screen');
   toggleProfilePanel();
 }
+/* حقول توقيع المواطن/الجهة (غير توقيع الضابط — ذاك عبر mkOfficerSig ومحقون تلقائياً
+   من الحساب، لا علاقة له بهذا المسار إطلاقاً). الخانة بالنموذج معاينة فقط الآن —
+   أي لمسة عليها تفتح نافذة توقيع كبيرة بملء الشاشة (openSigModal)؛ الرسم والاعتماد
+   يصيران داخلها حصراً. زر "مسح" يبقى على الخانة الصغيرة للمسح المباشر بلا فتح نافذة.
+   حين يكون النموذج مقفولاً، #fields-layer.locked يُسقط pointer-events عن الطبقة
+   كلها (CSS، سطر ~440) فيعطّل زر الفتح وزر المسح معاً تلقائياً — بلا أي كود إضافي هنا. */
 function mkSig(f,x,y,w,h,layer){
   const wrap=document.createElement('div');
   wrap.className='sig-overlay';
@@ -3332,37 +3378,121 @@ function mkSig(f,x,y,w,h,layer){
   const cv=document.createElement('canvas');
   cv.className='sig-canvas';
   cv.width=Math.round(w*2);cv.height=Math.round(h*2);
+  if(sigData[f.key]){
+    const ctx=cv.getContext('2d');
+    const im=new Image();im.onload=()=>ctx.drawImage(im,0,0,cv.width,cv.height);im.src=sigData[f.key];
+  }
+  const openBtn=document.createElement('button');
+  openBtn.type='button';openBtn.className='sig-open-btn';
+  openBtn.setAttribute('aria-label','فتح نافذة التوقيع الكبيرة');
+  openBtn.addEventListener('click',e=>{e.preventDefault();openSigModal(f,cv);});
+  const hint=document.createElement('span');
+  hint.className='sig-edit-hint';hint.textContent='✎';
   const cl=document.createElement('button');
   cl.className='sig-clear';cl.textContent='مسح';
-  cl.addEventListener('click',e=>{e.preventDefault();clearSig(f.key,cv);});
-  wrap.appendChild(cv);wrap.appendChild(cl);
+  cl.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();clearSig(f.key,cv);});
+  wrap.appendChild(cv);wrap.appendChild(openBtn);wrap.appendChild(hint);wrap.appendChild(cl);
   layer.appendChild(wrap);
-  const ctx=cv.getContext('2d');
-  ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0a1f3a';
-  if(sigData[f.key]){const im=new Image();im.onload=()=>ctx.drawImage(im,0,0,cv.width,cv.height);im.src=sigData[f.key];}
-  let drawing=false,last=null;
-  if(!sigPaths[f.key])sigPaths[f.key]=[];
-  function pos(e){
-    const r=cv.getBoundingClientRect();
-    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
-    const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
-    return {x:cx*(cv.width/r.width),y:cy*(cv.height/r.height)};
-  }
-  function start(e){e.preventDefault();drawing=true;last=pos(e);}
-  function move(e){
-    if(!drawing)return;e.preventDefault();
-    const p=pos(e);
-    ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();
-    last=p;
-  }
-  function end(){if(!drawing)return;drawing=false;sigData[f.key]=cv.toDataURL('image/png');}
-  cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);
-  window.addEventListener('mouseup',end);
-  cv.addEventListener('touchstart',start,{passive:false});
-  cv.addEventListener('touchmove',move,{passive:false});
-  cv.addEventListener('touchend',end);
 }
 function clearSig(key,cv){cv.getContext('2d').clearRect(0,0,cv.width,cv.height);delete sigData[key];}
+
+/* ===== نافذة التوقيع الكبيرة (ملء الشاشة) ===== */
+let sigModal={key:null,label:'',aspect:1,cv:null,ctx:null,fieldCv:null,drawing:false,last:null,hasInk:false};
+function openSigModal(f,fieldCv){
+  sigModal.key=f.key;
+  sigModal.aspect=(f.widthPct&&f.heightPct)?(f.widthPct/f.heightPct):1;
+  sigModal.fieldCv=fieldCv;
+  $('sig-modal-title').textContent=f.label||'توقيع';
+  $('modal-sig').classList.add('show');
+  // قراءة clientWidth فوراً بعد classList.add تفرض reflow متزامناً فتُرجع أبعاد
+  // الحاوية الصحيحة بعد ظهورها مباشرة — بلا حاجة لـrequestAnimationFrame (لا يُطلَق
+  // أصلاً إن كانت التبويبة خلفية وقت الفتح، فيعلّق القياس بلا داعٍ)
+  sizeSigModalCanvas(sigData[f.key]||null);
+  bindSigModalDrawEvents();
+  window.addEventListener('resize',onSigModalResize);
+  window.addEventListener('orientationchange',onSigModalResize);
+}
+/* يُستدعى عند الفتح (تحميل توقيع محفوظ إن وُجد) وعند كل تدوير/تغيير مقاس أثناء
+   التوقيع (preserve عبر snapshot بصيغة dataURL) — تغيير أبعاد الكانفاس الداخلية
+   يمسح محتواها دائماً، فنعيد رسم آخر لقطة بالحجم الجديد فوراً بدل فقدانها. */
+function sizeSigModalCanvas(sourceDataUrl){
+  const wrap=$('sig-modal-canvas-wrap');
+  const availW=Math.max(60,wrap.clientWidth-4), availH=Math.max(60,wrap.clientHeight-4);
+  let w=availW,h=w/sigModal.aspect;
+  if(h>availH){h=availH;w=h*sigModal.aspect;}
+  const cv=$('sig-modal-canvas');
+  cv.style.width=Math.round(w)+'px';cv.style.height=Math.round(h)+'px';
+  const DPR=2;
+  cv.width=Math.round(w*DPR);cv.height=Math.round(h*DPR);
+  const ctx=cv.getContext('2d');
+  ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0a1f3a';
+  sigModal.cv=cv;sigModal.ctx=ctx;
+  if(sourceDataUrl){
+    const im=new Image();
+    im.onload=()=>{ctx.drawImage(im,0,0,cv.width,cv.height);updateSigModalConfirmState();};
+    im.src=sourceDataUrl;
+  }else updateSigModalConfirmState();
+}
+function onSigModalResize(){
+  if(!$('modal-sig').classList.contains('show'))return;
+  let snapshot=null;
+  try{if(sigModal.cv&&sigModal.cv.width>0)snapshot=sigModal.cv.toDataURL('image/png');}catch(e){}
+  sizeSigModalCanvas(snapshot);
+}
+function sigModalPos(e){
+  const cv=sigModal.cv,r=cv.getBoundingClientRect();
+  const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  return {x:cx*(cv.width/r.width),y:cy*(cv.height/r.height)};
+}
+function sigModalStart(e){e.preventDefault();sigModal.drawing=true;sigModal.last=sigModalPos(e);}
+function sigModalMove(e){
+  if(!sigModal.drawing)return;e.preventDefault();
+  const p=sigModalPos(e),ctx=sigModal.ctx;
+  ctx.beginPath();ctx.moveTo(sigModal.last.x,sigModal.last.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+  sigModal.last=p;
+}
+function sigModalEnd(){if(!sigModal.drawing)return;sigModal.drawing=false;updateSigModalConfirmState();}
+function bindSigModalDrawEvents(){
+  const cv=$('sig-modal-canvas');
+  cv.onmousedown=sigModalStart;cv.onmousemove=sigModalMove;
+  cv.ontouchstart=e=>sigModalStart(e);cv.ontouchmove=e=>sigModalMove(e);cv.ontouchend=sigModalEnd;
+  window.addEventListener('mouseup',sigModalEnd);
+}
+/* فحص فراغ فعلي — أي بكسل غير شفاف يعني وجود رسم، نفس منطق توقيع البروفايل */
+function updateSigModalConfirmState(){
+  const cv=sigModal.cv,ctx=sigModal.ctx; if(!cv||!ctx)return;
+  const data=ctx.getImageData(0,0,cv.width,cv.height).data;
+  let hasInk=false;
+  for(let i=3;i<data.length;i+=4){if(data[i]!==0){hasInk=true;break;}}
+  sigModal.hasInk=hasInk;
+  $('sig-modal-confirm').disabled=!hasInk;
+  const hint=document.querySelector('#modal-sig .sig-modal-hint');
+  if(hint)hint.style.display=hasInk?'none':'';
+}
+function clearSigModal(){
+  if(!sigModal.cv)return;
+  sigModal.ctx.clearRect(0,0,sigModal.cv.width,sigModal.cv.height);
+  updateSigModalConfirmState();
+}
+function closeSigModal(commit){
+  if(commit){
+    if(!sigModal.hasInk){showToast('وقّع أولاً قبل الاعتماد','error');return;}
+    sigData[sigModal.key]=sigModal.cv.toDataURL('image/png');
+    // تحديث فوري ومتزامن لمعاينة الخانة الصغيرة من نفس الكانفاس الكبير مباشرة —
+    // بلا حاجة لإعادة بناء طبقة الحقول كاملة أو انتظار تحميل صورة غير متزامن
+    if(sigModal.fieldCv){
+      const fcv=sigModal.fieldCv,fctx=fcv.getContext('2d');
+      fctx.clearRect(0,0,fcv.width,fcv.height);
+      fctx.drawImage(sigModal.cv,0,0,fcv.width,fcv.height);
+    }
+  }
+  $('modal-sig').classList.remove('show');
+  window.removeEventListener('resize',onSigModalResize);
+  window.removeEventListener('orientationchange',onSigModalResize);
+  window.removeEventListener('mouseup',sigModalEnd);
+  sigModal={key:null,label:'',aspect:1,cv:null,ctx:null,fieldCv:null,drawing:false,last:null,hasInk:false};
+}
 
 /* ===== ZOOM ===== */
 function zoomStep(d){zoom=Math.min(3,Math.max(0.25,zoom+d*0.15));applyZoom();}
@@ -3704,7 +3834,10 @@ async function saveForm(silent){
     if(!silent){showLoading(false);showToast(willRelock?'تم الحفظ — أُقفل التقرير نهائياً':'تم الحفظ','ok');}
   }catch(e){if(!silent){showLoading(false);}showToast('تعذّر الحفظ','error');console.error(e);}
 }
-async function closeForm(){await saveForm(true);renderIncidentScreen();showScreen('incident-screen');}
+async function closeForm(){
+  if($('modal-sig').classList.contains('show'))closeSigModal(false); // احتياط: لا يُفترض الوصول هنا والنافذة مفتوحة أصلاً
+  await saveForm(true);renderIncidentScreen();showScreen('incident-screen');
+}
 
 /* ============================================================
    PDF EXPORT
